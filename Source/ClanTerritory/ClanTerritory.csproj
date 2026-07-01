@@ -65,6 +65,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abstractions\IDisposableModule.cs" />
+    <Compile Include="Abstractions\IEntity.cs" />
+    <Compile Include="Abstractions\IInitializable.cs" />
+    <Compile Include="Abstractions\IProvider.cs" />
+    <Compile Include="Abstractions\IRegistry.cs" />
+    <Compile Include="Abstractions\IService.cs" />
     <Compile Include="API\ClanTerritoryApi.cs" />
     <Compile Include="API\ClanTerritoryApiProvider.cs" />
     <Compile Include="API\IClanTerritoryApi.cs" />
