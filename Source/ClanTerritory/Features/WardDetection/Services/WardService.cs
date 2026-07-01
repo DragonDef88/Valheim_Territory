@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 using ClanTerritory.Core;
+using ClanTerritory.Events;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Registry;
 using ClanTerritory.Utils;
@@ -59,6 +60,11 @@ namespace ClanTerritory.Features.WardDetection.Services
             if (_registry.Register(model))
             {
                 ModLog.Info("Ward registered: " + model.Id + ", owner: " + model.OwnerName);
+
+                EventBus eventBus;
+
+                if (ServiceContainer.TryGet<EventBus>(out eventBus))
+                    eventBus.Publish(new WardRegisteredEvent(model));
             }
         }
 
