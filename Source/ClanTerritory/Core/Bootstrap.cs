@@ -1,9 +1,9 @@
 ﻿using BepInEx.Configuration;
 using BepInEx.Logging;
-using ClanTerritory.Config;
-using ClanTerritory.Utils;
 using HarmonyLib;
-using System.ComponentModel.Design;
+using ClanTerritory.Config;
+using ClanTerritory.Features.WardDetection;
+using ClanTerritory.Utils;
 
 namespace ClanTerritory.Core
 {
@@ -32,6 +32,8 @@ namespace ClanTerritory.Core
             ServiceContainer.Clear();
 
             _moduleManager = new ModuleManager();
+            _moduleManager.Register(new WardDetectionModule());
+
             ServiceContainer.Register<ModuleManager>(_moduleManager);
 
             _moduleManager.InitializeAll();
