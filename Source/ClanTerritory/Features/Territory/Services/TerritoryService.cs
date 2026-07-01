@@ -34,9 +34,15 @@ namespace ClanTerritory.Features.Territory.Services
 
             TerritoryEntity territory = _factory.CreateFromWard(ward);
 
-            if (HasOverlap(territory))
+            TerritoryEntity intersecting = _registry.FindIntersecting(territory);
+
+            if (intersecting != null)
             {
-                ModLog.Warning("Territory creation blocked: overlap detected.");
+                ModLog.Warning(
+                    "Territory creation blocked: overlap with " +
+                    intersecting.Id
+                );
+
                 return;
             }
 
@@ -48,20 +54,11 @@ namespace ClanTerritory.Features.Territory.Services
                     ", owner: " +
                     territory.Owner.DisplayName +
                     ", radius: " +
-                    territory.Radius.Value
+                    territory.Radius.Value +
+                    ", total: " +
+                    _registry.Count
                 );
             }
-        }
-
-        private bool HasOverlap(TerritoryEntity territory)
-        {
-            foreach (TerritoryEntity existing in _registry.All)
-            {
-                if (existing.Overlaps(territory))
-                    return true;
-            }
-
-            return false;
         }
     }
 }
