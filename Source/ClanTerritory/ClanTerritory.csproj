@@ -90,12 +90,21 @@
     <Compile Include="Domain\ValueObjects\OwnerInfo.cs" />
     <Compile Include="Domain\ValueObjects\TerritoryRadius.cs" />
     <Compile Include="Domain\ValueObjects\WorldPosition.cs" />
+    <Compile Include="Events\EventBus.cs" />
+    <Compile Include="Events\IEvent.cs" />
+    <Compile Include="Events\IEventHandler.cs" />
+    <Compile Include="Features\Territory\Factories\TerritoryFactory.cs" />
+    <Compile Include="Features\Territory\Registry\TerritoryRegistry.cs" />
+    <Compile Include="Features\Territory\Services\ITerritoryService.cs" />
+    <Compile Include="Features\Territory\Services\TerritoryService.cs" />
+    <Compile Include="Features\Territory\TerritoryModule.cs" />
     <Compile Include="Features\WardDetection\Hooks\PiecePlacementHooks.cs" />
     <Compile Include="Features\WardDetection\Models\WardModel.cs" />
     <Compile Include="Features\WardDetection\Registry\WardRegistry.cs" />
     <Compile Include="Features\WardDetection\Services\IWardService.cs" />
     <Compile Include="Features\WardDetection\Services\WardService.cs" />
     <Compile Include="Features\WardDetection\WardDetectionModule.cs" />
+    <Compile Include="Features\WardDetection\WardRegisteredEvent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\ModLog.cs" />
   </ItemGroup>

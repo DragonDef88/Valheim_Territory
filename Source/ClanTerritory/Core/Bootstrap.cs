@@ -2,6 +2,8 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using ClanTerritory.Config;
+using ClanTerritory.Events;
+using ClanTerritory.Features.Territory;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Utils;
 
@@ -11,6 +13,7 @@ namespace ClanTerritory.Core
     {
         private static bool _initialized;
         private static ModuleManager _moduleManager;
+        private static EventBus _eventBus;
 
         public static bool IsInitialized
         {
@@ -31,7 +34,12 @@ namespace ClanTerritory.Core
 
             ServiceContainer.Clear();
 
+            _eventBus = new EventBus();
+            ServiceContainer.Register<EventBus>(_eventBus);
+
             _moduleManager = new ModuleManager();
+
+            _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
 
             ServiceContainer.Register<ModuleManager>(_moduleManager);
@@ -55,8 +63,12 @@ namespace ClanTerritory.Core
             if (_moduleManager != null)
                 _moduleManager.ShutdownAll();
 
+            if (_eventBus != null)
+                _eventBus.Clear();
+
             ServiceContainer.Clear();
 
+            _eventBus = null;
             _moduleManager = null;
             _initialized = false;
 
