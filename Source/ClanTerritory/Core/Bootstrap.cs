@@ -10,6 +10,11 @@ namespace ClanTerritory.Core
     {
         private static bool _initialized;
 
+        public static bool IsInitialized
+        {
+            get { return _initialized; }
+        }
+
         public static void Initialize(Plugin plugin, ManualLogSource logger, ConfigFile config)
         {
             if (_initialized)
