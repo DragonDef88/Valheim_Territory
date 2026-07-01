@@ -83,6 +83,13 @@
     <Compile Include="Core\Plugin.cs" />
     <Compile Include="Core\ServiceContainer.cs" />
     <Compile Include="Core\VersionInfo.cs" />
+    <Compile Include="Domain\Entities\Territory.cs" />
+    <Compile Include="Domain\Identifiers\PlayerId.cs" />
+    <Compile Include="Domain\Identifiers\TerritoryId.cs" />
+    <Compile Include="Domain\Identifiers\WardId.cs" />
+    <Compile Include="Domain\ValueObjects\OwnerInfo.cs" />
+    <Compile Include="Domain\ValueObjects\TerritoryRadius.cs" />
+    <Compile Include="Domain\ValueObjects\WorldPosition.cs" />
     <Compile Include="Features\WardDetection\Hooks\PiecePlacementHooks.cs" />
     <Compile Include="Features\WardDetection\Models\WardModel.cs" />
     <Compile Include="Features\WardDetection\Registry\WardRegistry.cs" />
