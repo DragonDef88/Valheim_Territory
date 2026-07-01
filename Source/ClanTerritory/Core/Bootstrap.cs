@@ -2,6 +2,7 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using ClanTerritory.Config;
+using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Core
@@ -9,6 +10,7 @@ namespace ClanTerritory.Core
     internal static class Bootstrap
     {
         private static bool _initialized;
+        private static ModuleManager _moduleManager;
 
         public static bool IsInitialized
         {
@@ -27,6 +29,15 @@ namespace ClanTerritory.Core
 
             ConfigManager.Initialize(config);
 
+            ServiceContainer.Clear();
+
+            _moduleManager = new ModuleManager();
+            _moduleManager.Register(new WardDetectionModule());
+
+            ServiceContainer.Register<ModuleManager>(_moduleManager);
+
+            _moduleManager.InitializeAll();
+
             Globals.Harmony.PatchAll();
 
             _initialized = true;
@@ -41,6 +52,12 @@ namespace ClanTerritory.Core
 
             Globals.Harmony.UnpatchSelf();
 
+            if (_moduleManager != null)
+                _moduleManager.ShutdownAll();
+
+            ServiceContainer.Clear();
+
+            _moduleManager = null;
             _initialized = false;
 
             ModLog.Info(ModInfo.Name + " shutdown.");
