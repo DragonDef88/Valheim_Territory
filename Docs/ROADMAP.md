@@ -76,6 +76,17 @@ Planned:
 - Guilds
 - EpicMMO
 
+Persistence
+
+↓
+
+World Lifecycle
+
+↓
+
+Permission Engine
+
 ## v1.0
 
 Public release.
+
