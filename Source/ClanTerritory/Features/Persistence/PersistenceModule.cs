@@ -25,7 +25,7 @@ namespace ClanTerritory.Features.Persistence
             _serializer = new JsonSerializerService();
             _storage = new JsonStorage(_serializer);
             _territoryMapper = new TerritoryMapper();
-            _service = new PersistenceService(_storage, _territoryMapper);
+            _service = new PersistenceService(_storage, _territoryMapper, _fileSystem);
 
             ServiceContainer.Register<PersistenceFileSystem>(_fileSystem);
             ServiceContainer.Register<JsonSerializerService>(_serializer);

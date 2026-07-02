@@ -6,6 +6,7 @@ using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Utils;
 using SaveFileModelModel = ClanTerritory.Features.Persistence.Models.SaveFileModel;
 using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
+using ClanTerritory.Features.Persistence.FileSystem;
 
 namespace ClanTerritory.Features.Persistence.Services
 {
@@ -13,19 +14,28 @@ namespace ClanTerritory.Features.Persistence.Services
     {
         private readonly JsonStorage _storage;
         private readonly TerritoryMapper _territoryMapper;
+        private readonly PersistenceFileSystem _fileSystem;
 
-        public PersistenceService(JsonStorage storage, TerritoryMapper territoryMapper)
+        public PersistenceService(
+            JsonStorage storage,
+            TerritoryMapper territoryMapper,
+            PersistenceFileSystem fileSystem)
         {
             _storage = storage;
             _territoryMapper = territoryMapper;
+            _fileSystem = fileSystem;
         }
 
         public void SaveNow()
         {
-            SaveFileModelModel snapshot = CreateSnapshot();
+            SaveFileModel snapshot = CreateSnapshot();
+
+            string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
+
+            _storage.Save(path, snapshot);
 
             ModLog.Info(
-                "Persistence snapshot created. Records: " +
+                "Persistence snapshot saved. Records: " +
                 snapshot.Metadata.RecordCount
             );
         }
