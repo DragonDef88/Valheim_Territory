@@ -2,12 +2,12 @@
 
 namespace ClanTerritory.Features.Persistence.Models
 {
-    internal sealed class SaveFile
+    internal sealed class SaveFileModel
     {
         public SaveMetadata Metadata { get; set; }
         public List<WardRecord> Wards { get; set; }
 
-        public SaveFile()
+        public SaveFileModel()
         {
             Metadata = new SaveMetadata();
             Wards = new List<WardRecord>();

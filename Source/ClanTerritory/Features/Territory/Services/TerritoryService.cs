@@ -5,6 +5,8 @@ using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
 using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
+using ClanTerritory.Core;
+using ClanTerritory.Features.Persistence.Services;
 
 namespace ClanTerritory.Features.Territory.Services
 {
@@ -58,6 +60,10 @@ namespace ClanTerritory.Features.Territory.Services
                     ", total: " +
                     _registry.Count
                 );
+                IPersistenceService persistenceService;
+
+                if (ServiceContainer.TryGet<IPersistenceService>(out persistenceService))
+                    persistenceService.SaveNow();
             }
         }
     }
