@@ -76,3 +76,11 @@ TerritoryFactory
 Domain.Territory
 ↓
 TerritoryRegistry
+
+## Future Refactoring
+
+Persistence currently resides under Features.
+
+As the project grows it may become part of the Infrastructure layer.
+
+No migration is planned before v1.0 unless there is a clear architectural benefit.
