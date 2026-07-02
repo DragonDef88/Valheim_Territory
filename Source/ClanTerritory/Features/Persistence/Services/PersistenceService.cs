@@ -14,16 +14,19 @@ namespace ClanTerritory.Features.Persistence.Services
     {
         private readonly JsonStorage _storage;
         private readonly TerritoryMapper _territoryMapper;
+        private readonly BackupStorage _backupStorage;
         private readonly PersistenceFileSystem _fileSystem;
 
         public PersistenceService(
-            JsonStorage storage,
-            TerritoryMapper territoryMapper,
-            PersistenceFileSystem fileSystem)
+               JsonStorage storage,
+               TerritoryMapper territoryMapper,
+               PersistenceFileSystem fileSystem,
+               BackupStorage backupStorage)
         {
             _storage = storage;
             _territoryMapper = territoryMapper;
             _fileSystem = fileSystem;
+            _backupStorage = backupStorage;
         }
 
         public void SaveNow()
@@ -31,7 +34,7 @@ namespace ClanTerritory.Features.Persistence.Services
             SaveFileModel snapshot = CreateSnapshot();
 
             string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
-
+            _backupStorage.BackupIfExists(snapshot.Metadata.WorldName);
             _storage.Save(path, snapshot);
 
             ModLog.Info(

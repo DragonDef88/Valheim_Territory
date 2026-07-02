@@ -16,18 +16,21 @@ namespace ClanTerritory.Features.Persistence
         private JsonStorage _storage;
         private TerritoryMapper _territoryMapper;
         private PersistenceService _service;
-
+        private BackupStorage _backupStorage;
         public void Initialize()
         {
             _fileSystem = new PersistenceFileSystem();
             _fileSystem.EnsureDirectories();
 
+            _backupStorage = new BackupStorage(_fileSystem);
+
             _serializer = new JsonSerializerService();
             _storage = new JsonStorage(_serializer);
             _territoryMapper = new TerritoryMapper();
-            _service = new PersistenceService(_storage, _territoryMapper, _fileSystem);
+            _service = new PersistenceService(_storage, _territoryMapper, _fileSystem, _backupStorage);
 
             ServiceContainer.Register<PersistenceFileSystem>(_fileSystem);
+            ServiceContainer.Register<BackupStorage>(_backupStorage);
             ServiceContainer.Register<JsonSerializerService>(_serializer);
             ServiceContainer.Register<JsonStorage>(_storage);
             ServiceContainer.Register<TerritoryMapper>(_territoryMapper);

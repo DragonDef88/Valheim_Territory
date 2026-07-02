@@ -103,6 +103,7 @@
     <Compile Include="Features\Persistence\Serialization\JsonSerializerService.cs" />
     <Compile Include="Features\Persistence\Services\IPersistenceService.cs" />
     <Compile Include="Features\Persistence\Services\PersistenceService.cs" />
+    <Compile Include="Features\Persistence\Storage\BackupStorage.cs" />
     <Compile Include="Features\Persistence\Storage\JsonStorage.cs" />
     <Compile Include="Features\Territory\Factories\TerritoryFactory.cs" />
     <Compile Include="Features\Territory\Registry\TerritoryRegistry.cs" />
