@@ -65,3 +65,47 @@ Architecture decisions are documented.
 ## Principle 8
 
 Build for years, not for today.
+
+---
+
+## Principle 9
+
+One module — one question.
+
+Every module should have exactly one responsibility
+and answer one architectural question.
+
+If a module starts answering multiple questions,
+it should probably be split.
+
+---
+
+##Principle 10
+
+The simplest correct solution wins.
+
+---
+
+##Principle 11
+
+Separate Unity from business logic.
+
+То есть:
+
+Scanner знает Unity.
+
+Discovery знает WardModel.
+
+Territory знает Domain.
+
+Persistence знает JSON.
+
+Каждый слой знает только то, что должен знать.
+
+---
+
+##Principle 12
+
+Every boundary has a translator.
+
+То есть каждый переход между слоями выполняется специальным классом.
