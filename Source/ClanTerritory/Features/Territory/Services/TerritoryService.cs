@@ -1,16 +1,20 @@
-﻿using ClanTerritory.Events;
+﻿using ClanTerritory.Core;
+using ClanTerritory.Events;
+using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Territory.Factories;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
+
 using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
-using ClanTerritory.Core;
-using ClanTerritory.Features.Persistence.Services;
 
 namespace ClanTerritory.Features.Territory.Services
 {
-    internal sealed class TerritoryService : ITerritoryService, IEventHandler<WardRegisteredEvent>
+    internal sealed class TerritoryService :
+        ITerritoryService,
+        IEventHandler<WardRegisteredEvent>,
+        IEventHandler<WardDestroyedEvent>
     {
         private readonly TerritoryRegistry _registry;
         private readonly TerritoryFactory _factory;
@@ -29,6 +33,14 @@ namespace ClanTerritory.Features.Territory.Services
             CreateTerritoryFromWard(eventData.Ward);
         }
 
+        public void Handle(WardDestroyedEvent eventData)
+        {
+            if (eventData == null)
+                return;
+
+            RemoveTerritoryFromWard(eventData.WardId);
+        }
+
         public void CreateTerritoryFromWard(WardModel ward)
         {
             if (ward == null)
@@ -42,8 +54,7 @@ namespace ClanTerritory.Features.Territory.Services
             {
                 ModLog.Warning(
                     "Territory creation blocked: overlap with " +
-                    intersecting.Id
-                );
+                    intersecting.Id);
 
                 return;
             }
@@ -58,13 +69,38 @@ namespace ClanTerritory.Features.Territory.Services
                     ", radius: " +
                     territory.Radius.Value +
                     ", total: " +
-                    _registry.Count
-                );
-                IPersistenceService persistenceService;
+                    _registry.Count);
 
-                if (ServiceContainer.TryGet<IPersistenceService>(out persistenceService))
-                    persistenceService.SaveNow();
+                SaveNow();
             }
+        }
+
+        private void RemoveTerritoryFromWard(ClanTerritory.Domain.Identifiers.WardId wardId)
+        {
+            if (_registry.RemoveByWard(wardId))
+            {
+                ModLog.Info(
+                    "Territory removed for ward: " +
+                    wardId +
+                    ", total: " +
+                    _registry.Count);
+
+                SaveNow();
+            }
+            else
+            {
+                ModLog.Warning(
+                    "Ward destroyed, but territory was not found: " +
+                    wardId);
+            }
+        }
+
+        private void SaveNow()
+        {
+            IPersistenceService persistenceService;
+
+            if (ServiceContainer.TryGet<IPersistenceService>(out persistenceService))
+                persistenceService.SaveNow();
         }
     }
 }
