@@ -1,12 +1,14 @@
-﻿using ClanTerritory.Core;
+﻿using System;
+using ClanTerritory.Core;
+using ClanTerritory.Features.Persistence.FileSystem;
 using ClanTerritory.Features.Persistence.Mappers;
 using ClanTerritory.Features.Persistence.Models;
 using ClanTerritory.Features.Persistence.Storage;
 using ClanTerritory.Features.Territory.Registry;
+using ClanTerritory.Features.World.Services;
 using ClanTerritory.Utils;
-using SaveFileModelModel = ClanTerritory.Features.Persistence.Models.SaveFileModel;
+
 using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
-using ClanTerritory.Features.Persistence.FileSystem;
 
 namespace ClanTerritory.Features.Persistence.Services
 {
@@ -14,19 +16,22 @@ namespace ClanTerritory.Features.Persistence.Services
     {
         private readonly JsonStorage _storage;
         private readonly TerritoryMapper _territoryMapper;
-        private readonly BackupStorage _backupStorage;
         private readonly PersistenceFileSystem _fileSystem;
+        private readonly BackupStorage _backupStorage;
+        private readonly IWorldInfoService _worldInfoService;
 
         public PersistenceService(
-               JsonStorage storage,
-               TerritoryMapper territoryMapper,
-               PersistenceFileSystem fileSystem,
-               BackupStorage backupStorage)
+            JsonStorage storage,
+            TerritoryMapper territoryMapper,
+            PersistenceFileSystem fileSystem,
+            BackupStorage backupStorage,
+            IWorldInfoService worldInfoService)
         {
             _storage = storage;
             _territoryMapper = territoryMapper;
             _fileSystem = fileSystem;
             _backupStorage = backupStorage;
+            _worldInfoService = worldInfoService;
         }
 
         public void SaveNow()
@@ -34,13 +39,14 @@ namespace ClanTerritory.Features.Persistence.Services
             SaveFileModel snapshot = CreateSnapshot();
 
             string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
+
             _backupStorage.BackupIfExists(snapshot.Metadata.WorldName);
+
             _storage.Save(path, snapshot);
 
             ModLog.Info(
                 "Persistence snapshot saved. Records: " +
-                snapshot.Metadata.RecordCount
-            );
+                snapshot.Metadata.RecordCount);
         }
 
         public void LoadNow()
@@ -48,18 +54,20 @@ namespace ClanTerritory.Features.Persistence.Services
             ModLog.Info("Persistence LoadNow prepared.");
         }
 
-        private SaveFileModelModel CreateSnapshot()
+        private SaveFileModel CreateSnapshot()
         {
-            SaveFileModelModel saveFile = new SaveFileModelModel();
+            SaveFileModel saveFile = new SaveFileModel();
 
-            saveFile.Metadata.Version = 1;
-            saveFile.Metadata.WorldName = "Unknown";
+            saveFile.Metadata.SchemaVersion = 1;
             saveFile.Metadata.PluginVersion = ModInfo.Version;
             saveFile.Metadata.Build = "Alpha";
+            saveFile.Metadata.CreatedBy = "Clan Territory";
+            saveFile.Metadata.WorldName = _worldInfoService.GetWorldName();
+            saveFile.Metadata.SavedAtUtc = DateTime.UtcNow.ToString("o");
 
             TerritoryRegistry territoryRegistry;
 
-            if (ServiceContainer.TryGet<TerritoryRegistry>(out territoryRegistry))
+            if (ServiceContainer.TryGet(out territoryRegistry))
             {
                 foreach (TerritoryEntity territory in territoryRegistry.GetAll())
                 {
