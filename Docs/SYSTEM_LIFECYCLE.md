@@ -2,205 +2,330 @@
 
 ## Purpose
 
-This document describes the lifecycle of Clan Territory as a system.
+This document describes how Clan Territory behaves throughout its lifetime.
 
-It separates plugin startup, runtime initialization, world discovery, gameplay events, persistence and shutdown.
+Unlike the architecture document, which explains system structure, this document explains **when** each subsystem operates and **why**.
+
+Every subsystem has a defined place within the lifecycle.
 
 ---
 
 # Lifecycle Overview
 
-```text
-Plugin Loaded
-↓
+```
+Valheim Starts
+        │
+        ▼
+BepInEx Loads Plugin
+        │
+        ▼
 Bootstrap.Initialize()
-↓
+        │
+        ▼
 Infrastructure Ready
-↓
-Modules Initialized
-↓
+        │
+        ▼
 Runtime Initialization
-↓
+        │
+        ▼
 World Discovery
-↓
-World Synchronization
-↓
-Gameplay
-↓
-Persistence
-↓
+        │
+        ▼
+Registry Synchronization
+        │
+        ▼
+Persistence Merge
+        │
+        ▼
+Gameplay Ready
+        │
+        ▼
+Gameplay Events
+        │
+        ▼
 Shutdown
+```
 
-Plugin Startup
+---
 
-The plugin starts through BepInEx.
+# Plugin Lifecycle
 
-Plugin calls Bootstrap.Initialize().
+The plugin lifecycle is controlled by BepInEx.
 
-At this stage the mod should only prepare infrastructure.
+```
+Valheim
+        │
+        ▼
+BepInEx
+        │
+        ▼
+Plugin
+        │
+        ▼
+Bootstrap.Initialize()
+```
 
+Responsibilities:
+
+- create infrastructure;
+- initialize configuration;
+- register modules;
+- apply Harmony patches.
+
+Bootstrap **must not** execute gameplay logic.
+
+---
+
+# Infrastructure Lifecycle
+
+Infrastructure exists before gameplay.
+
+```
 Bootstrap
+        │
+        ▼
+Config
+        │
+        ▼
+EventBus
+        │
+        ▼
+ServiceContainer
+        │
+        ▼
+Modules
+        │
+        ▼
+Harmony
+```
 
-Bootstrap is responsible for composition only.
+At this stage:
 
-Bootstrap may:
+- no Territories exist;
+- Registry is empty;
+- Discovery has not started.
 
-assign globals;
-initialize config;
-create EventBus;
-create ModuleManager;
-register modules;
-initialize modules;
-apply Harmony patches.
+The infrastructure is only prepared.
 
-Bootstrap must not contain gameplay logic.
+---
 
-Bootstrap must not call world discovery directly.
+# Runtime Initialization
 
+After infrastructure is ready, runtime initialization prepares the current world state.
+
+```
 Infrastructure Ready
+        │
+        ▼
+Runtime Initialization
+        │
+        ▼
+Gameplay Ready
+```
 
-After Bootstrap completes:
+Runtime initialization is responsible for coordinating startup.
 
-Config is initialized;
-EventBus is available;
-ServiceContainer is available;
-ModuleManager is initialized;
-Harmony patches are applied;
-all modules are registered.
+Future responsibilities include:
 
-At this point the mod infrastructure is ready.
+- world discovery;
+- registry synchronization;
+- persistence merge;
+- runtime validation.
 
-Module Initialization
+---
 
-Modules register their services.
+# World Discovery
+
+Purpose:
+
+> Determine which Wards currently exist in the world.
+
+Input:
+
+```
+Valheim World
+```
+
+Output:
+
+```
+IReadOnlyList<WardModel>
+```
+
+Responsibilities:
+
+- scan the world;
+- identify valid Wards;
+- create Ward models.
+
+World Discovery **must not**:
+
+- modify Registry;
+- create Territories;
+- save files;
+- publish gameplay events.
+
+Discovery is read-only.
+
+---
+
+# Registry Synchronization
+
+Purpose:
+
+> Make Registry match the current world.
+
+Input:
+
+```
+WardModel[]
+```
+
+Output:
+
+```
+Territory Registry
+```
+
+Responsibilities:
+
+- create missing Territories;
+- remove obsolete Territories;
+- rebuild runtime state.
+
+Registry Synchronization is the only subsystem responsible for rebuilding runtime state.
+
+---
+
+# Persistence Merge
+
+Purpose:
+
+Restore additional Territory information.
 
 Examples:
 
-PersistenceModule registers persistence services;
-TerritoryModule registers registry and territory services;
-WardDetectionModule registers ward detection services;
-WorldDiscoveryModule registers world discovery services.
+- permissions;
+- upgrades;
+- future extensions.
 
-Modules should not perform heavy gameplay synchronization during initialization.
+Persistence Merge never creates Territories.
 
-Runtime Initialization
+If a Ward does not exist, no Territory may be restored.
 
-Runtime initialization begins after infrastructure is ready.
+---
 
-Runtime initialization is responsible for preparing the current world state.
+# Gameplay Lifecycle
 
-Future runtime initialization steps:
+Once runtime initialization completes, normal gameplay begins.
 
-RuntimeInitializationService
-↓
-WorldDiscoveryService.Discover()
-↓
-WorldSynchronizationService.Synchronize()
-↓
-Persistence extras merge
-↓
-Gameplay ready
-World Discovery
+Typical event flow:
 
-World Discovery answers one question:
-
-Which Ward objects exist in the world right now?
-
-World Discovery must not:
-
-modify Registry;
-save files;
-create Territory directly;
-publish gameplay events unnecessarily.
-
-World Discovery only reads the Valheim world and returns Ward models.
-
-World Synchronization
-
-World Synchronization answers one question:
-
-How do we make Registry match the discovered world?
-
-World Synchronization may:
-
-add missing territories;
-remove territories whose Ward no longer exists;
-rebuild Registry;
-request persistence save after synchronization.
-
-World Synchronization uses World Discovery output.
-
-Registry
-
-Registry is an in-memory cache.
-
-Registry reflects the current known state of the world.
-
-Registry is not the ultimate source of truth.
-
-The Valheim world is the source of truth for Ward existence.
-
-Persistence
-
-Persistence stores additional data and snapshots.
-
-Persistence must not be the authority for whether a Ward exists.
-
-Persistence may store:
-
-metadata;
-territory snapshot;
-permissions;
-terrain settings;
-portal settings;
-extensions.
-
-Persistence must not create ghost territories for Wards that do not exist in the world.
-
-Gameplay Events
-
-Gameplay events modify the runtime state.
-
-Current flows:
-
-Ward placed
-↓
+```
+Ward Placed
+        │
+        ▼
 WardRegisteredEvent
-↓
-TerritoryService
-↓
+        │
+        ▼
+Territory Service
+        │
+        ▼
 Registry
-↓
+        │
+        ▼
 Persistence
-Ward removed
-↓
+```
+
+Removing a Ward follows the same pattern.
+
+```
+Ward Destroyed
+        │
+        ▼
 WardDestroyedEvent
-↓
-TerritoryService
-↓
+        │
+        ▼
+Territory Service
+        │
+        ▼
 Registry
-↓
+        │
+        ▼
 Persistence
-Shutdown
+```
 
-During shutdown:
+Gameplay never bypasses Registry.
 
-Harmony patches are removed;
-modules are shut down;
-EventBus is cleared;
-ServiceContainer is cleared;
-runtime state is discarded.
+---
 
-Persistence should already contain the latest saved state.
+# Runtime State
 
-Rules
-Bootstrap composes the system.
-Runtime initializes the world.
-Discovery reads the world.
-Synchronization changes Registry.
-Registry is a cache.
-Persistence stores additional data.
-The Valheim world is the source of truth.
-Ward existence defines Territory existence.
-No gameplay logic belongs in Bootstrap.
-No ghost Territories are created from JSON alone.
+Runtime state consists of:
+
+- Territory Registry;
+- active Ward models;
+- runtime services;
+- event subscriptions.
+
+Runtime state can always be rebuilt from the game world.
+
+---
+
+# Shutdown Lifecycle
+
+Shutdown occurs in reverse order.
+
+```
+Gameplay Stops
+        │
+        ▼
+Harmony Unpatch
+        │
+        ▼
+Module Shutdown
+        │
+        ▼
+EventBus Clear
+        │
+        ▼
+ServiceContainer Clear
+        │
+        ▼
+Process Exit
+```
+
+Runtime state is discarded.
+
+Persistent data should already be safely stored.
+
+---
+
+# Lifecycle Rules
+
+1. Bootstrap prepares infrastructure only.
+2. Runtime Initialization prepares the world.
+3. World Discovery only reads the world.
+4. Registry Synchronization updates runtime state.
+5. Persistence restores additional information only.
+6. Gameplay operates on Registry.
+7. Shutdown releases runtime resources.
+8. Runtime state is always rebuildable.
+9. The Valheim world is the source of truth.
+10. Every subsystem has exactly one place in the lifecycle.
+
+---
+
+# Summary
+
+Clan Territory separates infrastructure, runtime initialization and gameplay into distinct lifecycle stages.
+
+This separation keeps startup deterministic, gameplay predictable and runtime state fully reconstructible from the Valheim world.
+
+Every subsystem has one responsibility and one well-defined position within the lifecycle.
+
+#Related Documents
+
+• ARCHITECTURE.md
+• PERSISTENCE_SPECIFICATION.md
+• DEVELOPMENT_WORKFLOW.md
