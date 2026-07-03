@@ -2,10 +2,12 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using ClanTerritory.Config;
+using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Persistence;
 using ClanTerritory.Features.Territory;
 using ClanTerritory.Features.WardDetection;
+using ClanTerritory.Features.WorldDiscovery;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Core
@@ -43,6 +45,7 @@ namespace ClanTerritory.Core
             _moduleManager.Register(new PersistenceModule());
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
+            _moduleManager.Register(new WorldDiscoveryModule());
 
             ServiceContainer.Register<ModuleManager>(_moduleManager);
 

@@ -1,92 +1,267 @@
+# Roadmap
 
-## `Docs/ROADMAP.md`
+## Purpose
 
-```md
-# Clan Territory — Roadmap
+This document describes the long-term evolution of Clan Territory.
 
-## v0.1 Alpha — Completed
+It focuses on major project milestones rather than individual implementation tasks.
 
-- Foundation
-- Public API
-- Abstractions
-- Infrastructure
-- Ward Detection
+Detailed sprint planning belongs to the development workflow.
 
-## v0.2 Alpha — Completed
+---
 
-- Domain Layer
-- Territory Manager
+# Current Status
+
+Project Phase:
+
+```
+Foundation          ✅ Completed
+Living World        🚧 In Progress
+Protection          ⏳ Planned
+Permissions         ⏳ Planned
+Public API          ⏳ Planned
+User Interface      ⏳ Planned
+Beta                ⏳ Planned
+Release 1.0         ⏳ Planned
+```
+
+---
+
+# Phase 1 — Foundation
+
+**Status**
+
+✅ Completed
+
+## Objective
+
+Build a stable architectural foundation.
+
+## Completed
+
+- Domain layer
 - EventBus
-- Territory Query Engine
+- Territory lifecycle
+- Territory Registry
+- Persistence subsystem
+- JSON schema v1
+- Backup system
+- World information service
+- Documentation foundation
+- Engineering principles
+- Development workflow
 
-## v0.3 Alpha — Next
+The project now has a stable architecture suitable for long-term development.
 
-Persistence
+---
 
-Planned:
+# Phase 2 — Living World
 
-- Save format
-- JSON storage
-- Auto save
-- Load on world start
-- Versioning
-- Backups
-- Migration support
+**Status**
 
-## v0.4 Alpha
+🚧 In Progress
 
-Permission Engine
+## Objective
 
-Planned:
+Allow the runtime state to be reconstructed directly from the Valheim world.
 
-- Build protection
-- Damage protection
-- Interaction protection
-- Door/container rules
+The game world becomes the authoritative source of runtime data.
 
-## v0.5 Alpha
+## Milestones
 
-Ward Control Panel
+### Phase 2.1 — World Discovery
 
-Planned:
+Discover all existing Wards.
 
-- Ward UI
-- Territory settings
-- Owner info
-- Permissions panel
-- Debug info
+Output:
 
-## v0.6 Alpha
+```
+IReadOnlyList<WardModel>
+```
 
-Extended Territory Systems
+---
 
-Planned:
+### Phase 2.2 — Registry Synchronization
 
-- Terrain Control
-- Portal Control
-- Automation
+Synchronize Territory Registry with discovered Wards.
 
-## v0.7 Alpha
+Responsibilities:
 
-Optional Integrations
+- create missing Territories;
+- remove obsolete Territories;
+- rebuild runtime state.
 
-Planned:
+---
 
-- Groups
-- Guilds
-- EpicMMO
+### Phase 2.3 — Runtime Initialization
 
-Persistence
+Prepare runtime state after plugin startup.
 
-↓
+Responsibilities:
 
-World Lifecycle
+- world discovery;
+- registry synchronization;
+- persistence merge;
+- gameplay ready.
 
-↓
+---
 
-Permission Engine
+### Phase 2.4 — Persistence Merge
 
-## v1.0
+Restore additional Territory data.
 
-Public release.
+Examples:
 
+- permissions;
+- upgrades;
+- future extensions.
+
+Persistence never creates Territories.
+
+---
+
+# Phase 3 — Protection
+
+**Status**
+
+⏳ Planned
+
+## Objective
+
+Protect player structures inside Territories.
+
+Future capabilities:
+
+- building protection;
+- Ward protection;
+- configurable rules;
+- ownership validation;
+- damage interception.
+
+---
+
+# Phase 4 — Permissions
+
+**Status**
+
+⏳ Planned
+
+## Objective
+
+Implement a flexible permission system.
+
+Examples:
+
+- build permission;
+- destroy permission;
+- container access;
+- interaction rules;
+- administrator overrides.
+
+---
+
+# Phase 5 — Public API
+
+**Status**
+
+⏳ Planned
+
+## Objective
+
+Provide a stable API for external mods.
+
+Future goals:
+
+- territory queries;
+- events;
+- permission checks;
+- extension points.
+
+---
+
+# Phase 6 — User Interface
+
+**Status**
+
+⏳ Planned
+
+## Objective
+
+Provide user-facing gameplay interfaces.
+
+Possible features:
+
+- territory visualization;
+- administration tools;
+- debug interface;
+- map integration;
+- status information.
+
+---
+
+# Beta
+
+## Objective
+
+Stabilize the project.
+
+Focus areas:
+
+- optimization;
+- compatibility;
+- migration support;
+- documentation review;
+- API stability;
+- gameplay balancing.
+
+---
+
+# Release 1.0
+
+The project reaches production quality.
+
+Expected characteristics:
+
+- stable architecture;
+- complete gameplay loop;
+- documented API;
+- reliable persistence;
+- long-term maintainability.
+
+---
+
+# Beyond 1.0
+
+Potential future directions:
+
+- diplomacy;
+- economy;
+- kingdom mechanics;
+- NPC integration;
+- quests;
+- territory upgrades;
+- plugin ecosystem.
+
+These ideas are intentionally outside the scope of the first stable release.
+
+---
+
+# Success Criteria
+
+Clan Territory succeeds if:
+
+- architecture remains maintainable;
+- runtime state is always consistent with the world;
+- subsystems remain independent;
+- new functionality can be added without major refactoring;
+- documentation stays synchronized with architecture.
+
+---
+
+# Summary
+
+The roadmap is organized around product evolution rather than implementation details.
+
+Each phase builds upon the previous one.
+
+The project grows from a solid architectural foundation toward a complete territory management framework while preserving long-term maintainability.

@@ -48,6 +48,16 @@ namespace ClanTerritory.Features.Territory.Registry
             return _territories.Remove(id);
         }
 
+        public bool RemoveByWard(WardId wardId)
+        {
+            TerritoryEntity territory = FindByWard(wardId);
+
+            if (territory == null)
+                return false;
+
+            return Unregister(territory.Id);
+        }
+
         public bool TryGet(TerritoryId id, out TerritoryEntity territory)
         {
             return TryGet(id.ToString(), out territory);

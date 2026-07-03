@@ -27,7 +27,10 @@ namespace ClanTerritory.Features.Territory
             EventBus eventBus;
 
             if (ServiceContainer.TryGet<EventBus>(out eventBus))
+            {
                 eventBus.Subscribe<WardRegisteredEvent>(_service);
+                eventBus.Subscribe<WardDestroyedEvent>(_service);
+            }
 
             ModLog.Info("Territory module initialized.");
         }
