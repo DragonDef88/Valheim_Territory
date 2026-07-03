@@ -5,6 +5,8 @@ using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
 using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
+using ClanTerritory.Core;
+using ClanTerritory.Features.Persistence.Services;
 
 namespace ClanTerritory.Features.Territory.Services
 {
@@ -34,9 +36,15 @@ namespace ClanTerritory.Features.Territory.Services
 
             TerritoryEntity territory = _factory.CreateFromWard(ward);
 
-            if (HasOverlap(territory))
+            TerritoryEntity intersecting = _registry.FindIntersecting(territory);
+
+            if (intersecting != null)
             {
-                ModLog.Warning("Territory creation blocked: overlap detected.");
+                ModLog.Warning(
+                    "Territory creation blocked: overlap with " +
+                    intersecting.Id
+                );
+
                 return;
             }
 
@@ -48,20 +56,15 @@ namespace ClanTerritory.Features.Territory.Services
                     ", owner: " +
                     territory.Owner.DisplayName +
                     ", radius: " +
-                    territory.Radius.Value
+                    territory.Radius.Value +
+                    ", total: " +
+                    _registry.Count
                 );
-            }
-        }
+                IPersistenceService persistenceService;
 
-        private bool HasOverlap(TerritoryEntity territory)
-        {
-            foreach (TerritoryEntity existing in _registry.All)
-            {
-                if (existing.Overlaps(territory))
-                    return true;
+                if (ServiceContainer.TryGet<IPersistenceService>(out persistenceService))
+                    persistenceService.SaveNow();
             }
-
-            return false;
         }
     }
 }

@@ -93,6 +93,18 @@
     <Compile Include="Events\EventBus.cs" />
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Events\IEventHandler.cs" />
+    <Compile Include="Features\Persistence\FileSystem\PersistenceFileSystem.cs" />
+    <Compile Include="Features\Persistence\Mappers\TerritoryMapper.cs" />
+    <Compile Include="Features\Persistence\Models\SaveFile.cs" />
+    <Compile Include="Features\Persistence\Models\SaveMetadata.cs" />
+    <Compile Include="Features\Persistence\Models\TerritoryRecord.cs" />
+    <Compile Include="Features\Persistence\Models\WardRecord.cs" />
+    <Compile Include="Features\Persistence\PersistenceModule.cs" />
+    <Compile Include="Features\Persistence\Serialization\JsonSerializerService.cs" />
+    <Compile Include="Features\Persistence\Services\IPersistenceService.cs" />
+    <Compile Include="Features\Persistence\Services\PersistenceService.cs" />
+    <Compile Include="Features\Persistence\Storage\BackupStorage.cs" />
+    <Compile Include="Features\Persistence\Storage\JsonStorage.cs" />
     <Compile Include="Features\Territory\Factories\TerritoryFactory.cs" />
     <Compile Include="Features\Territory\Registry\TerritoryRegistry.cs" />
     <Compile Include="Features\Territory\Services\ITerritoryService.cs" />
@@ -105,9 +117,10 @@
     <Compile Include="Features\WardDetection\Services\WardService.cs" />
     <Compile Include="Features\WardDetection\WardDetectionModule.cs" />
     <Compile Include="Features\WardDetection\WardRegisteredEvent.cs" />
+    <Compile Include="Features\World\Services\IWorldInfoService.cs" />
+    <Compile Include="Features\World\Services\WorldInfoService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\ModLog.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
