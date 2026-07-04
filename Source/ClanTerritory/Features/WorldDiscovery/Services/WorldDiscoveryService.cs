@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
 using UnityEngine;
@@ -7,42 +8,32 @@ namespace ClanTerritory.Features.WorldDiscovery.Services
 {
     internal sealed class WorldDiscoveryService : IWorldDiscoveryService
     {
-        private const string WardPieceName = "guard_stone";
+        private readonly PrivateAreaScanner _scanner;
+
+        public WorldDiscoveryService()
+        {
+            _scanner = new PrivateAreaScanner();
+        }
 
         public IReadOnlyList<WardModel> Discover()
         {
             List<WardModel> wards = new List<WardModel>();
 
-            PrivateArea[] areas = Object.FindObjectsByType<PrivateArea>(FindObjectsSortMode.None);
+            PrivateArea[] areas =
+                Object.FindObjectsByType<PrivateArea>(
+                    FindObjectsSortMode.None);
 
-            for (int i = 0; i < areas.Length; i++)
+            foreach (PrivateArea area in areas)
             {
-                PrivateArea area = areas[i];
+                WardModel model;
 
-                if (area == null)
-                    continue;
-
-                if (!area.name.Contains(WardPieceName))
-                    continue;
-
-                ZNetView zNetView = area.GetComponent<ZNetView>();
-
-                if (zNetView == null || zNetView.GetZDO() == null)
-                    continue;
-
-                string wardId = zNetView.GetZDO().m_uid.ToString();
-
-                WardModel model = new WardModel(
-                    wardId,
-                    0L,
-                    "Unknown",
-                    area.transform.position,
-                    area.isActiveAndEnabled);
-
-                wards.Add(model);
+                if (_scanner.TryCreateWardModel(area, out model))
+                    wards.Add(model);
             }
 
-            ModLog.Info("World discovery completed. Wards found: " + wards.Count);
+            ModLog.Info(
+                "World discovery completed. Wards found: " +
+                wards.Count);
 
             return wards;
         }

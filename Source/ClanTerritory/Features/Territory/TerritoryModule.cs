@@ -2,6 +2,8 @@
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Territory.Factories;
+using ClanTerritory.Features.Territory.Placement;
+using ClanTerritory.Features.Territory.Placement.Rules;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WardDetection;
@@ -9,7 +11,9 @@ using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.Territory
 {
-    internal sealed class TerritoryModule : IInitializable, IDisposableModule
+    internal sealed class TerritoryModule :
+        IInitializable,
+        IDisposableModule
     {
         private TerritoryRegistry _registry;
         private TerritoryFactory _factory;
@@ -23,6 +27,14 @@ namespace ClanTerritory.Features.Territory
 
             ServiceContainer.Register<TerritoryRegistry>(_registry);
             ServiceContainer.Register<ITerritoryService>(_service);
+
+            IWardPlacementPolicy placementPolicy =
+     WardPlacementPolicyFactory.Create(
+         _registry,
+         _factory);
+
+            ServiceContainer.Register<IWardPlacementPolicy>(
+                placementPolicy);
 
             EventBus eventBus;
 

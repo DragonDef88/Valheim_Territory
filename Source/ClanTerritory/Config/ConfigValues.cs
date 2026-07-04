@@ -1,5 +1,5 @@
 ﻿namespace ClanTerritory.Config
-{
+{    
     internal static class ConfigValues
     {
         public static float TerritoryRadius
@@ -16,5 +16,6 @@
         {
             get { return ConfigManager.DebugMode.Value; }
         }
+        public const int MaxWardsPerPlayer = 3;
     }
 }

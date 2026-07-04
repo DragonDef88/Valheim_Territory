@@ -126,10 +126,20 @@
     <Compile Include="Features\Runtime\Services\RuntimeInitializationService.cs" />
     <Compile Include="Features\Runtime\Steps\WorldReadyStep.cs" />
     <Compile Include="Features\Territory\Factories\TerritoryFactory.cs" />
+    <Compile Include="Features\Territory\Placement\IWardPlacementPolicy.cs" />
+    <Compile Include="Features\Territory\Placement\PlacementResult.cs" />
+    <Compile Include="Features\Territory\Placement\PlacementValidationResult.cs" />
+    <Compile Include="Features\Territory\Placement\Rules\IPlacementRule.cs" />
+    <Compile Include="Features\Territory\Placement\Rules\MaxWardLimitRule.cs" />
+    <Compile Include="Features\Territory\Placement\Rules\TerritoryOverlapRule.cs" />
+    <Compile Include="Features\Territory\Placement\WardPlacementPolicy.cs" />
+    <Compile Include="Features\Territory\Placement\WardPlacementPolicyFactory.cs" />
     <Compile Include="Features\Territory\Registry\TerritoryRegistry.cs" />
     <Compile Include="Features\Territory\Services\ITerritoryService.cs" />
     <Compile Include="Features\Territory\Services\TerritoryService.cs" />
     <Compile Include="Features\Territory\TerritoryModule.cs" />
+    <Compile Include="Features\WardDetection\Hooks\PieceCreatorHooks.cs" />
+    <Compile Include="Features\WardDetection\Hooks\PrivateAreaHooks.cs" />
     <Compile Include="Features\WorldDiscovery\Builders\WardBuilder.cs" />
     <Compile Include="Features\WorldDiscovery\Scanners\PrivateAreaScanner.cs" />
     <Compile Include="Features\WorldDiscovery\Services\IWorldDiscoveryService.cs" />
@@ -151,4 +161,12 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="CopyToValheim" AfterTargets="Build">
+    <PropertyGroup>
+      <DeployToValheim>true</DeployToValheim>
+      <ValheimModsPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\plugins\ClanTerritory\</ValheimModsPath>
+    </PropertyGroup>
+    <MakeDir Directories="$(ValheimModsPath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimModsPath)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using ClanTerritory.Core;
-using ClanTerritory.Features.WardDetection.Services;
+using ClanTerritory.Features.Territory.Placement;
 
 namespace ClanTerritory.Features.WardDetection.Hooks
 {
@@ -10,23 +10,42 @@ namespace ClanTerritory.Features.WardDetection.Hooks
     {
         private const string WardPieceName = "guard_stone";
 
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch("PlacePiece")]
-        private static void PlacePiecePostfix(Player __instance, Piece piece, Vector3 pos, Quaternion rot, bool doAttack)
+        private static bool PlacePiecePrefix(
+            Player __instance,
+            Piece piece,
+            Vector3 pos,
+            Quaternion rot,
+            bool doAttack)
         {
             if (__instance == null || piece == null)
-                return;
+                return true;
 
             if (__instance != Player.m_localPlayer)
-                return;
+                return true;
 
             if (piece.name != WardPieceName)
-                return;
+                return true;
 
-            IWardService wardService;
+            IWardPlacementPolicy policy;
 
-            if (ServiceContainer.TryGet<IWardService>(out wardService))
-                wardService.RegisterWardAfterPlacement(__instance, pos);
+            if (!ServiceContainer.TryGet<IWardPlacementPolicy>(out policy))
+                return true;
+
+            PlacementValidationResult result =
+                policy.Validate(__instance, pos);
+
+            if (result.IsSuccess)
+                return true;
+
+            __instance.Message(
+                MessageHud.MessageType.Center,
+                result.Message,
+                0,
+                null);
+
+            return false;
         }
     }
 }

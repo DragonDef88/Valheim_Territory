@@ -34,7 +34,18 @@ namespace ClanTerritory.Features.Territory.Registry
             _territories.Add(id, territory);
             return true;
         }
+        public int CountByOwner(PlayerId ownerId)
+        {
+            int count = 0;
 
+            foreach (TerritoryEntity territory in _territories.Values)
+            {
+                if (territory.Owner.PlayerId.Equals(ownerId))
+                    count++;
+            }
+
+            return count;
+        }
         public bool Unregister(TerritoryId id)
         {
             return Unregister(id.ToString());
