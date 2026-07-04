@@ -195,12 +195,6 @@ Before implementing a major feature:
 
 ---
 
-# License
-
-This project is released under the MIT License.
-
----
-
 # Summary
 
 Clan Territory is not only a Valheim mod.
