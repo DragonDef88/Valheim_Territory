@@ -119,6 +119,10 @@
     <Compile Include="Features\Runtime\Pipeline\IRuntimeStep.cs" />
     <Compile Include="Features\Runtime\Pipeline\RuntimePipeline.cs" />
     <Compile Include="Features\Runtime\Pipeline\RuntimePipelineCoordinator.cs" />
+    <Compile Include="Features\Runtime\Registry\IRuntimeRegistry.cs" />
+    <Compile Include="Features\Runtime\Registry\RuntimeRegistry.cs" />
+    <Compile Include="Features\Runtime\Registry\RuntimeRegistryModule.cs" />
+    <Compile Include="Features\Runtime\Registry\RuntimeWard.cs" />
     <Compile Include="Features\Runtime\RuntimeModule.cs" />
     <Compile Include="Features\Runtime\RuntimeState.cs" />
     <Compile Include="Features\Runtime\RuntimeStateMachine.cs" />
