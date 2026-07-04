@@ -4,7 +4,9 @@ using HarmonyLib;
 using ClanTerritory.Config;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Diagnostics;
 using ClanTerritory.Features.Persistence;
+using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Territory;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Features.WorldDiscovery;
@@ -42,10 +44,12 @@ namespace ClanTerritory.Core
 
             _moduleManager = new ModuleManager();
 
+            _moduleManager.Register(new DiagnosticsModule());
             _moduleManager.Register(new PersistenceModule());
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
             _moduleManager.Register(new WorldDiscoveryModule());
+            _moduleManager.Register(new RuntimeModule());
 
             ServiceContainer.Register<ModuleManager>(_moduleManager);
 
