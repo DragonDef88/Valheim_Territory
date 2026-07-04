@@ -364,7 +364,6 @@ Effective Date: July 4, 2026
 
 ---
 
->>>>>>> 1175c5f73cf028c72198717b763f9efd3e3419db
 # Summary
 
 Clan Territory is not only a Valheim mod.
