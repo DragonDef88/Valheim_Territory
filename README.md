@@ -197,7 +197,168 @@ Before implementing a major feature:
 
 # License
 
-This project is released under the MIT License.
+# DragonDef88 Valheim Mod License (DVML) v2.0
+
+**Version:** 2.0
+**Effective Date:** July 4, 2026
+**Author:** DragonDef88
+**Location:** Klaipėda, Lithuania
+
+Copyright © 2026 DragonDef88. All Rights Reserved.
+
+---
+
+## 1. Definitions
+
+For the purposes of this License:
+
+* **Author** means DragonDef88.
+* **Project** means all source code, compiled binaries, assets, configuration files, documentation, releases, scripts and other materials contained within this repository.
+* **Derivative Work** means any modification, adaptation, translation, extension or work based on the Project.
+* **Commercial Use** means any activity intended to generate direct or indirect financial benefit.
+* **Gross Revenue** means total revenue received before taxes, fees, commissions or expenses.
+
+---
+
+## 2. Ownership
+
+The Project and all intellectual property rights remain the exclusive property of DragonDef88.
+
+No ownership rights are transferred under this License.
+
+All rights not expressly granted are reserved.
+
+---
+
+## 3. Free License
+
+Everyone may:
+
+* Download the Project.
+* Use the Project.
+* Study the source code.
+* Modify the Project.
+* Fork the GitHub repository.
+* Submit Pull Requests.
+* Compile personal builds.
+* Use the Project on private or public Valheim servers.
+
+These permissions apply only to **Non-Commercial Use**.
+
+---
+
+## 4. Attribution
+
+Redistributions must:
+
+* retain this License;
+* retain copyright notices;
+* credit DragonDef88 as the original author;
+* indicate modifications;
+* include a link to the original GitHub repository.
+
+Claiming authorship of the original Project is prohibited.
+
+---
+
+## 5. Non-Commercial Use
+
+Allowed free of charge:
+
+* Personal use
+* Educational use
+* Research
+* Community servers
+* Free modpacks
+* Open-source collaboration
+* Testing
+* Development
+
+---
+
+## 6. Commercial Use
+
+Commercial Use is prohibited unless the Author has granted a written Commercial License.
+
+Examples include:
+
+* Selling the Project.
+* Selling modified versions.
+* Paid modpacks.
+* Premium server packages.
+* Paid launcher distributions.
+* Paid subscriptions.
+* Commercial hosting.
+* Commercial redistribution.
+* Paid plugins based on this Project.
+* Any revenue-generating use.
+
+---
+
+## 7. Commercial License
+
+Unless otherwise agreed in writing:
+
+Commercial users shall pay **10% of Gross Revenue** generated through products or services using this Project.
+
+Alternative commercial agreements may be negotiated individually.
+
+---
+
+## 8. Valheim Servers
+
+This Project may be used on public or private servers provided that:
+
+* access to the mod itself is free;
+* the mod is not sold;
+* the server is not represented as officially affiliated with DragonDef88.
+
+VIP packages, premium memberships or other monetized access specifically tied to this Project require a Commercial License.
+
+---
+
+## 9. Modpacks
+
+Free community modpacks are permitted if:
+
+* proper credit is given;
+* this License is included;
+* the original GitHub repository is linked.
+
+Paid modpacks require written permission.
+
+---
+
+## 10. Warranty
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+---
+
+## 11. Limitation of Liability
+
+THE AUTHOR SHALL NOT BE LIABLE FOR ANY DAMAGES ARISING FROM USE OF THIS PROJECT.
+
+---
+
+## 12. Termination
+
+Violation of this License immediately terminates all granted rights.
+
+The Author reserves the right to pursue all available legal remedies.
+
+---
+
+## 13. Contact
+
+Commercial licensing requests:
+
+DragonDef88
+
+GitHub Repository (official)
+
+Effective Date: July 4, 2026
+
 
 ---
 
