@@ -55,6 +55,13 @@ namespace ClanTerritory.Core
 
             _moduleManager.InitializeAll();
 
+            RuntimeStateMachine runtimeStateMachine;
+
+            if (ServiceContainer.TryGet<RuntimeStateMachine>(out runtimeStateMachine))
+            {
+                runtimeStateMachine.SetState(RuntimeState.InfrastructureReady);
+            }
+
             Globals.Harmony.PatchAll();
 
             _initialized = true;

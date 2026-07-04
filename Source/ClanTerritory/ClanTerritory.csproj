@@ -95,6 +95,7 @@
     <Compile Include="Events\IEventHandler.cs" />
     <Compile Include="Features\Diagnostics\DiagnosticsModule.cs" />
     <Compile Include="Features\Diagnostics\Hooks\ValheimLifecycleHooks.cs" />
+    <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
     <Compile Include="Features\Diagnostics\Services\DiagnosticsService.cs" />
     <Compile Include="Features\Diagnostics\Services\IDiagnosticsService.cs" />
     <Compile Include="Features\Persistence\FileSystem\PersistenceFileSystem.cs" />
