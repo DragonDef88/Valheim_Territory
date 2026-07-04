@@ -1,6 +1,7 @@
 ﻿using ClanTerritory.Core;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Registry;
 using ClanTerritory.Utils;
@@ -24,6 +25,8 @@ namespace ClanTerritory.Features.WardDetection.Services
             if (!_registry.Register(ward))
                 return;
 
+            RegisterRuntimeWard(ward);
+
             ModLog.Info(
                 "Ward registered: " +
                 ward.Id +
@@ -32,7 +35,7 @@ namespace ClanTerritory.Features.WardDetection.Services
 
             EventBus eventBus;
 
-            if (ServiceContainer.TryGet<EventBus>(out eventBus))
+            if (ServiceContainer.TryGet(out eventBus))
                 eventBus.Publish(new WardRegisteredEvent(ward));
         }
 
@@ -40,10 +43,49 @@ namespace ClanTerritory.Features.WardDetection.Services
         {
             if (_registry.Unregister(wardId.ToString()))
             {
+                UnregisterRuntimeWard(wardId);
+
                 EventBus eventBus;
 
-                if (ServiceContainer.TryGet<EventBus>(out eventBus))
+                if (ServiceContainer.TryGet(out eventBus))
                     eventBus.Publish(new WardDestroyedEvent(wardId));
+            }
+        }
+
+        private static void RegisterRuntimeWard(WardModel ward)
+        {
+            IRuntimeRegistry runtimeRegistry;
+
+            if (!ServiceContainer.TryGet(out runtimeRegistry))
+                return;
+
+            WardId wardId = new WardId(ward.Id);
+
+            RuntimeWard runtimeWard =
+                new RuntimeWard(
+                    wardId,
+                    ward.Position);
+
+            if (runtimeRegistry.TryAdd(runtimeWard))
+            {
+                ModLog.Info(
+                    "[Runtime] Ward loaded: " +
+                    ward.Id);
+            }
+        }
+
+        private static void UnregisterRuntimeWard(WardId wardId)
+        {
+            IRuntimeRegistry runtimeRegistry;
+
+            if (!ServiceContainer.TryGet(out runtimeRegistry))
+                return;
+
+            if (runtimeRegistry.Remove(wardId))
+            {
+                ModLog.Info(
+                    "[Runtime] Ward unloaded: " +
+                    wardId);
             }
         }
     }
