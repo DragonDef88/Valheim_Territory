@@ -164,10 +164,7 @@
     <Compile Include="Utils\ModLog.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Integration\Valheim\Adapters\.gitkeep" />
-    <None Include="Integration\Valheim\Discovery\.gitkeep" />
-    <None Include="Integration\Valheim\Events\.gitkeep" />
-    <None Include="Integration\Valheim\Lifecycle\.gitkeep" />
+    <Compile Include="Integration\Valheim\Lifecycle\RuntimeWorldReadyHooks.cs" />
     <None Include="Integration\Valheim\README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
