@@ -2,7 +2,7 @@
 
 | RFC | Title | Status | Source | Document |
 |-----|-------|--------|--------|----------|
-| RFC-001 | Valheim Integration Layer | Draft | Audit-003 | Pending |
+| RFC-001 | Valheim Integration Layer | Proposed | Audit-004 | Pending |
 | RFC-002 | Runtime Restore Pipeline | Proposed | Audit-002 | `RFC-002_Runtime_Restore_Pipeline.md` |
 | RFC-003 | WearNTear Destruction Lifecycle | Draft | Research-008 | Pending |
 | RFC-004 | Territory Change Events | Draft | Audit-003 | Pending |

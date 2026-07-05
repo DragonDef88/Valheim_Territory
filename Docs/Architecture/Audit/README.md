@@ -25,3 +25,4 @@ They identify:
 | 001 | Core & Domain | PASS |
 | 002 | Runtime & Persistence | ACTION |
 | 003 | Territory, WardDetection & WorldDiscovery | ACTION |
+| 004 | Integration Layer | ACTION |
