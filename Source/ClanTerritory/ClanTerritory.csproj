@@ -113,7 +113,7 @@
     <Compile Include="Features\Runtime\Detection\IWorldReadyDetector.cs" />
     <Compile Include="Features\Runtime\Detection\WorldReadyDetector.cs" />
     <Compile Include="Features\Runtime\Events\RuntimeStateChangedEvent.cs" />
-    <Compile Include="Features\Runtime\Hook\RuntimeWorldReadyHooks.cs" />
+    <Compile Include="Integration\Valheim\Lifecycle\RuntimeWorldReadyHooks.cs" />
     <Compile Include="Features\Runtime\Orchestration\IRuntimeOrchestrator.cs" />
     <Compile Include="Features\Runtime\Orchestration\RuntimeOrchestrator.cs" />
     <Compile Include="Features\Runtime\Pipeline\IRuntimeStep.cs" />
@@ -169,9 +169,6 @@
     <None Include="Integration\Valheim\Events\.gitkeep" />
     <None Include="Integration\Valheim\Lifecycle\.gitkeep" />
     <None Include="Integration\Valheim\README.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Features\Diagnostics\Hooks\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyToValheim" AfterTargets="Build">
