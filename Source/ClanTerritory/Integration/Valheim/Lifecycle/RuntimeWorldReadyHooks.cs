@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using ClanTerritory.Core;
 
-namespace ClanTerritory.Features.Runtime.Hooks
+namespace ClanTerritory.Integration.Valheim.Lifecycle
 {
     [HarmonyPatch(typeof(Game), "UpdateRespawn")]
     internal static class RuntimeWorldReadyHooks
