@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Persistence.FileSystem;
 using ClanTerritory.Features.Persistence.Mappers;
@@ -40,13 +41,15 @@ namespace ClanTerritory.Features.Persistence.Services
 
             string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
 
+            SaveFileModel saveFile = MergeWithExisting(path, snapshot);
+
             _backupStorage.BackupIfExists(snapshot.Metadata.WorldName);
 
-            _storage.Save(path, snapshot);
+            _storage.Save(path, saveFile);
 
             ModLog.Info(
-                "Persistence snapshot saved. Records: " +
-                snapshot.Metadata.RecordCount);
+                "Persistence merge-save completed. Records: " +
+                saveFile.Metadata.RecordCount);
         }
 
         public void LoadNow()
@@ -81,6 +84,74 @@ namespace ClanTerritory.Features.Persistence.Services
             saveFile.Metadata.RecordCount = saveFile.Wards.Count;
 
             return saveFile;
+        }
+
+        private SaveFileModel MergeWithExisting(string path, SaveFileModel snapshot)
+        {
+            SaveFileModel existing = _storage.Load<SaveFileModel>(path);
+            SaveFileModel merged = new SaveFileModel();
+
+            merged.Metadata = snapshot.Metadata;
+
+            List<WardRecord> records = new List<WardRecord>();
+            Dictionary<string, int> indexByKey = new Dictionary<string, int>();
+
+            AddOrReplaceRecords(existing.Wards, records, indexByKey);
+            AddOrReplaceRecords(snapshot.Wards, records, indexByKey);
+
+            merged.Wards = records;
+            merged.Metadata.RecordCount = merged.Wards.Count;
+
+            return merged;
+        }
+
+        private static void AddOrReplaceRecords(
+            IEnumerable<WardRecord> source,
+            List<WardRecord> records,
+            Dictionary<string, int> indexByKey)
+        {
+            if (source == null)
+                return;
+
+            foreach (WardRecord record in source)
+            {
+                if (record == null)
+                    continue;
+
+                string key = GetRecordKey(record);
+
+                if (string.IsNullOrEmpty(key))
+                {
+                    records.Add(record);
+                    continue;
+                }
+
+                int index;
+
+                if (indexByKey.TryGetValue(key, out index))
+                {
+                    records[index] = record;
+                    continue;
+                }
+
+                indexByKey.Add(key, records.Count);
+                records.Add(record);
+            }
+        }
+
+        private static string GetRecordKey(WardRecord record)
+        {
+            if (record == null)
+                return string.Empty;
+
+            if (!string.IsNullOrEmpty(record.WardId))
+                return record.WardId;
+
+            if (record.Territory != null &&
+                !string.IsNullOrEmpty(record.Territory.TerritoryId))
+                return record.Territory.TerritoryId;
+
+            return string.Empty;
         }
     }
 }
