@@ -94,6 +94,8 @@
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Events\IEventHandler.cs" />
     <Compile Include="Features\Diagnostics\DiagnosticsModule.cs" />
+    <Compile Include="Features\Runtime\Restore\IRuntimeRegistryRestoreService.cs" />
+    <Compile Include="Features\Runtime\Restore\RuntimeRegistryRestoreService.cs" />
     <Compile Include="Features\Runtime\Restore\RuntimeRestoreContext.cs" />
     <Compile Include="Features\Runtime\Restore\RuntimeRestoreMapper.cs" />
     <Compile Include="Features\Runtime\Restore\RuntimeRestoreSnapshot.cs" />
