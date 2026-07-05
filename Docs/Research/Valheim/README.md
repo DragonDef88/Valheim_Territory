@@ -32,3 +32,4 @@ They exist to support architectural decisions in Clan Territory.
 - `005_Player_RemovePiece.md`
 - `006_WearNTear_EntryPoints.md`
 - `007_WearNTear_Lifecycle.md`
+- `008_WearNTear_Destroyed_Callbacks.md`
