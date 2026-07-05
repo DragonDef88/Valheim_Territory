@@ -13,6 +13,7 @@ They exist to support architectural decisions in Clan Territory.
 - Record the inspected classes and methods.
 - Separate confirmed facts from assumptions.
 - Do not design systems on unverified behavior.
+- If a class is missing from the current dnSpy export, mark the research as partial.
 
 ## Source Priority
 
@@ -29,3 +30,4 @@ They exist to support architectural decisions in Clan Territory.
 - `003_ZDO_Lifecycle.md`
 - `004_Zone_Loading.md`
 - `005_Player_RemovePiece.md`
+- `006_WearNTear_EntryPoints.md`
