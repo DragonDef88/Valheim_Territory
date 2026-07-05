@@ -1,18 +1,37 @@
-# RFC-010 — Runtime Restore Pipeline
+# RFC-002 — Runtime Restore Pipeline
 
 Status: Proposed
 
 Author: Clan Territory Engineering
 
+Source: Audit-005 Runtime Implementation Review
+
 ---
 
 # Purpose
 
-Introduce a Runtime Restore Pipeline that reconstructs the loaded runtime world from persistent storage.
+Activate and evolve the existing Runtime Pipeline so Clan Territory can restore runtime state from persistent world data.
 
-This RFC defines architectural responsibilities only.
+This RFC defines the architecture for runtime restore.
 
-It does not introduce implementation details.
+It does not introduce Unity object spawning or Valheim object creation.
+
+---
+
+# Key Finding
+
+Audit-005 discovered that Runtime Pipeline infrastructure already exists.
+
+Existing components:
+
+- `RuntimePipeline`
+- `IRuntimeStep`
+- `RuntimePipelineCoordinator`
+- `WorldReadyStep`
+
+Therefore this RFC should not create a new pipeline from scratch.
+
+This RFC should activate and evolve the existing Runtime Pipeline.
 
 ---
 
@@ -26,13 +45,13 @@ Current architecture supports:
 - Merge Save
 - Delete tracking
 
-Persistence can now save a complete world.
+Persistence can save a complete world.
 
-However, the reverse direction does not yet exist.
+However, runtime restore is not implemented.
 
 Current flow:
 
-```
+```text
 Valheim Runtime
         │
         ▼
@@ -46,310 +65,236 @@ Territory
         │
         ▼
 Merge Save
-```
 
-Missing:
+Missing reverse direction:
 
-```
 Save File
-
-↓
-
+   │
+   ▼
+Persistence Load
+   │
+   ▼
 Runtime Restore
-```
+   │
+   ▼
+Gameplay Ready
 
 This creates an asymmetric architecture.
 
----
+Current Runtime State
 
-# Design Goals
+Runtime currently contains:
+
+PluginLoaded
+InfrastructureReady
+WorldLoading
+WorldLoaded
+DiscoveryCompleted
+RegistrySynchronized
+GameplayReady
+
+Some states already exist but are not fully used.
+
+RFC-002 should use the existing state model instead of replacing it.
+
+Design Goals
 
 The Runtime Restore Pipeline must:
 
-- restore runtime state from persistent storage;
-- rebuild runtime representation only;
-- never instantiate Unity objects;
-- never replace Valheim streaming;
-- never duplicate World Discovery.
-
----
-
-# Non Goals
+restore runtime state from persistent storage;
+rebuild runtime representations only;
+never instantiate Unity objects;
+never create ZDOs;
+never replace Valheim streaming;
+avoid duplicating World Discovery;
+keep Territory as one gameplay step, not the whole pipeline.
+Non Goals
 
 This RFC does not introduce:
 
-- prefab spawning;
-- Unity object creation;
-- ZDO creation;
-- Harmony patches;
-- gameplay initialization.
+prefab spawning;
+Unity object creation;
+ZDO creation;
+Harmony patches;
+Valheim lifecycle changes;
+new save file format.
 
-Those remain outside Persistence.
+Those remain outside Runtime Restore.
 
----
-
-# Architectural Principles
-
-## Principle 1
+Architectural Principles
+Principle 1
 
 Persistence owns data.
 
-Runtime owns loaded objects.
+Runtime owns loaded runtime state.
 
 Gameplay owns behaviour.
 
----
-
-## Principle 2
+Principle 2
 
 Persistence never creates gameplay.
 
 Gameplay never reads JSON directly.
 
----
+Runtime does not own persistent storage.
 
-## Principle 3
+Principle 3
 
 Runtime is reconstructed from persistence.
 
-Persistence is never reconstructed from runtime.
+Persistence is never reconstructed blindly from runtime.
 
----
+Merge Save remains the persistence safety boundary.
 
-# Proposed Pipeline
+Proposed Pipeline
+WorldLoaded
+   │
+   ▼
+Runtime Pipeline
+   │
+   ├── Runtime Discovery Step
+   ├── Persistence Load Step
+   ├── Runtime Restore Step
+   ├── Registry Synchronization Step
+   ├── Gameplay Build Step
+   └── Gameplay Ready Step
+Proposed Runtime State Flow
+InfrastructureReady
+   │
+   ▼
+WorldLoaded
+   │
+   ▼
+DiscoveryCompleted
+   │
+   ▼
+RegistrySynchronized
+   │
+   ▼
+GameplayReady
 
-```
-World Save
+Future RFCs may add additional states only if required.
 
-↓
+Responsibilities
+Integration
 
-PersistenceService.Load()
+Responsible for:
 
-↓
+detecting when Valheim world runtime is ready;
+translating Valheim lifecycle signals into Runtime state transitions.
 
-WorldSnapshot
+Integration is not responsible for restore logic.
 
-↓
+Runtime Pipeline
 
-Runtime Restore Pipeline
+Responsible for:
 
-↓
+ordering runtime lifecycle steps;
+executing steps based on current Runtime state;
+advancing Runtime state after successful steps;
+publishing runtime lifecycle events.
+Persistence
+
+Responsible for:
+
+reading save files;
+validating data;
+mapping persistence models;
+producing data usable by Runtime restore.
+
+Persistence is not responsible for gameplay initialization.
 
 Runtime Registry
 
-↓
+Responsible for:
 
-Gameplay Initialization
-
-↓
-
-Normal Runtime
-```
-
----
-
-# Responsibilities
-
-## Persistence
+storing loaded runtime representations;
+providing runtime lookup;
+exposing runtime state to gameplay systems.
+Gameplay
 
 Responsible for:
 
-- reading save files;
-- validating data;
-- mapping persistence models;
-- producing an immutable world snapshot.
+reacting after Runtime is restored;
+building gameplay systems from Runtime data;
+never reading persistence files directly.
+Required Changes
+Phase 1 — Activate Pipeline Coordinator
 
-Persistence is **not** responsible for gameplay.
+Wire RuntimePipelineCoordinator into RuntimeModule.
 
----
+Pipeline should listen to RuntimeStateChangedEvent.
 
-## Runtime Restore Pipeline
+Phase 2 — Use OutputState
 
-Responsible for:
+Update pipeline execution so successful steps can advance Runtime state.
 
-- receiving a world snapshot;
-- rebuilding runtime representations;
-- populating runtime registries;
-- publishing runtime restore events.
+IRuntimeStep.OutputState already exists and should be used.
 
-Runtime Restore Pipeline does **not** create Unity objects.
+Phase 3 — Discovery Step
 
----
+Move current world discovery orchestration into a pipeline step.
 
-## Runtime Registry
+Current logic exists in RuntimeOrchestrator.
 
-Responsible for:
+Phase 4 — Persistence Load Step
 
-- storing loaded runtime objects;
-- providing runtime lookup;
-- exposing runtime state to gameplay systems.
+Add a pipeline step that loads persistence data.
 
----
+This step must not create gameplay.
 
-## Gameplay
+Phase 5 — Runtime Restore Step
 
-Gameplay reacts after runtime exists.
+Add a pipeline step that rebuilds Runtime Registry data from persistence data.
 
-Gameplay must never read persistence files directly.
+This step must not spawn Valheim objects.
 
----
+Phase 6 — Gameplay Ready Step
 
-# Event Flow
+Advance Runtime to GameplayReady after restore and gameplay initialization complete.
 
-```
-Persistence Loaded
+Risks
+Risk 1 — Pipeline loops
 
-↓
-
-Runtime Restore Started
-
-↓
-
-Runtime Registry Rebuilt
-
-↓
-
-Runtime Restore Completed
-
-↓
-
-Gameplay Ready
-```
-
-This follows the event-driven architecture already used by Runtime.
-
----
-
-# Future Extension
-
-The Runtime Restore Pipeline should become the common entry point for:
-
-- territory restoration;
-- NPC restoration;
-- settlement restoration;
-- economy restoration;
-- road network restoration;
-- future living-world systems.
-
-No gameplay system should implement its own persistence loading.
-
----
-
-# Alternatives Considered
-
-## Option A
-
-Persistence directly creates gameplay.
-
-Rejected.
-
-Reason:
-
-Violates separation of responsibilities.
-
----
-
-## Option B
-
-Gameplay loads persistence.
-
-Rejected.
-
-Reason:
-
-Gameplay becomes coupled to serialization.
-
----
-
-## Option C
-
-Runtime Restore Pipeline
-
-Accepted.
-
-Reason:
-
-Preserves architecture.
-
-Matches Living World principles.
-
----
-
-# Risks
-
-Runtime Restore may become too large.
+If state transitions trigger pipeline execution repeatedly, steps must avoid loops.
 
 Mitigation:
 
-Split into restore stages when necessary.
+state machine ignores transitions to the same state;
+each step should have a clear input and output state.
+Risk 2 — Runtime and Gameplay coupling
 
-Examples:
+Current Runtime orchestration directly creates territories from discovered wards.
 
-```
-Runtime Restore
+Mitigation:
 
-↓
+Move this into a gameplay-oriented pipeline step or event handler.
 
-Territory Restore
+Risk 3 — Persistence timing
 
-↓
+Persistence must load after the world context is available but before gameplay finalization.
 
-NPC Restore
+Mitigation:
 
-↓
+Keep persistence load as an explicit pipeline step.
 
-Economy Restore
+Acceptance Criteria
 
-↓
+RFC-002 is implemented when:
 
-Road Restore
-```
+RuntimePipelineCoordinator is wired into Runtime;
+RuntimePipeline uses IRuntimeStep.OutputState;
+world discovery runs as a pipeline step;
+persistence load participates in the pipeline;
+runtime restore rebuilds runtime state without spawning Unity objects;
+gameplay becomes ready through pipeline completion;
+project rebuild succeeds.
+Final Decision
 
----
+Proposed.
 
-# Dependencies
+Implementation should proceed in small phases.
 
-This RFC depends on:
+Do not rewrite Runtime.
 
-- Merge Save
-- Runtime Registry
-- Territory Registry
-- Runtime State Machine
-
----
-
-# Implementation Plan
-
-Phase 1
-
-- Introduce Runtime Restore Pipeline.
-
-Phase 2
-
-- Restore Territory runtime state.
-
-Phase 3
-
-- Publish Runtime Restore events.
-
-Phase 4
-
-- Allow gameplay systems to subscribe.
-
----
-
-# Expected Benefits
-
-- Symmetric save/load architecture.
-- Clear separation between Persistence and Gameplay.
-- Runtime becomes reconstructible.
-- Future systems reuse one restore mechanism.
-- No duplication of persistence logic.
-
----
-
-# Decision
-
-Accepted for future implementation.
-
-Implementation will begin only after the architecture audit series is completed.
+Evolve the existing Runtime Pipeline.
