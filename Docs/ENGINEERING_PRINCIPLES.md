@@ -1,324 +1,276 @@
+# Clan Territory Engineering Principles
+
+> These principles are normative.
+>
+> They define how Clan Territory is designed, implemented, and evolved.
+>
+> Any deviation should be intentional, documented, and justified.
+
+---
+
+# Vision
+
+Clan Territory is not simply a territory mod.
+
+Clan Territory is a Persistent Living World Framework for Valheim.
+
+Territories are only the first gameplay system built on top of that framework.
+
+Every architectural decision should support future systems such as:
+
+- NPCs
+- Settlements
+- Economy
+- Roads
+- Dynamic Events
+- Future gameplay modules
+
+The framework is more important than any individual feature.
+
+---
+
 # Engineering Principles
 
-## Purpose
+## 1. GitHub Main is the Source of Truth
 
-This document defines the engineering principles that guide the development of Clan Territory.
+GitHub `main` is the only authoritative source.
 
-Unlike implementation details, these principles are expected to remain stable throughout the lifetime of the project.
+Never rely on local copies.
 
-Every architectural decision should be consistent with these principles.
+Never design from outdated code.
 
----
-
-# P1 — Architecture Before Implementation
-
-## Principle
-
-Design the solution before writing production code.
-
-## Why
-
-Architecture determines long-term maintainability.
-
-Changing architecture early is inexpensive.
-
-Changing architecture after implementation is expensive.
-
-## Consequences
-
-- Design first.
-- Implement second.
-- Major features begin with architecture.
+Always analyze the current repository before making architectural decisions.
 
 ---
 
-# P2 — Ward Is the Heart of Every Territory
+## 2. Never Guess Valheim
 
-## Principle
+Valheim behavior must never be assumed.
 
-A Territory exists because a Ward exists.
+If behavior affects gameplay or architecture:
 
-## Why
+Research first.
 
-The Ward is the anchor point of the territory.
+dnSpy first.
 
-Without a Ward, the Territory no longer exists.
-
-## Consequences
-
-- Territory lifecycle follows Ward lifecycle.
-- Destroying a Ward removes the Territory.
-- Persistence never restores Territories without existing Wards.
+Implementation second.
 
 ---
 
-# P3 — The World Is the Source of Truth
+## 3. Facts Before Design
 
-## Principle
+Architecture must be based on verified facts.
 
-The Valheim world defines reality.
+Research precedes implementation.
 
-## Why
+When knowledge is uncertain:
 
-The game world always represents the current state.
-
-Runtime data must reflect the world rather than replace it.
-
-## Consequences
-
-- Discovery reads the world.
-- Runtime can be rebuilt.
-- JSON stores additional information only.
-
----
-
-# P4 — Registry Is a Cache
-
-## Principle
-
-Registry represents runtime state.
-
-## Why
-
-Registry exists only to make runtime operations efficient.
-
-It is never authoritative.
-
-## Consequences
-
-- Registry may be rebuilt.
-- Registry mirrors the world.
-- Registry never replaces the world.
-
----
-
-# P5 — One Sprint = One Finished Feature
-
-## Principle
-
-Every sprint delivers a complete piece of functionality.
-
-## Why
-
-Incomplete systems increase technical debt.
-
-Small completed features are easier to test and maintain.
-
-## Consequences
-
-- Avoid half-implemented systems.
-- Finish before expanding.
-- Every sprint ends in a working state.
-
----
-
-# P6 — Small Safe Iterations
-
-## Principle
-
-Prefer many small improvements over large rewrites.
-
-## Why
-
-Small iterations reduce risk.
-
-Problems become easier to identify and correct.
-
-## Consequences
-
-- Keep commits focused.
-- Refactor gradually.
-- Preserve working behaviour.
-
----
-
-# P7 — Documentation Is Part of the Project
-
-## Principle
-
-Documentation evolves together with the architecture.
-
-## Why
-
-Architecture that exists only in code eventually becomes unclear.
-
-Documentation preserves engineering intent.
-
-## Consequences
-
-- Update documentation when architecture changes.
-- Maintain consistency.
-- Avoid outdated documents.
-
----
-
-# P8 — Build for Years, Not for Today
-
-## Principle
-
-Always choose the solution that remains maintainable over time.
-
-## Why
-
-The project is expected to evolve over many releases.
-
-Short-term shortcuts create long-term costs.
-
-## Consequences
-
-- Prefer maintainability.
-- Avoid unnecessary technical debt.
-- Think beyond the current sprint.
-
----
-
-# P9 — One Module — One Question
-
-## Principle
-
-Every subsystem answers one architectural question.
-
-## Why
-
-Clear responsibilities produce maintainable software.
-
-## Consequences
-
-Examples:
-
-World Discovery
-
-> Which Wards exist?
-
-Registry Synchronization
-
-> How do we synchronize runtime state?
-
-Persistence
-
-> What additional information should be stored?
-
----
-
-# P10 — The Simplest Correct Solution Wins
-
-## Principle
-
-Choose the simplest solution that fully satisfies the architectural requirements.
-
-## Why
-
-Complexity is expensive.
-
-Unnecessary abstraction makes maintenance harder.
-
-## Consequences
-
-- Avoid premature abstraction.
-- Prefer clarity.
-- Keep solutions explicit.
-
----
-
-# P11 — Separate Unity from Business Logic
-
-## Principle
-
-Unity-specific code belongs to infrastructure.
-
-Business rules belong to the Domain.
-
-## Why
-
-Separating gameplay framework from business logic improves maintainability and testing.
-
-## Consequences
-
-- Domain remains independent.
-- Unity APIs stay outside business rules.
-- Infrastructure adapts Unity to the Domain.
-
----
-
-# P12 — Every Boundary Has a Translator
-
-## Principle
-
-Every architectural boundary should have an explicit translation layer.
-
-## Why
-
-Different layers represent different concepts.
-
-Translation keeps responsibilities isolated.
-
-## Consequences
-
-Examples:
-
-Unity
+Research
 
 ↓
 
-WardBuilder
+Document
 
 ↓
 
-WardModel
+Implement
 
-Domain
+Never reverse this order.
+
+---
+
+## 4. Architecture Before Code
+
+Code follows architecture.
+
+Architecture never follows code.
+
+Large implementation without architectural understanding is prohibited.
+
+---
+
+## 5. Small Safe Steps
+
+Development proceeds through small engineering steps.
+
+One commit equals one complete engineering idea.
+
+Large unrelated commits are prohibited.
+
+---
+
+# Architecture Principles
+
+## Runtime
+
+Runtime represents only the currently loaded world.
+
+Runtime is temporary.
+
+Runtime is never the complete world.
+
+---
+
+## Persistence
+
+Persistence owns the complete world.
+
+Persistence is authoritative.
+
+Runtime must never overwrite persistent data blindly.
+
+---
+
+## Gameplay
+
+Gameplay is built on top of Runtime.
+
+Gameplay never owns Runtime.
+
+Gameplay never owns Persistence.
+
+---
+
+## Integration
+
+Harmony patches are Integration.
+
+Harmony is not gameplay.
+
+Harmony is not business logic.
+
+Harmony adapts Valheim to the framework.
+
+---
+
+## Domain
+
+Domain represents business concepts only.
+
+Domain must not depend on:
+
+- Unity
+- Harmony
+- Valheim internals
+- Serialization
+
+---
+
+## Event Driven Design
+
+Whenever practical:
+
+Systems communicate through events instead of direct dependencies.
+
+Dependencies should point downward.
+
+Knowledge should not.
+
+---
+
+# Development Workflow
+
+Every architectural change follows the same lifecycle.
+
+Research
 
 ↓
 
-Mapper
+Architecture Audit
 
 ↓
 
-Persistence
+RFC
+
+↓
+
+Implementation
+
+↓
+
+Verification
+
+Skipping steps requires explicit justification.
 
 ---
 
-# P13 — Every Commit Leaves the Project Better
+# Documentation Rules
 
-## Principle
+Important knowledge must never exist only in conversations.
 
-Every commit should improve the project.
+If knowledge affects future development:
 
-## Why
+Document it.
 
-Continuous improvement produces long-term quality.
+If architecture changes:
 
-Large improvements are achieved through many small ones.
+Document it.
 
-## Consequences
+If Valheim behavior is discovered:
 
-A commit may improve:
+Document it.
 
-- functionality;
-- architecture;
-- documentation;
-- maintainability;
-- readability;
-- testing.
-
-Every commit should leave the project in a better state than before.
+Documentation is part of the implementation.
 
 ---
 
-# Summary
+# Code Quality Principles
 
-These principles define how engineering decisions are made within Clan Territory.
+Each class should have one primary responsibility.
 
-Architecture, implementation and documentation should always remain aligned with them.
+Each class should have one primary reason to change.
 
-Stable engineering principles allow the project to evolve while preserving consistency, maintainability and long-term quality.
+Avoid premature abstraction.
+
+Avoid speculative architecture.
+
+Prefer simple explicit code over clever code.
+
+Working systems are not rewritten without architectural justification.
 
 ---
 
-# Related Documents
+# Framework Principles
 
-- ARCHITECTURE.md
-- DEVELOPMENT_WORKFLOW.md
-- SYSTEM_LIFECYCLE.md
-- ROADMAP.md
-- ADR/
+Every new system should be designed as a reusable framework component.
+
+Avoid one-off gameplay implementations.
+
+Prefer extension over duplication.
+
+---
+
+# Decision Making
+
+Engineering decisions should be based on:
+
+1. Verified facts
+2. Research
+3. Architecture
+4. Long-term maintainability
+
+Never optimize before understanding.
+
+Never redesign because something "looks cleaner".
+
+Redesign only when architecture requires it.
+
+---
+
+# Project Motto
+
+Understand first.
+
+Design second.
+
+Implement third.
+
+Optimize last.
+
+---
+
+# Long-Term Goal
+
+We are building systems that should not require rewriting six months from now.
+
+Every decision should reduce future complexity instead of increasing it.
