@@ -66,6 +66,7 @@ Implementation
 |--------|--------|
 | 001 Core & Domain | PASS |
 | 002 Runtime & Persistence | ACTION |
+| 003 Territory, WardDetection & WorldDiscovery | ACTION |
 
 ---
 
@@ -73,7 +74,8 @@ Implementation
 
 | Item | Reason |
 |------|--------|
-RFC-010 Runtime Restore Pipeline | ACTION
+| RFC-010 Runtime Restore Pipeline | Persistence load flow is not implemented |
+| RFC-011 Valheim Integration Layer | Harmony hooks are currently spread across feature folders |
 
 ---
 
@@ -87,8 +89,3 @@ Architecture changes must always be supported by:
 2. Audit
 3. RFC
 4. Implementation
-
-## RFC
-
-- RFC-010 Runtime Restore Pipeline
-
