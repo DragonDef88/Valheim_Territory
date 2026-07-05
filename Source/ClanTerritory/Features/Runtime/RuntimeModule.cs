@@ -2,8 +2,8 @@
 using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Runtime.Events;
-using ClanTerritory.Features.Runtime.Orchestration;
 using ClanTerritory.Features.Runtime.Pipeline;
 using ClanTerritory.Features.Runtime.Pipeline.Steps;
 using ClanTerritory.Features.Runtime.Services;
@@ -28,13 +28,6 @@ namespace ClanTerritory.Features.Runtime
                     "EventBus is not registered.");
             }
 
-            _stateMachine = new RuntimeStateMachine(eventBus);
-            ServiceContainer.Register(_stateMachine);
-
-            _runtimeInitializationService = new RuntimeInitializationService();
-            ServiceContainer.Register<IRuntimeInitializationService>(
-                _runtimeInitializationService);
-
             if (!ServiceContainer.TryGet<IWorldDiscoveryService>(
                     out IWorldDiscoveryService worldDiscoveryService))
             {
@@ -49,11 +42,30 @@ namespace ClanTerritory.Features.Runtime
                     "TerritoryService is not registered.");
             }
 
+            if (!ServiceContainer.TryGet<IPersistenceService>(
+                    out IPersistenceService persistenceService))
+            {
+                throw new InvalidOperationException(
+                    "PersistenceService is not registered.");
+            }
+
+            _stateMachine = new RuntimeStateMachine(eventBus);
+            ServiceContainer.Register(_stateMachine);
+
+            _runtimeInitializationService = new RuntimeInitializationService();
+            ServiceContainer.Register<IRuntimeInitializationService>(
+                _runtimeInitializationService);
+
             _runtimePipeline = new RuntimePipeline();
+
             _runtimePipeline.AddStep(
                 new WorldDiscoveryStep(
                     worldDiscoveryService,
                     territoryService));
+
+            _runtimePipeline.AddStep(
+                new PersistenceLoadStep(
+                    persistenceService));
 
             ServiceContainer.Register(_runtimePipeline);
 
@@ -66,13 +78,6 @@ namespace ClanTerritory.Features.Runtime
 
             eventBus.Subscribe<RuntimeStateChangedEvent>(
                 _runtimePipelineCoordinator);
-
-            RuntimeOrchestrator orchestrator = new RuntimeOrchestrator(
-                _stateMachine,
-                worldDiscoveryService,
-                territoryService);
-
-            ServiceContainer.Register<IRuntimeOrchestrator>(orchestrator);
 
             ModLog.Info("Runtime module initialized.");
         }
