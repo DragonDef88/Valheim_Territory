@@ -59,7 +59,32 @@ namespace ClanTerritory.Features.Persistence.Services
 
         public void LoadNow()
         {
-            ModLog.Info("Persistence LoadNow prepared.");
+            LoadSnapshot();
+        }
+
+        public SaveFileModel LoadSnapshot()
+        {
+            string worldName = _worldInfoService.GetWorldName();
+            string path = _fileSystem.GetWorldSavePath(worldName);
+
+            SaveFileModel saveFile = _storage.Load<SaveFileModel>(path);
+
+            if (saveFile == null)
+                saveFile = new SaveFileModel();
+
+            if (saveFile.Metadata == null)
+                saveFile.Metadata = new SaveMetadata();
+
+            if (saveFile.Wards == null)
+                saveFile.Wards = new List<WardRecord>();
+
+            saveFile.Metadata.RecordCount = saveFile.Wards.Count;
+
+            ModLog.Info(
+                "Persistence snapshot loaded. Records: " +
+                saveFile.Metadata.RecordCount);
+
+            return saveFile;
         }
 
         public void MarkWardDeleted(string wardId)
