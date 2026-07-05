@@ -73,7 +73,7 @@ Implementation
 
 | Item | Reason |
 |------|--------|
-| RFC-010 Runtime Restore Pipeline | Persistence load flow is not implemented |
+RFC-010 Runtime Restore Pipeline | ACTION
 
 ---
 
@@ -87,3 +87,8 @@ Architecture changes must always be supported by:
 2. Audit
 3. RFC
 4. Implementation
+
+## RFC
+
+- RFC-010 Runtime Restore Pipeline
+
