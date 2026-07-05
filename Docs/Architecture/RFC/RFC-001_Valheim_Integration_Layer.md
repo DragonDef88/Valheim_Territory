@@ -1,6 +1,6 @@
 # RFC-001 — Valheim Integration Layer
 
-Status: Proposed
+Status: Implemented
 
 Author: Clan Territory Engineering
 
@@ -364,3 +364,35 @@ This RFC only defines the Integration Layer boundary.
 Proposed.
 
 Implementation may begin after this RFC is committed.
+
+---
+
+# Completion
+
+Implemented as part of the RFC-001 implementation phase.
+
+Completed implementation steps:
+
+- Created `Source/ClanTerritory/Integration/Valheim/`
+- Added Integration subdirectories:
+  - `Harmony`
+  - `Lifecycle`
+  - `Discovery`
+  - `Adapters`
+  - `Events`
+- Moved Valheim lifecycle hooks into Integration
+- Moved runtime world-ready hook into Integration
+- Moved ward-related Harmony hooks into Integration
+- Cleaned duplicate project file include
+- Verified project rebuild
+
+Current Integration boundary:
+
+```text
+Valheim Engine
+   │
+   ▼
+Integration/Valheim
+   │
+   ▼
+Clan Territory Features
