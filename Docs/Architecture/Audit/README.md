@@ -20,6 +20,8 @@ They identify:
 
 ## Audit Index
 
-- `001_Codebase_Audit_Core_Domain.md`
-- `002_Runtime_Persistence_Audit.md`
-- `003_Territory_WardDetection_Audit.md`
+| Audit | Title | Status |
+|-------|-------|--------|
+| 001 | Core & Domain | PASS |
+| 002 | Runtime & Persistence | ACTION |
+| 003 | Territory, WardDetection & WorldDiscovery | ACTION |

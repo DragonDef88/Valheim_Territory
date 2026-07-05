@@ -22,3 +22,13 @@ Implementing
    │
    ▼
 Implemented
+
+Other possible states:
+
+Rejected
+Superseded
+Current RFCs
+
+See:
+
+RFC_Index.md
