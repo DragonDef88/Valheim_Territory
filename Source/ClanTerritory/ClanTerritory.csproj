@@ -94,6 +94,7 @@
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Events\IEventHandler.cs" />
     <Compile Include="Features\Diagnostics\DiagnosticsModule.cs" />
+    <Compile Include="Features\Runtime\Steps\WorldDiscoveryStep.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
     <Compile Include="Features\Diagnostics\Services\DiagnosticsService.cs" />

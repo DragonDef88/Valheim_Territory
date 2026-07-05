@@ -5,6 +5,7 @@ using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Events;
 using ClanTerritory.Features.Runtime.Orchestration;
 using ClanTerritory.Features.Runtime.Pipeline;
+using ClanTerritory.Features.Runtime.Pipeline.Steps;
 using ClanTerritory.Features.Runtime.Services;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WorldDiscovery.Services;
@@ -34,19 +35,6 @@ namespace ClanTerritory.Features.Runtime
             ServiceContainer.Register<IRuntimeInitializationService>(
                 _runtimeInitializationService);
 
-            _runtimePipeline = new RuntimePipeline();
-            ServiceContainer.Register(_runtimePipeline);
-
-            _runtimePipelineCoordinator =
-    new RuntimePipelineCoordinator(
-        _stateMachine,
-        _runtimePipeline);
-
-            ServiceContainer.Register(_runtimePipelineCoordinator);
-
-            eventBus.Subscribe<RuntimeStateChangedEvent>(
-                _runtimePipelineCoordinator);
-
             if (!ServiceContainer.TryGet<IWorldDiscoveryService>(
                     out IWorldDiscoveryService worldDiscoveryService))
             {
@@ -61,14 +49,30 @@ namespace ClanTerritory.Features.Runtime
                     "TerritoryService is not registered.");
             }
 
+            _runtimePipeline = new RuntimePipeline();
+            _runtimePipeline.AddStep(
+                new WorldDiscoveryStep(
+                    worldDiscoveryService,
+                    territoryService));
+
+            ServiceContainer.Register(_runtimePipeline);
+
+            _runtimePipelineCoordinator =
+                new RuntimePipelineCoordinator(
+                    _stateMachine,
+                    _runtimePipeline);
+
+            ServiceContainer.Register(_runtimePipelineCoordinator);
+
+            eventBus.Subscribe<RuntimeStateChangedEvent>(
+                _runtimePipelineCoordinator);
+
             RuntimeOrchestrator orchestrator = new RuntimeOrchestrator(
                 _stateMachine,
                 worldDiscoveryService,
                 territoryService);
 
             ServiceContainer.Register<IRuntimeOrchestrator>(orchestrator);
-
-            eventBus.Subscribe<RuntimeStateChangedEvent>(orchestrator);
 
             ModLog.Info("Runtime module initialized.");
         }
