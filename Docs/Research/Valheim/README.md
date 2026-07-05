@@ -28,3 +28,4 @@ They exist to support architectural decisions in Clan Territory.
 - `002_World_Load_Pipeline.md`
 - `003_ZDO_Lifecycle.md`
 - `004_Zone_Loading.md`
+- `005_Player_RemovePiece.md`
