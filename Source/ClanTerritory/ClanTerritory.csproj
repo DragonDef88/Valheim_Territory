@@ -94,7 +94,7 @@
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Events\IEventHandler.cs" />
     <Compile Include="Features\Diagnostics\DiagnosticsModule.cs" />
-    <Compile Include="Features\Diagnostics\Hooks\ValheimLifecycleHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
     <Compile Include="Features\Diagnostics\Services\DiagnosticsService.cs" />
     <Compile Include="Features\Diagnostics\Services\IDiagnosticsService.cs" />
@@ -163,7 +163,16 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\ModLog.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="Integration\Valheim\Adapters\.gitkeep" />
+    <None Include="Integration\Valheim\Discovery\.gitkeep" />
+    <None Include="Integration\Valheim\Events\.gitkeep" />
+    <None Include="Integration\Valheim\Lifecycle\.gitkeep" />
+    <None Include="Integration\Valheim\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Features\Diagnostics\Hooks\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyToValheim" AfterTargets="Build">
     <PropertyGroup>
