@@ -65,6 +65,15 @@ Implementation
 | Audit | Status |
 |--------|--------|
 | 001 Core & Domain | PASS |
+| 002 Runtime & Persistence | ACTION |
+
+---
+
+## Current Action Items
+
+| Item | Reason |
+|------|--------|
+| RFC-010 Runtime Restore Pipeline | Persistence load flow is not implemented |
 
 ---
 
