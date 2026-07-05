@@ -6,6 +6,7 @@ using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Runtime.Events;
 using ClanTerritory.Features.Runtime.Pipeline;
 using ClanTerritory.Features.Runtime.Pipeline.Steps;
+using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Features.Runtime.Services;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WorldDiscovery.Services;
@@ -19,6 +20,7 @@ namespace ClanTerritory.Features.Runtime
         private IRuntimeInitializationService _runtimeInitializationService;
         private RuntimePipeline _runtimePipeline;
         private RuntimePipelineCoordinator _runtimePipelineCoordinator;
+        private RuntimeRestoreContext _runtimeRestoreContext;
 
         public void Initialize()
         {
@@ -56,6 +58,9 @@ namespace ClanTerritory.Features.Runtime
             ServiceContainer.Register<IRuntimeInitializationService>(
                 _runtimeInitializationService);
 
+            _runtimeRestoreContext = new RuntimeRestoreContext();
+            ServiceContainer.Register(_runtimeRestoreContext);
+
             _runtimePipeline = new RuntimePipeline();
 
             _runtimePipeline.AddStep(
@@ -65,7 +70,8 @@ namespace ClanTerritory.Features.Runtime
 
             _runtimePipeline.AddStep(
                 new PersistenceLoadStep(
-                    persistenceService));
+                    persistenceService,
+                    _runtimeRestoreContext));
 
             ServiceContainer.Register(_runtimePipeline);
 

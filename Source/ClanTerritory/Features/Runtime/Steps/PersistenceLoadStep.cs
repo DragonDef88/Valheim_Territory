@@ -1,4 +1,6 @@
-﻿using ClanTerritory.Features.Persistence.Services;
+﻿using ClanTerritory.Features.Persistence.Models;
+using ClanTerritory.Features.Persistence.Services;
+using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.Runtime.Pipeline.Steps
@@ -6,10 +8,14 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
     internal sealed class PersistenceLoadStep : IRuntimeStep
     {
         private readonly IPersistenceService _persistenceService;
+        private readonly RuntimeRestoreContext _restoreContext;
 
-        public PersistenceLoadStep(IPersistenceService persistenceService)
+        public PersistenceLoadStep(
+            IPersistenceService persistenceService,
+            RuntimeRestoreContext restoreContext)
         {
             _persistenceService = persistenceService;
+            _restoreContext = restoreContext;
         }
 
         public RuntimeState InputState
@@ -24,11 +30,13 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
 
         public void Execute()
         {
-            ModLog.Info("[Runtime Pipeline] Loading persistence.");
+            ModLog.Info("[Runtime Pipeline] Loading persistence snapshot.");
 
-            _persistenceService.LoadNow();
+            SaveFileModel saveFile = _persistenceService.LoadSnapshot();
 
-            ModLog.Info("[Runtime Pipeline] Persistence load completed.");
+            _restoreContext.SetSaveFile(saveFile);
+
+            ModLog.Info("[Runtime Pipeline] Persistence snapshot stored.");
         }
     }
 }
