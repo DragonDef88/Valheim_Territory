@@ -3,8 +3,9 @@ using UnityEngine;
 using ClanTerritory.Core;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
+using ClanTerritory.Features.WardDetection;
 
-namespace ClanTerritory.Features.WardDetection.Hooks
+namespace ClanTerritory.Integration.Valheim.Harmony
 {
     [HarmonyPatch(typeof(Player))]
     internal static class PieceDestroyHooks

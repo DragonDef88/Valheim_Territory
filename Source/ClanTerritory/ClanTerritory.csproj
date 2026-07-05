@@ -142,15 +142,15 @@
     <Compile Include="Features\Territory\Services\ITerritoryService.cs" />
     <Compile Include="Features\Territory\Services\TerritoryService.cs" />
     <Compile Include="Features\Territory\TerritoryModule.cs" />
-    <Compile Include="Features\WardDetection\Hooks\PieceCreatorHooks.cs" />
-    <Compile Include="Features\WardDetection\Hooks\PrivateAreaHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\PieceCreatorHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\PrivateAreaHooks.cs" />
     <Compile Include="Features\WorldDiscovery\Builders\WardBuilder.cs" />
     <Compile Include="Features\WorldDiscovery\Scanners\PrivateAreaScanner.cs" />
     <Compile Include="Features\WorldDiscovery\Services\IWorldDiscoveryService.cs" />
     <Compile Include="Features\WorldDiscovery\Services\WorldDiscoveryService.cs" />
     <Compile Include="Features\WorldDiscovery\WorldDiscoveryModule.cs" />
-    <Compile Include="Features\WardDetection\Hooks\PieceDestroyHooks.cs" />
-    <Compile Include="Features\WardDetection\Hooks\PiecePlacementHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\PieceDestroyHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\PiecePlacementHooks.cs" />
     <Compile Include="Features\WardDetection\Models\WardModel.cs" />
     <Compile Include="Features\WardDetection\Registry\WardRegistry.cs" />
     <Compile Include="Features\WardDetection\Services\IWardService.cs" />
@@ -166,6 +166,9 @@
   <ItemGroup>
     <Compile Include="Integration\Valheim\Lifecycle\RuntimeWorldReadyHooks.cs" />
     <None Include="Integration\Valheim\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Features\WardDetection\Hooks\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyToValheim" AfterTargets="Build">

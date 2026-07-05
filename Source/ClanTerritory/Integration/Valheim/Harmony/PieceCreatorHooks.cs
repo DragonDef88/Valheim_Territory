@@ -4,20 +4,34 @@ using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
 
-namespace ClanTerritory.Features.WardDetection.Hooks
+namespace ClanTerritory.Integration.Valheim.Harmony
 {
-    [HarmonyPatch(typeof(PrivateArea))]
-    internal static class PrivateAreaHooks
+    [HarmonyPatch(typeof(Piece))]
+    internal static class PieceCreatorHooks
     {
+        private const string WardPieceName = "guard_stone";
+
         private static readonly PrivateAreaScanner Scanner =
             new PrivateAreaScanner();
 
         [HarmonyPostfix]
-        [HarmonyPatch("Awake")]
-        private static void AwakePostfix(PrivateArea __instance)
+        [HarmonyPatch("SetCreator")]
+        private static void SetCreatorPostfix(Piece __instance)
         {
+            if (__instance == null)
+                return;
+
+            if (!__instance.name.Contains(WardPieceName))
+                return;
+
+            PrivateArea privateArea =
+                __instance.GetComponent<PrivateArea>();
+
+            if (privateArea == null)
+                return;
+
             if (!Scanner.TryCreateWardModel(
-                    __instance,
+                    privateArea,
                     out WardModel model))
                 return;
 

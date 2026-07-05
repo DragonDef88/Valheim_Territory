@@ -3,7 +3,7 @@ using UnityEngine;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Placement;
 
-namespace ClanTerritory.Features.WardDetection.Hooks
+namespace ClanTerritory.Integration.Valheim.Harmony
 {
     [HarmonyPatch(typeof(Player))]
     internal static class PiecePlacementHooks
