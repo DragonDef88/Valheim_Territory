@@ -4,5 +4,6 @@
     {
         void SaveNow();
         void LoadNow();
+        void MarkWardDeleted(string wardId);
     }
 }

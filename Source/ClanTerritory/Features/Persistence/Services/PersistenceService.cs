@@ -21,6 +21,9 @@ namespace ClanTerritory.Features.Persistence.Services
         private readonly BackupStorage _backupStorage;
         private readonly IWorldInfoService _worldInfoService;
 
+        private readonly HashSet<string> _deletedWardIds =
+            new HashSet<string>();
+
         public PersistenceService(
             JsonStorage storage,
             TerritoryMapper territoryMapper,
@@ -47,6 +50,8 @@ namespace ClanTerritory.Features.Persistence.Services
 
             _storage.Save(path, saveFile);
 
+            _deletedWardIds.Clear();
+
             ModLog.Info(
                 "Persistence merge-save completed. Records: " +
                 saveFile.Metadata.RecordCount);
@@ -55,6 +60,16 @@ namespace ClanTerritory.Features.Persistence.Services
         public void LoadNow()
         {
             ModLog.Info("Persistence LoadNow prepared.");
+        }
+
+        public void MarkWardDeleted(string wardId)
+        {
+            if (string.IsNullOrEmpty(wardId))
+                return;
+
+            _deletedWardIds.Add(wardId);
+
+            ModLog.Info("Persistence delete tracked for ward: " + wardId);
         }
 
         private SaveFileModel CreateSnapshot()
@@ -96,8 +111,8 @@ namespace ClanTerritory.Features.Persistence.Services
             List<WardRecord> records = new List<WardRecord>();
             Dictionary<string, int> indexByKey = new Dictionary<string, int>();
 
-            AddOrReplaceRecords(existing.Wards, records, indexByKey);
-            AddOrReplaceRecords(snapshot.Wards, records, indexByKey);
+            AddOrReplaceRecords(existing.Wards, records, indexByKey, true);
+            AddOrReplaceRecords(snapshot.Wards, records, indexByKey, false);
 
             merged.Wards = records;
             merged.Metadata.RecordCount = merged.Wards.Count;
@@ -105,10 +120,11 @@ namespace ClanTerritory.Features.Persistence.Services
             return merged;
         }
 
-        private static void AddOrReplaceRecords(
+        private void AddOrReplaceRecords(
             IEnumerable<WardRecord> source,
             List<WardRecord> records,
-            Dictionary<string, int> indexByKey)
+            Dictionary<string, int> indexByKey,
+            bool skipDeleted)
         {
             if (source == null)
                 return;
@@ -119,6 +135,9 @@ namespace ClanTerritory.Features.Persistence.Services
                     continue;
 
                 string key = GetRecordKey(record);
+
+                if (skipDeleted && IsDeleted(record))
+                    continue;
 
                 if (string.IsNullOrEmpty(key))
                 {
@@ -137,6 +156,18 @@ namespace ClanTerritory.Features.Persistence.Services
                 indexByKey.Add(key, records.Count);
                 records.Add(record);
             }
+        }
+
+        private bool IsDeleted(WardRecord record)
+        {
+            if (record == null)
+                return false;
+
+            if (!string.IsNullOrEmpty(record.WardId) &&
+                _deletedWardIds.Contains(record.WardId))
+                return true;
+
+            return false;
         }
 
         private static string GetRecordKey(WardRecord record)

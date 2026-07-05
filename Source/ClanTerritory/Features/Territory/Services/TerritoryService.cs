@@ -79,6 +79,8 @@ namespace ClanTerritory.Features.Territory.Services
         {
             if (_registry.RemoveByWard(wardId))
             {
+                MarkWardDeleted(wardId.ToString());
+
                 ModLog.Info(
                     "Territory removed for ward: " +
                     wardId +
@@ -93,6 +95,14 @@ namespace ClanTerritory.Features.Territory.Services
                     "Ward destroyed, but territory was not found: " +
                     wardId);
             }
+        }
+
+        private static void MarkWardDeleted(string wardId)
+        {
+            IPersistenceService persistenceService;
+
+            if (ServiceContainer.TryGet<IPersistenceService>(out persistenceService))
+                persistenceService.MarkWardDeleted(wardId);
         }
 
         private void SaveNow()
