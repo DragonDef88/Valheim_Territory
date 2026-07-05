@@ -21,6 +21,7 @@ namespace ClanTerritory.Features.Runtime
         private RuntimePipeline _runtimePipeline;
         private RuntimePipelineCoordinator _runtimePipelineCoordinator;
         private RuntimeRestoreContext _runtimeRestoreContext;
+        private RuntimeRestoreMapper _runtimeRestoreMapper;
 
         public void Initialize()
         {
@@ -61,6 +62,9 @@ namespace ClanTerritory.Features.Runtime
             _runtimeRestoreContext = new RuntimeRestoreContext();
             ServiceContainer.Register(_runtimeRestoreContext);
 
+            _runtimeRestoreMapper = new RuntimeRestoreMapper();
+            ServiceContainer.Register(_runtimeRestoreMapper);
+
             _runtimePipeline = new RuntimePipeline();
 
             _runtimePipeline.AddStep(
@@ -72,6 +76,11 @@ namespace ClanTerritory.Features.Runtime
                 new PersistenceLoadStep(
                     persistenceService,
                     _runtimeRestoreContext));
+
+            _runtimePipeline.AddStep(
+                new RuntimeRestoreStep(
+                    _runtimeRestoreContext,
+                    _runtimeRestoreMapper));
 
             ServiceContainer.Register(_runtimePipeline);
 

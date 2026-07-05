@@ -99,6 +99,7 @@
     <Compile Include="Features\Runtime\Restore\RuntimeRestoreSnapshot.cs" />
     <Compile Include="Features\Runtime\Restore\RuntimeWardRestoreRecord.cs" />
     <Compile Include="Features\Runtime\Steps\PersistenceLoadStep.cs" />
+    <Compile Include="Features\Runtime\Steps\RuntimeRestoreStep.cs" />
     <Compile Include="Features\Runtime\Steps\WorldDiscoveryStep.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
