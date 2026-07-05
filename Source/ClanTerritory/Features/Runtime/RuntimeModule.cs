@@ -38,7 +38,9 @@ namespace ClanTerritory.Features.Runtime
             ServiceContainer.Register(_runtimePipeline);
 
             _runtimePipelineCoordinator =
-                new RuntimePipelineCoordinator(_runtimePipeline);
+    new RuntimePipelineCoordinator(
+        _stateMachine,
+        _runtimePipeline);
 
             ServiceContainer.Register(_runtimePipelineCoordinator);
 

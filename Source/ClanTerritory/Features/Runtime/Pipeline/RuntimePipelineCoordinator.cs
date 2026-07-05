@@ -6,10 +6,14 @@ namespace ClanTerritory.Features.Runtime.Pipeline
     internal sealed class RuntimePipelineCoordinator :
         IEventHandler<RuntimeStateChangedEvent>
     {
+        private readonly RuntimeStateMachine _stateMachine;
         private readonly RuntimePipeline _pipeline;
 
-        public RuntimePipelineCoordinator(RuntimePipeline pipeline)
+        public RuntimePipelineCoordinator(
+            RuntimeStateMachine stateMachine,
+            RuntimePipeline pipeline)
         {
+            _stateMachine = stateMachine;
             _pipeline = pipeline;
         }
 
@@ -18,7 +22,13 @@ namespace ClanTerritory.Features.Runtime.Pipeline
             if (eventData == null)
                 return;
 
-            _pipeline.Execute(eventData.CurrentState);
+            RuntimeState nextState =
+                _pipeline.Execute(eventData.CurrentState);
+
+            if (nextState == eventData.CurrentState)
+                return;
+
+            _stateMachine.SetState(nextState);
         }
     }
 }

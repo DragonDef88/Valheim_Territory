@@ -20,7 +20,7 @@ namespace ClanTerritory.Features.Runtime.Pipeline
             _steps.Add(step);
         }
 
-        public void Execute(RuntimeState currentState)
+        public RuntimeState Execute(RuntimeState currentState)
         {
             for (int i = 0; i < _steps.Count; i++)
             {
@@ -34,7 +34,11 @@ namespace ClanTerritory.Features.Runtime.Pipeline
                     step.GetType().Name);
 
                 step.Execute();
+
+                return step.OutputState;
             }
+
+            return currentState;
         }
     }
 }
