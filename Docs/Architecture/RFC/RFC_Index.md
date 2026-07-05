@@ -10,3 +10,4 @@
 | RFC-006 | Persistence Merge Engine | Draft | Audit-002 | Pending |
 | RFC-007 | Persistent Deletion Journal | Draft | Audit-002 | Pending |
 | RFC-008 | Loaded World Discovery | Draft | Audit-003 | Pending |
+| RFC-003 | Runtime Restore Model | Proposed | RFC-002 / Audit-005 | `RFC-003_Runtime_Restore_Model.md` |
