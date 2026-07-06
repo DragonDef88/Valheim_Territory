@@ -1,6 +1,7 @@
 ﻿using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Persistence.Services;
+using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Territory.Factories;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.WardDetection;
@@ -30,6 +31,14 @@ namespace ClanTerritory.Features.Territory.Services
             if (eventData == null)
                 return;
 
+            if (!IsRuntimeGameplayReady())
+            {
+                ModLog.Info(
+                    "Territory creation skipped: runtime is not gameplay-ready.");
+
+                return;
+            }
+
             CreateTerritoryFromWard(eventData.Ward);
         }
 
@@ -37,6 +46,14 @@ namespace ClanTerritory.Features.Territory.Services
         {
             if (eventData == null)
                 return;
+
+            if (!IsRuntimeGameplayReady())
+            {
+                ModLog.Info(
+                    "Territory removal skipped: runtime is not gameplay-ready.");
+
+                return;
+            }
 
             RemoveTerritoryFromWard(eventData.WardId);
         }
@@ -95,6 +112,16 @@ namespace ClanTerritory.Features.Territory.Services
                     "Ward destroyed, but territory was not found: " +
                     wardId);
             }
+        }
+
+        private static bool IsRuntimeGameplayReady()
+        {
+            RuntimeStateMachine stateMachine;
+
+            if (!ServiceContainer.TryGet<RuntimeStateMachine>(out stateMachine))
+                return false;
+
+            return stateMachine.State == RuntimeState.GameplayReady;
         }
 
         private static void MarkWardDeleted(string wardId)
