@@ -20,13 +20,6 @@ namespace ClanTerritory.Integration.Valheim.Lifecycle
             if (Player.m_localPlayer == null)
                 return;
 
-            PrivateArea[] privateAreas =
-                UnityEngine.Object.FindObjectsByType<PrivateArea>(
-                    UnityEngine.FindObjectsSortMode.None);
-
-            if (privateAreas == null || privateAreas.Length == 0)
-                return;
-
             stateMachine.SetState(RuntimeState.WorldLoaded);
         }
     }
