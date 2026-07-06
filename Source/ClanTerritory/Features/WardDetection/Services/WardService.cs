@@ -1,6 +1,7 @@
 ﻿using ClanTerritory.Core;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Registry;
@@ -10,6 +11,8 @@ namespace ClanTerritory.Features.WardDetection.Services
 {
     internal sealed class WardService : IWardService
     {
+        private const int MaxRuntimeWards = 3;
+
         private readonly WardRegistry _registry;
 
         public WardService(WardRegistry registry)
@@ -25,13 +28,16 @@ namespace ClanTerritory.Features.WardDetection.Services
             if (!_registry.Register(ward))
                 return;
 
-            RegisterRuntimeWard(ward);
+            bool runtimeAccepted = RegisterRuntimeWard(ward);
 
             ModLog.Info(
                 "Ward registered: " +
                 ward.Id +
                 ", owner: " +
                 ward.OwnerName);
+
+            if (!runtimeAccepted)
+                return;
 
             EventBus eventBus;
 
@@ -43,7 +49,19 @@ namespace ClanTerritory.Features.WardDetection.Services
         {
             if (_registry.Unregister(wardId.ToString()))
             {
-                UnregisterRuntimeWard(wardId);
+                if (!IsGameplayReady())
+                {
+                    ModLog.Info(
+                        "[Runtime] Ward unload ignored before gameplay-ready: " +
+                        wardId);
+
+                    return;
+                }
+
+                bool runtimeRemoved = UnregisterRuntimeWard(wardId);
+
+                if (!runtimeRemoved)
+                    return;
 
                 EventBus eventBus;
 
@@ -52,14 +70,45 @@ namespace ClanTerritory.Features.WardDetection.Services
             }
         }
 
-        private static void RegisterRuntimeWard(WardModel ward)
+        private static bool RegisterRuntimeWard(WardModel ward)
         {
             IRuntimeRegistry runtimeRegistry;
 
             if (!ServiceContainer.TryGet(out runtimeRegistry))
-                return;
+                return false;
 
             WardId wardId = new WardId(ward.Id);
+
+            if (!IsGameplayReady())
+            {
+                ModLog.Info(
+                    "[Runtime] Ward load observed before gameplay-ready: " +
+                    ward.Id);
+
+                return false;
+            }
+
+            RuntimeWard existingWard;
+
+            if (runtimeRegistry.TryGet(wardId, out existingWard))
+            {
+                ModLog.Info(
+                    "[Runtime] Ward already known, load ignored: " +
+                    ward.Id);
+
+                return false;
+            }
+
+            if (runtimeRegistry.GetAll().Count >= MaxRuntimeWards)
+            {
+                ModLog.Warning(
+                    "[Runtime] Ward registration blocked: max runtime wards reached (" +
+                    MaxRuntimeWards +
+                    "). Ward: " +
+                    ward.Id);
+
+                return false;
+            }
 
             RuntimeWard runtimeWard =
                 new RuntimeWard(
@@ -69,24 +118,46 @@ namespace ClanTerritory.Features.WardDetection.Services
             if (runtimeRegistry.TryAdd(runtimeWard))
             {
                 ModLog.Info(
-                    "[Runtime] Ward loaded: " +
+                    "[Runtime] New ward accepted: " +
                     ward.Id);
+
+                return true;
             }
+
+            return false;
         }
 
-        private static void UnregisterRuntimeWard(WardId wardId)
+        private static bool UnregisterRuntimeWard(WardId wardId)
         {
             IRuntimeRegistry runtimeRegistry;
 
             if (!ServiceContainer.TryGet(out runtimeRegistry))
-                return;
+                return false;
 
             if (runtimeRegistry.Remove(wardId))
             {
                 ModLog.Info(
                     "[Runtime] Ward unloaded: " +
                     wardId);
+
+                return true;
             }
+
+            ModLog.Info(
+                "[Runtime] Ward unload ignored, not found: " +
+                wardId);
+
+            return false;
+        }
+
+        private static bool IsGameplayReady()
+        {
+            RuntimeStateMachine stateMachine;
+
+            if (!ServiceContainer.TryGet<RuntimeStateMachine>(out stateMachine))
+                return false;
+
+            return stateMachine.State == RuntimeState.GameplayReady;
         }
     }
 }
