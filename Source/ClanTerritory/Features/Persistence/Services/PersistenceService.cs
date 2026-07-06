@@ -30,12 +30,14 @@ namespace ClanTerritory.Features.Persistence.Services
             TerritoryMapper territoryMapper,
             PersistenceFileSystem fileSystem,
             BackupStorage backupStorage,
+            PersistenceWriteGate writeGate,
             IWorldInfoService worldInfoService)
         {
             _storage = storage;
             _territoryMapper = territoryMapper;
             _fileSystem = fileSystem;
             _backupStorage = backupStorage;
+            _writeGate = writeGate;
             _worldInfoService = worldInfoService;
         }
 
@@ -144,6 +146,13 @@ namespace ClanTerritory.Features.Persistence.Services
         private SaveFileModel MergeWithExisting(string path, SaveFileModel snapshot)
         {
             SaveFileModel existing = _storage.Load<SaveFileModel>(path);
+
+            if (existing == null)
+                existing = new SaveFileModel();
+
+            if (existing.Wards == null)
+                existing.Wards = new List<WardRecord>();
+
             SaveFileModel merged = new SaveFileModel();
 
             merged.Metadata = snapshot.Metadata;

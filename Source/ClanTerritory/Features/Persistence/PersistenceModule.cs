@@ -18,6 +18,7 @@ namespace ClanTerritory.Features.Persistence
         private JsonStorage _storage;
         private TerritoryMapper _territoryMapper;
         private WorldInfoService _worldInfoService;
+        private PersistenceWriteGate _writeGate;
         private PersistenceService _service;
 
         public void Initialize()
@@ -35,16 +36,17 @@ namespace ClanTerritory.Features.Persistence
 
             _worldInfoService = new WorldInfoService();
 
-            PersistenceWriteGate writeGate = new PersistenceWriteGate();
+            _writeGate = new PersistenceWriteGate();
 
             _service = new PersistenceService(
                 _storage,
                 _territoryMapper,
                 _fileSystem,
                 _backupStorage,
+                _writeGate,
                 _worldInfoService);
 
-            ServiceContainer.Register(writeGate);
+            ServiceContainer.Register(_writeGate);
             ServiceContainer.Register<PersistenceFileSystem>(_fileSystem);
             ServiceContainer.Register<BackupStorage>(_backupStorage);
             ServiceContainer.Register<JsonSerializerService>(_serializer);
