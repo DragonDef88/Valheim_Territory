@@ -67,10 +67,18 @@ namespace ClanTerritory.Features.Persistence.Services
             string worldName = _worldInfoService.GetWorldName();
             string path = _fileSystem.GetWorldSavePath(worldName);
 
+            ModLog.Info("[Persistence] Loading snapshot.");
+            ModLog.Info("[Persistence] World name: " + worldName);
+            ModLog.Info("[Persistence] Snapshot path: " + path);
+            ModLog.Info("[Persistence] Snapshot file exists: " + System.IO.File.Exists(path));
+
             SaveFileModel saveFile = _storage.Load<SaveFileModel>(path);
 
             if (saveFile == null)
+            {
+                ModLog.Info("[Persistence] Storage returned null snapshot.");
                 saveFile = new SaveFileModel();
+            }
 
             if (saveFile.Metadata == null)
                 saveFile.Metadata = new SaveMetadata();
