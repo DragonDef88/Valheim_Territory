@@ -7,13 +7,16 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
     {
         private readonly RuntimeRestoreContext _restoreContext;
         private readonly RuntimeRestoreMapper _restoreMapper;
+        private readonly IRuntimeRegistryRestoreService _registryRestoreService;
 
         public RuntimeRestoreStep(
             RuntimeRestoreContext restoreContext,
-            RuntimeRestoreMapper restoreMapper)
+            RuntimeRestoreMapper restoreMapper,
+            IRuntimeRegistryRestoreService registryRestoreService)
         {
             _restoreContext = restoreContext;
             _restoreMapper = restoreMapper;
+            _registryRestoreService = registryRestoreService;
         }
 
         public RuntimeState InputState
@@ -35,13 +38,15 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
 
             _restoreContext.SetSnapshot(snapshot);
 
+            _registryRestoreService.Restore(snapshot);
+
             int wardCount = 0;
 
             if (snapshot != null && snapshot.Wards != null)
                 wardCount = snapshot.Wards.Count;
 
             ModLog.Info(
-                "[Runtime Pipeline] Runtime restore snapshot built. Wards: " +
+                "[Runtime Pipeline] Runtime restore completed. Wards: " +
                 wardCount);
         }
     }

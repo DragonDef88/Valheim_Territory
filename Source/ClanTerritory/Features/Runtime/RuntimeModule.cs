@@ -6,6 +6,7 @@ using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Runtime.Events;
 using ClanTerritory.Features.Runtime.Pipeline;
 using ClanTerritory.Features.Runtime.Pipeline.Steps;
+using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Features.Runtime.Services;
 using ClanTerritory.Features.Territory.Services;
@@ -22,6 +23,7 @@ namespace ClanTerritory.Features.Runtime
         private RuntimePipelineCoordinator _runtimePipelineCoordinator;
         private RuntimeRestoreContext _runtimeRestoreContext;
         private RuntimeRestoreMapper _runtimeRestoreMapper;
+        private IRuntimeRegistryRestoreService _runtimeRegistryRestoreService;
 
         public void Initialize()
         {
@@ -52,6 +54,13 @@ namespace ClanTerritory.Features.Runtime
                     "PersistenceService is not registered.");
             }
 
+            if (!ServiceContainer.TryGet<IRuntimeRegistry>(
+                    out IRuntimeRegistry runtimeRegistry))
+            {
+                throw new InvalidOperationException(
+                    "RuntimeRegistry is not registered.");
+            }
+
             _stateMachine = new RuntimeStateMachine(eventBus);
             ServiceContainer.Register(_stateMachine);
 
@@ -64,6 +73,12 @@ namespace ClanTerritory.Features.Runtime
 
             _runtimeRestoreMapper = new RuntimeRestoreMapper();
             ServiceContainer.Register(_runtimeRestoreMapper);
+
+            _runtimeRegistryRestoreService =
+                new RuntimeRegistryRestoreService(runtimeRegistry);
+
+            ServiceContainer.Register<IRuntimeRegistryRestoreService>(
+                _runtimeRegistryRestoreService);
 
             _runtimePipeline = new RuntimePipeline();
 
@@ -80,7 +95,8 @@ namespace ClanTerritory.Features.Runtime
             _runtimePipeline.AddStep(
                 new RuntimeRestoreStep(
                     _runtimeRestoreContext,
-                    _runtimeRestoreMapper));
+                    _runtimeRestoreMapper,
+                    _runtimeRegistryRestoreService));
 
             ServiceContainer.Register(_runtimePipeline);
 
