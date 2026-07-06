@@ -19,6 +19,7 @@ namespace ClanTerritory.Features.Persistence.Services
         private readonly TerritoryMapper _territoryMapper;
         private readonly PersistenceFileSystem _fileSystem;
         private readonly BackupStorage _backupStorage;
+        private readonly PersistenceWriteGate _writeGate;
         private readonly IWorldInfoService _worldInfoService;
 
         private readonly HashSet<string> _deletedWardIds =
@@ -40,6 +41,12 @@ namespace ClanTerritory.Features.Persistence.Services
 
         public void SaveNow()
         {
+            if (!_writeGate.CanWrite)
+            {
+                ModLog.Info("[Persistence] Save skipped: write gate is closed.");
+                return;
+            }
+
             SaveFileModel snapshot = CreateSnapshot();
 
             string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);

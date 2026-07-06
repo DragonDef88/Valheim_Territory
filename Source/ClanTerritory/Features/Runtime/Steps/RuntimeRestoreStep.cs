@@ -1,5 +1,6 @@
 ﻿using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Utils;
+using ClanTerritory.Features.Persistence.Services;
 
 namespace ClanTerritory.Features.Runtime.Pipeline.Steps
 {
@@ -7,6 +8,7 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
     {
         private readonly RuntimeRestoreContext _restoreContext;
         private readonly RuntimeRestoreMapper _restoreMapper;
+        private readonly PersistenceWriteGate _writeGate;
         private readonly IRuntimeRegistryRestoreService _registryRestoreService;
 
         public RuntimeRestoreStep(
@@ -14,6 +16,8 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
             RuntimeRestoreMapper restoreMapper,
             IRuntimeRegistryRestoreService registryRestoreService)
         {
+            _writeGate.Open();
+            ModLog.Info("[Persistence] Write gate opened after runtime restore.");
             _restoreContext = restoreContext;
             _restoreMapper = restoreMapper;
             _registryRestoreService = registryRestoreService;
