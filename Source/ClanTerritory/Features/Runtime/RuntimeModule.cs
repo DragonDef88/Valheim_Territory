@@ -9,7 +9,6 @@ using ClanTerritory.Features.Runtime.Pipeline.Steps;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Features.Runtime.Services;
-using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WorldDiscovery.Services;
 using ClanTerritory.Utils;
 
@@ -38,13 +37,6 @@ namespace ClanTerritory.Features.Runtime
             {
                 throw new InvalidOperationException(
                     "WorldDiscoveryService is not registered.");
-            }
-
-            if (!ServiceContainer.TryGet<ITerritoryService>(
-                    out ITerritoryService territoryService))
-            {
-                throw new InvalidOperationException(
-                    "TerritoryService is not registered.");
             }
 
             if (!ServiceContainer.TryGet<IPersistenceService>(
@@ -91,8 +83,7 @@ namespace ClanTerritory.Features.Runtime
 
             _runtimePipeline.AddStep(
                 new WorldDiscoveryStep(
-                    worldDiscoveryService,
-                    territoryService));
+                    worldDiscoveryService));
 
             _runtimePipeline.AddStep(
                 new PersistenceLoadStep(
