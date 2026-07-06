@@ -1,6 +1,6 @@
-﻿using ClanTerritory.Features.Runtime.Restore;
+﻿using ClanTerritory.Features.Persistence.Services;
+using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Utils;
-using ClanTerritory.Features.Persistence.Services;
 
 namespace ClanTerritory.Features.Runtime.Pipeline.Steps
 {
@@ -8,19 +8,19 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
     {
         private readonly RuntimeRestoreContext _restoreContext;
         private readonly RuntimeRestoreMapper _restoreMapper;
-        private readonly PersistenceWriteGate _writeGate;
         private readonly IRuntimeRegistryRestoreService _registryRestoreService;
+        private readonly PersistenceWriteGate _writeGate;
 
         public RuntimeRestoreStep(
             RuntimeRestoreContext restoreContext,
             RuntimeRestoreMapper restoreMapper,
-            IRuntimeRegistryRestoreService registryRestoreService)
+            IRuntimeRegistryRestoreService registryRestoreService,
+            PersistenceWriteGate writeGate)
         {
-            _writeGate.Open();
-            ModLog.Info("[Persistence] Write gate opened after runtime restore.");
             _restoreContext = restoreContext;
             _restoreMapper = restoreMapper;
             _registryRestoreService = registryRestoreService;
+            _writeGate = writeGate;
         }
 
         public RuntimeState InputState
@@ -43,6 +43,9 @@ namespace ClanTerritory.Features.Runtime.Pipeline.Steps
             _restoreContext.SetSnapshot(snapshot);
 
             _registryRestoreService.Restore(snapshot);
+
+            _writeGate.Open();
+            ModLog.Info("[Persistence] Write gate opened after runtime restore.");
 
             int wardCount = 0;
 

@@ -47,18 +47,18 @@ namespace ClanTerritory.Features.Runtime
                     "TerritoryService is not registered.");
             }
 
-            if (!ServiceContainer.TryGet<PersistenceWriteGate>(
-                     out PersistenceWriteGate persistenceWriteGate))
-            {
-                throw new InvalidOperationException(
-                    "PersistenceWriteGate is not registered.");
-            }
-
             if (!ServiceContainer.TryGet<IPersistenceService>(
                     out IPersistenceService persistenceService))
             {
                 throw new InvalidOperationException(
                     "PersistenceService is not registered.");
+            }
+
+            if (!ServiceContainer.TryGet<PersistenceWriteGate>(
+                    out PersistenceWriteGate persistenceWriteGate))
+            {
+                throw new InvalidOperationException(
+                    "PersistenceWriteGate is not registered.");
             }
 
             if (!ServiceContainer.TryGet<IRuntimeRegistry>(
@@ -104,7 +104,7 @@ namespace ClanTerritory.Features.Runtime
                     _runtimeRestoreContext,
                     _runtimeRestoreMapper,
                     _runtimeRegistryRestoreService,
-                     persistenceWriteGate));
+                    persistenceWriteGate));
 
             ServiceContainer.Register(_runtimePipeline);
 
