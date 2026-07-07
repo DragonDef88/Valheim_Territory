@@ -22,9 +22,6 @@ namespace ClanTerritory.Features.Persistence.Services
         private readonly PersistenceWriteGate _writeGate;
         private readonly IWorldInfoService _worldInfoService;
 
-        private readonly HashSet<string> _deletedWardIds =
-            new HashSet<string>();
-
         public PersistenceService(
             JsonStorage storage,
             TerritoryMapper territoryMapper,
@@ -51,19 +48,15 @@ namespace ClanTerritory.Features.Persistence.Services
 
             SaveFileModel snapshot = CreateSnapshot();
 
-            string path = _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
-
-            SaveFileModel saveFile = MergeWithExisting(path, snapshot);
+            string path =
+                _fileSystem.GetWorldSavePath(snapshot.Metadata.WorldName);
 
             _backupStorage.BackupIfExists(snapshot.Metadata.WorldName);
-
-            _storage.Save(path, saveFile);
-
-            _deletedWardIds.Clear();
+            _storage.Save(path, snapshot);
 
             ModLog.Info(
-                "Persistence merge-save completed. Records: " +
-                saveFile.Metadata.RecordCount);
+                "[Persistence] Snapshot saved from runtime state. Records: " +
+                snapshot.Metadata.RecordCount);
         }
 
         public void LoadNow()
@@ -109,9 +102,10 @@ namespace ClanTerritory.Features.Persistence.Services
             if (string.IsNullOrEmpty(wardId))
                 return;
 
-            _deletedWardIds.Add(wardId);
-
-            ModLog.Info("Persistence delete tracked for ward: " + wardId);
+            ModLog.Info(
+                "[Persistence] Ward delete observed: " +
+                wardId +
+                ". Snapshot save will use current runtime state.");
         }
 
         private SaveFileModel CreateSnapshot()
@@ -141,97 +135,6 @@ namespace ClanTerritory.Features.Persistence.Services
             saveFile.Metadata.RecordCount = saveFile.Wards.Count;
 
             return saveFile;
-        }
-
-        private SaveFileModel MergeWithExisting(string path, SaveFileModel snapshot)
-        {
-            SaveFileModel existing = _storage.Load<SaveFileModel>(path);
-
-            if (existing == null)
-                existing = new SaveFileModel();
-
-            if (existing.Wards == null)
-                existing.Wards = new List<WardRecord>();
-
-            SaveFileModel merged = new SaveFileModel();
-
-            merged.Metadata = snapshot.Metadata;
-
-            List<WardRecord> records = new List<WardRecord>();
-            Dictionary<string, int> indexByKey = new Dictionary<string, int>();
-
-            AddOrReplaceRecords(existing.Wards, records, indexByKey, true);
-            AddOrReplaceRecords(snapshot.Wards, records, indexByKey, false);
-
-            merged.Wards = records;
-            merged.Metadata.RecordCount = merged.Wards.Count;
-
-            return merged;
-        }
-
-        private void AddOrReplaceRecords(
-            IEnumerable<WardRecord> source,
-            List<WardRecord> records,
-            Dictionary<string, int> indexByKey,
-            bool skipDeleted)
-        {
-            if (source == null)
-                return;
-
-            foreach (WardRecord record in source)
-            {
-                if (record == null)
-                    continue;
-
-                string key = GetRecordKey(record);
-
-                if (skipDeleted && IsDeleted(record))
-                    continue;
-
-                if (string.IsNullOrEmpty(key))
-                {
-                    records.Add(record);
-                    continue;
-                }
-
-                int index;
-
-                if (indexByKey.TryGetValue(key, out index))
-                {
-                    records[index] = record;
-                    continue;
-                }
-
-                indexByKey.Add(key, records.Count);
-                records.Add(record);
-            }
-        }
-
-        private bool IsDeleted(WardRecord record)
-        {
-            if (record == null)
-                return false;
-
-            if (!string.IsNullOrEmpty(record.WardId) &&
-                _deletedWardIds.Contains(record.WardId))
-                return true;
-
-            return false;
-        }
-
-        private static string GetRecordKey(WardRecord record)
-        {
-            if (record == null)
-                return string.Empty;
-
-            if (!string.IsNullOrEmpty(record.WardId))
-                return record.WardId;
-
-            if (record.Territory != null &&
-                !string.IsNullOrEmpty(record.Territory.TerritoryId))
-                return record.Territory.TerritoryId;
-
-            return string.Empty;
         }
     }
 }
