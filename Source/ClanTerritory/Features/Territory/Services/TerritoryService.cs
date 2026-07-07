@@ -65,21 +65,10 @@ namespace ClanTerritory.Features.Territory.Services
 
             TerritoryEntity territory = _factory.CreateFromWard(ward);
 
-            TerritoryEntity intersecting = _registry.FindIntersecting(territory);
-
-            if (intersecting != null)
-            {
-                ModLog.Warning(
-                    "Territory creation blocked: overlap with " +
-                    intersecting.Id);
-
-                return;
-            }
-
             if (_registry.Register(territory))
             {
                 ModLog.Info(
-                    "Territory created: " +
+                    "Territory cached from ward: " +
                     territory.Id +
                     ", owner: " +
                     territory.Owner.DisplayName +
@@ -89,7 +78,13 @@ namespace ClanTerritory.Features.Territory.Services
                     _registry.Count);
 
                 SaveNow();
+
+                return;
             }
+
+            ModLog.Info(
+                "Territory cache already contains ward: " +
+                ward.Id);
         }
 
         private void RemoveTerritoryFromWard(ClanTerritory.Domain.Identifiers.WardId wardId)
@@ -107,7 +102,7 @@ namespace ClanTerritory.Features.Territory.Services
             else
             {
                 ModLog.Warning(
-                    "Ward destroyed, but territory was not found in runtime registry: " +
+                    "Ward destroyed, but territory was not found in runtime cache: " +
                     wardId);
             }
 
