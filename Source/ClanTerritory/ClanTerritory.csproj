@@ -314,8 +314,8 @@
     <Compile Include="Features\Runtime\Steps\WorldDiscoveryStep.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
     <Compile Include="Features\WardInteraction\Services\IWardInteractionService.cs" />
-    <Compile Include="Features\WardInteraction\Services\WardInteractionModule.cs" />
-    <Compile Include="Features\WardInteraction\Services\WardInteractionRequestedEvent.cs" />
+    <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />
+    <Compile Include="Features\WardInteraction\WardInteractionRequestedEvent.cs" />
     <Compile Include="Features\WardInteraction\Services\WardInteractionService.cs" />
     <Compile Include="Integration\Valheim\Harmony\MinimapHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
