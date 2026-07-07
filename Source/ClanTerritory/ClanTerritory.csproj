@@ -324,6 +324,10 @@
     <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />
     <Compile Include="Features\WardInteraction\WardInteractionRequestedEvent.cs" />
     <Compile Include="Features\WardInteraction\Services\WardInteractionService.cs" />
+    <Compile Include="Features\WardMenu\Actions\IWardMenuTerritoryActions.cs" />
+    <Compile Include="Features\WardMenu\Actions\IWardMenuWardActions.cs" />
+    <Compile Include="Features\WardMenu\Actions\WardMenuTerritoryActions.cs" />
+    <Compile Include="Features\WardMenu\Actions\WardMenuWardActions.cs" />
     <Compile Include="Features\WardMenu\Builders\WardMenuModelBuilder.cs" />
     <Compile Include="Features\WardMenu\Controllers\WardMenuController.cs" />
     <Compile Include="Features\WardMenu\Models\WardMenuModel.cs" />

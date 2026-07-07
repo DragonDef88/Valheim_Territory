@@ -2,6 +2,7 @@
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.TerritoryInteraction;
+using ClanTerritory.Features.WardMenu.Actions;
 using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Services;
@@ -20,21 +21,30 @@ namespace ClanTerritory.Features.WardMenu
         private WardMenuService _wardMenuService;
         private WardMenuController _wardMenuController;
         private WardMenuModelBuilder _wardMenuModelBuilder;
+        private IWardMenuWardActions _wardActions;
+        private IWardMenuTerritoryActions _territoryActions;
 
         public void Initialize()
         {
             WardMenuView view = new WardMenuView();
 
+            _wardActions = new WardMenuWardActions();
+            _territoryActions = new WardMenuTerritoryActions();
+
             _wardMenuModelBuilder = new WardMenuModelBuilder();
 
             _wardMenuController = new WardMenuController(
                 view,
+                _wardActions,
+                _territoryActions,
                 CloseWithReason);
 
             _wardMenuService = new WardMenuService(
                 _wardMenuController,
                 _wardMenuModelBuilder);
 
+            ServiceContainer.Register<IWardMenuWardActions>(_wardActions);
+            ServiceContainer.Register<IWardMenuTerritoryActions>(_territoryActions);
             ServiceContainer.Register<IWardMenuService>(_wardMenuService);
 
             EventBus eventBus = ServiceContainer.Get<EventBus>();
@@ -59,6 +69,8 @@ namespace ClanTerritory.Features.WardMenu
 
             _runner = null;
             _runnerObject = null;
+            _territoryActions = null;
+            _wardActions = null;
             _wardMenuModelBuilder = null;
             _wardMenuController = null;
             _wardMenuService = null;
