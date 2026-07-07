@@ -46,6 +46,9 @@
     <Reference Include="Jotunn">
       <HintPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll</HintPath>
     </Reference>
+    <Reference Include="Splatform">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\Splatform.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -97,6 +100,7 @@
     <Compile Include="Events\IEvent.cs" />
     <Compile Include="Events\IEventHandler.cs" />
     <Compile Include="Features\Diagnostics\DiagnosticsModule.cs" />
+    <Compile Include="Features\Map\Services\WardMapIconService.cs" />
     <Compile Include="Features\Persistence\Services\PersistenceWriteGate.cs" />
     <Compile Include="Features\Runtime\Restore\IRuntimeRegistryRestoreService.cs" />
     <Compile Include="Features\Runtime\Restore\RuntimeRegistryRestoreService.cs" />
@@ -108,6 +112,7 @@
     <Compile Include="Features\Runtime\Steps\RuntimeRestoreStep.cs" />
     <Compile Include="Features\Runtime\Steps\WorldDiscoveryStep.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
+    <Compile Include="Integration\Valheim\Harmony\MinimapHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
     <Compile Include="Features\Diagnostics\Services\DiagnosticsService.cs" />
@@ -182,6 +187,10 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Features\WardDetection\Hooks\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Icons\Map\clan_ward_clan.png" />
+    <Content Include="Resources\Icons\Map\clan_ward_neutral.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyToValheim" AfterTargets="Build">

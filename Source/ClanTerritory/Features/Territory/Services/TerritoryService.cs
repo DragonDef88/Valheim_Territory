@@ -1,5 +1,6 @@
 ﻿using ClanTerritory.Core;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Map.Services;
 using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Territory.Factories;
@@ -19,11 +20,16 @@ namespace ClanTerritory.Features.Territory.Services
     {
         private readonly TerritoryRegistry _registry;
         private readonly TerritoryFactory _factory;
+        private readonly WardMapIconService _mapIconService;
 
-        public TerritoryService(TerritoryRegistry registry, TerritoryFactory factory)
+        public TerritoryService(
+            TerritoryRegistry registry,
+            TerritoryFactory factory,
+            WardMapIconService mapIconService)
         {
             _registry = registry;
             _factory = factory;
+            _mapIconService = mapIconService;
         }
 
         public void Handle(WardRegisteredEvent eventData)
@@ -77,10 +83,14 @@ namespace ClanTerritory.Features.Territory.Services
                     ", total: " +
                     _registry.Count);
 
+                _mapIconService.AddOrUpdate(ward);
+
                 SaveNow();
 
                 return;
             }
+
+            _mapIconService.AddOrUpdate(ward);
 
             ModLog.Info(
                 "Territory cache already contains ward: " +
@@ -90,6 +100,8 @@ namespace ClanTerritory.Features.Territory.Services
         private void RemoveTerritoryFromWard(ClanTerritory.Domain.Identifiers.WardId wardId)
         {
             MarkWardDeleted(wardId.ToString());
+
+            _mapIconService.Remove(wardId.ToString());
 
             if (_registry.RemoveByWard(wardId))
             {
