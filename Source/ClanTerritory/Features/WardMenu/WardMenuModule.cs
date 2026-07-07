@@ -9,7 +9,6 @@ using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
 using ClanTerritory.Utils;
 using ClanTerritory.Features.TerritoryNaming.Services;
-using ClanTerritory.Features.TerritoryNaming.Services;
 using UnityEngine;
 
 namespace ClanTerritory.Features.WardMenu
@@ -36,10 +35,7 @@ namespace ClanTerritory.Features.WardMenu
 
             _territoryActions = new WardMenuTerritoryActions(
                 territoryNamingService);
-
-            ITerritoryNamingService territoryNamingService =
-            ServiceContainer.Get<ITerritoryNamingService>();
-
+                      
             _wardMenuModelBuilder = new WardMenuModelBuilder(
                 territoryNamingService);
 
