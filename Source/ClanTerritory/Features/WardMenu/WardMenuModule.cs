@@ -2,13 +2,14 @@
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.TerritoryInteraction;
+using ClanTerritory.Features.TerritoryNaming.Events;
+using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardMenu.Actions;
 using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
 using ClanTerritory.Utils;
-using ClanTerritory.Features.TerritoryNaming.Services;
 using UnityEngine;
 
 namespace ClanTerritory.Features.WardMenu
@@ -55,6 +56,7 @@ namespace ClanTerritory.Features.WardMenu
 
             EventBus eventBus = ServiceContainer.Get<EventBus>();
             eventBus.Subscribe<TerritoryInteractionRequestedEvent>(_wardMenuService);
+            eventBus.Subscribe<TerritoryRenamedEvent>(_wardMenuService);
 
             _runnerObject = new GameObject("ClanTerritory_WardMenuRunner");
             Object.DontDestroyOnLoad(_runnerObject);

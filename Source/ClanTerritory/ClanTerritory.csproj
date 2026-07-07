@@ -319,6 +319,7 @@
     <Compile Include="Features\TerritoryInteraction\Services\TerritoryInteractionService.cs" />
     <Compile Include="Features\TerritoryInteraction\TerritoryInteractionModule.cs" />
     <Compile Include="Features\TerritoryInteraction\TerritoryInteractionRequestedEvent.cs" />
+    <Compile Include="Features\TerritoryNaming\Events\TerritoryRenamedEvent.cs" />
     <Compile Include="Features\TerritoryNaming\Services\ITerritoryNamingService.cs" />
     <Compile Include="Features\TerritoryNaming\Services\TerritoryNamingService.cs" />
     <Compile Include="Features\TerritoryNaming\TerritoryNamingModule.cs" />

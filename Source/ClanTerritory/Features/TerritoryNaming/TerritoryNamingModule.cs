@@ -1,5 +1,6 @@
 ﻿using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
+using ClanTerritory.Events;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Utils;
 
@@ -13,7 +14,11 @@ namespace ClanTerritory.Features.TerritoryNaming
 
         public void Initialize()
         {
-            _territoryNamingService = new TerritoryNamingService();
+            EventBus eventBus =
+                ServiceContainer.Get<EventBus>();
+
+            _territoryNamingService =
+                new TerritoryNamingService(eventBus);
 
             ServiceContainer.Register<ITerritoryNamingService>(_territoryNamingService);
 

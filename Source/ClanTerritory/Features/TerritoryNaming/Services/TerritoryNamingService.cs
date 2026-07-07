@@ -1,4 +1,7 @@
-﻿using ClanTerritory.Utils;
+﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Events;
+using ClanTerritory.Features.TerritoryNaming.Events;
+using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.TerritoryNaming.Services
 {
@@ -6,6 +9,13 @@ namespace ClanTerritory.Features.TerritoryNaming.Services
     {
         private const string SetTerritoryNameRpc = "CT_SetTerritoryName";
         private const int MaxTerritoryNameLength = 50;
+
+        private readonly EventBus _eventBus;
+
+        public TerritoryNamingService(EventBus eventBus)
+        {
+            _eventBus = eventBus;
+        }
 
         public void RegisterRpc(PrivateArea privateArea)
         {
@@ -90,7 +100,7 @@ namespace ClanTerritory.Features.TerritoryNaming.Services
             ModLog.Info("[TerritoryNaming] Rename requested: " + normalizedName);
         }
 
-        private static void RPC_SetTerritoryName(
+        private void RPC_SetTerritoryName(
             ZNetView zNetView,
             long sender,
             long playerId,
@@ -127,6 +137,16 @@ namespace ClanTerritory.Features.TerritoryNaming.Services
             zdo.Set(
                 TerritoryNamingZdoKeys.TerritoryName,
                 normalizedName);
+
+            WardId wardId = new WardId(zdo.m_uid.ToString());
+
+            if (_eventBus != null)
+            {
+                _eventBus.Publish(
+                    new TerritoryRenamedEvent(
+                        wardId,
+                        normalizedName));
+            }
 
             ModLog.Info(
                 "[TerritoryNaming] Territory name saved: " +

@@ -2,6 +2,7 @@
 using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.TerritoryInteraction;
+using ClanTerritory.Features.TerritoryNaming.Events;
 using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Models;
@@ -11,7 +12,8 @@ namespace ClanTerritory.Features.WardMenu.Services
 {
     internal sealed class WardMenuService :
         IWardMenuService,
-        IEventHandler<TerritoryInteractionRequestedEvent>
+        IEventHandler<TerritoryInteractionRequestedEvent>,
+        IEventHandler<TerritoryRenamedEvent>
     {
         private readonly WardMenuController _controller;
         private readonly WardMenuModelBuilder _modelBuilder;
@@ -55,6 +57,20 @@ namespace ClanTerritory.Features.WardMenu.Services
                 eventData.Player);
         }
 
+        public void Handle(TerritoryRenamedEvent eventData)
+        {
+            if (!_isOpen)
+                return;
+
+            if (eventData == null)
+                return;
+
+            if (!eventData.WardId.Equals(_currentWardId))
+                return;
+
+            Refresh();
+        }
+
         public void Open(
             WardId wardId,
             RuntimeWard runtimeWard,
@@ -85,9 +101,9 @@ namespace ClanTerritory.Features.WardMenu.Services
             _isOpen = true;
 
             _controller.Show(
-                         model,
-                         privateArea,
-                         player);
+                model,
+                privateArea,
+                player);
 
             ModLog.Info(
                 "[WardMenu] Opened ward territory menu: " + model.Ward.WardId +
@@ -118,7 +134,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentPlayer = null;
             _isOpen = false;
         }
-        
+
         public void Refresh()
         {
             if (!_isOpen)
@@ -140,6 +156,7 @@ namespace ClanTerritory.Features.WardMenu.Services
                 ", territory: " +
                 model.Territory.Name);
         }
+
         public void Update()
         {
             if (!_isOpen)
