@@ -5,6 +5,21 @@ namespace ClanTerritory.Features.WardMenu.Models
 {
     internal sealed class WardMenuModel
     {
+        public WardMenuWardSection Ward { get; private set; }
+
+        public WardMenuTerritorySection Territory { get; private set; }
+
+        public WardMenuModel(
+            WardMenuWardSection ward,
+            WardMenuTerritorySection territory)
+        {
+            Ward = ward;
+            Territory = territory;
+        }
+    }
+
+    internal sealed class WardMenuWardSection
+    {
         private readonly List<WardMenuPlayerModel> _permittedPlayers;
 
         public WardId WardId { get; private set; }
@@ -15,27 +30,50 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool Enabled { get; private set; }
 
-        public bool RuntimeActive { get; private set; }
-
         public IReadOnlyList<WardMenuPlayerModel> PermittedPlayers
         {
             get { return _permittedPlayers; }
         }
 
-        public WardMenuModel(
+        public WardMenuWardSection(
             WardId wardId,
             string ownerName,
             float radius,
             bool enabled,
-            bool runtimeActive,
             List<WardMenuPlayerModel> permittedPlayers)
         {
             WardId = wardId;
             OwnerName = ownerName;
             Radius = radius;
             Enabled = enabled;
-            RuntimeActive = runtimeActive;
             _permittedPlayers = permittedPlayers ?? new List<WardMenuPlayerModel>();
+        }
+    }
+
+    internal sealed class WardMenuTerritorySection
+    {
+        public string Name { get; private set; }
+
+        public bool RuntimeActive { get; private set; }
+
+        public bool GuildAccessEnabled { get; private set; }
+
+        public bool GroupAccessEnabled { get; private set; }
+
+        public string RulesSummary { get; private set; }
+
+        public WardMenuTerritorySection(
+            string name,
+            bool runtimeActive,
+            bool guildAccessEnabled,
+            bool groupAccessEnabled,
+            string rulesSummary)
+        {
+            Name = name;
+            RuntimeActive = runtimeActive;
+            GuildAccessEnabled = guildAccessEnabled;
+            GroupAccessEnabled = groupAccessEnabled;
+            RulesSummary = rulesSummary;
         }
     }
 

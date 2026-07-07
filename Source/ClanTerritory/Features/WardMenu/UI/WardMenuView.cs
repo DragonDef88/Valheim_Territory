@@ -53,27 +53,28 @@ namespace ClanTerritory.Features.WardMenu.UI
             _useReleasedAfterOpen = false;
 
             _title.text = "Clan Territory";
-            _subtitle.text = "Ward Management";
+            _subtitle.text = "Ward & Territory Management";
 
             _overviewText.text =
-                "Territory Overview\n\n" +
-                "Ward ID:\n" + model.WardId + "\n\n" +
-                "Owner:\n" + model.OwnerName + "\n\n" +
-                "Radius:\n" + model.Radius + "\n\n" +
-                "Enabled:\n" + (model.Enabled ? "Yes" : "No") + "\n\n" +
-                "Runtime:\n" + (model.RuntimeActive ? "Active" : "Inactive");
+                "Overview\n\n" +
+                "Territory:\n" + model.Territory.Name + "\n\n" +
+                "Ward ID:\n" + model.Ward.WardId + "\n\n" +
+                "Owner:\n" + model.Ward.OwnerName + "\n\n" +
+                "Radius:\n" + model.Ward.Radius + "\n\n" +
+                "Ward Enabled:\n" + (model.Ward.Enabled ? "Yes" : "No") + "\n\n" +
+                "Territory Runtime:\n" + (model.Territory.RuntimeActive ? "Active" : "Inactive");
 
             _permissionsText.text =
-                "Permissions\n\n" +
-                "Permitted players: " + model.PermittedPlayers.Count + "\n\n" +
+                "Ward Access\n\n" +
+                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n\n" +
                 BuildPermittedPlayersText(model);
 
             _settingsText.text =
-                "Settings\n\n" +
-                "Territory name:\n" +
-                "Coming next.\n\n" +
-                "Clan access:\n" +
-                "Coming next.";
+                "Territory Settings\n\n" +
+                "Name:\n" + model.Territory.Name + "\n\n" +
+                "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
+                "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
+                "Rules:\n" + model.Territory.RulesSummary;
 
             ShowOverview();
 
@@ -233,18 +234,18 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _panel.transform,
                 new Vector2(0f, 135f),
                 new Vector2(190f, 42f),
-                "Permissions");
+                "Ward");
 
             _settingsButton = CreateButton(
                 "SettingsButton",
                 _panel.transform,
                 new Vector2(235f, 135f),
                 new Vector2(190f, 42f),
-                "Settings");
+                "Territory");
 
             _overviewPanel = CreateContentPanel("OverviewPanel");
-            _permissionsPanel = CreateContentPanel("PermissionsPanel");
-            _settingsPanel = CreateContentPanel("SettingsPanel");
+            _permissionsPanel = CreateContentPanel("WardPanel");
+            _settingsPanel = CreateContentPanel("TerritoryPanel");
 
             _overviewText = CreateText(
                 "OverviewText",
@@ -256,7 +257,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 Color.white);
 
             _permissionsText = CreateText(
-                "PermissionsText",
+                "WardText",
                 _permissionsPanel.transform,
                 Vector2.zero,
                 new Vector2(650f, 230f),
@@ -265,7 +266,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 Color.white);
 
             _settingsText = CreateText(
-                "SettingsText",
+                "TerritoryText",
                 _settingsPanel.transform,
                 Vector2.zero,
                 new Vector2(650f, 230f),
@@ -402,14 +403,14 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private static string BuildPermittedPlayersText(WardMenuModel model)
         {
-            if (model.PermittedPlayers.Count <= 0)
+            if (model.Ward.PermittedPlayers.Count <= 0)
                 return "No permitted players.";
 
             string text = "";
 
-            for (int i = 0; i < model.PermittedPlayers.Count; i++)
+            for (int i = 0; i < model.Ward.PermittedPlayers.Count; i++)
             {
-                WardMenuPlayerModel player = model.PermittedPlayers[i];
+                WardMenuPlayerModel player = model.Ward.PermittedPlayers[i];
 
                 text += "- " + player.PlayerName + " (" + player.PlayerId + ")\n";
             }

@@ -84,10 +84,11 @@ namespace ClanTerritory.Features.WardMenu.Services
                 CloseByDistance);
 
             ModLog.Info(
-                "[WardMenu] Opened territory menu: " + wardId +
-                ", owner: " + model.OwnerName +
-                ", enabled: " + model.Enabled +
-                ", permitted: " + model.PermittedPlayers.Count);
+                "[WardMenu] Opened ward territory menu: " + model.Ward.WardId +
+                ", owner: " + model.Ward.OwnerName +
+                ", enabled: " + model.Ward.Enabled +
+                ", permitted: " + model.Ward.PermittedPlayers.Count +
+                ", territory: " + model.Territory.Name);
         }
 
         public void Close()
@@ -113,7 +114,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             _view.Hide();
 
             ModLog.Info(
-                "[WardMenu] Closed territory menu: " + _currentWardId +
+                "[WardMenu] Closed ward territory menu: " + _currentWardId +
                 ", reason: " + reason);
 
             _currentRuntimeWard = null;
@@ -172,7 +173,7 @@ namespace ClanTerritory.Features.WardMenu.Services
                 : null;
 
             if (zdo == null)
-                ModLog.Debug("[WardMenu] Building territory model without ZDO: " + wardId);
+                ModLog.Debug("[WardMenu] Building ward territory model without ZDO: " + wardId);
 
             string ownerName = zdo != null
                 ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
@@ -183,21 +184,31 @@ namespace ClanTerritory.Features.WardMenu.Services
             List<WardMenuPlayerModel> permittedPlayers =
                 BuildPermittedPlayers(zdo);
 
-            WardMenuModel model = new WardMenuModel(
+            WardMenuWardSection wardSection = new WardMenuWardSection(
                 wardId,
                 ownerName,
                 privateArea.m_radius,
                 enabled,
-                runtimeWard != null && runtimeWard.IsActive,
                 permittedPlayers);
 
+            WardMenuTerritorySection territorySection = new WardMenuTerritorySection(
+                "Unnamed Territory",
+                runtimeWard != null && runtimeWard.IsActive,
+                false,
+                false,
+                "Default rules");
+
+            WardMenuModel model = new WardMenuModel(
+                wardSection,
+                territorySection);
+
             ModLog.Debug(
-                "[WardMenu] Territory model created: " + wardId +
-                ", owner: " + ownerName +
-                ", radius: " + privateArea.m_radius +
-                ", enabled: " + enabled +
-                ", runtimeActive: " + model.RuntimeActive +
-                ", permitted: " + permittedPlayers.Count);
+                "[WardMenu] Ward territory model created: " + wardId +
+                ", owner: " + wardSection.OwnerName +
+                ", radius: " + wardSection.Radius +
+                ", enabled: " + wardSection.Enabled +
+                ", runtimeActive: " + territorySection.RuntimeActive +
+                ", permitted: " + wardSection.PermittedPlayers.Count);
 
             return model;
         }
