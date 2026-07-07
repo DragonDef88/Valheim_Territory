@@ -3,8 +3,8 @@ using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.TerritoryInteraction;
+using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Models;
-using ClanTerritory.Features.WardMenu.UI;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Services
@@ -13,16 +13,17 @@ namespace ClanTerritory.Features.WardMenu.Services
         IWardMenuService,
         IEventHandler<TerritoryInteractionRequestedEvent>
     {
-        private readonly WardMenuView _view;
+        private readonly WardMenuController _controller;
 
         private WardId _currentWardId;
         private RuntimeWard _currentRuntimeWard;
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
+        private bool _isOpen;
 
         public bool IsOpen
         {
-            get { return _view != null && _view.IsVisible; }
+            get { return _isOpen; }
         }
 
         public WardId CurrentWardId
@@ -30,9 +31,9 @@ namespace ClanTerritory.Features.WardMenu.Services
             get { return _currentWardId; }
         }
 
-        public WardMenuService(WardMenuView view)
+        public WardMenuService(WardMenuController controller)
         {
-            _view = view;
+            _controller = controller;
         }
 
         public void Handle(TerritoryInteractionRequestedEvent eventData)
@@ -77,11 +78,9 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentRuntimeWard = runtimeWard;
             _currentPrivateArea = privateArea;
             _currentPlayer = player;
+            _isOpen = true;
 
-            _view.Show(
-                model,
-                CloseByInput,
-                CloseByDistance);
+            _controller.Show(model);
 
             ModLog.Info(
                 "[WardMenu] Opened ward territory menu: " + model.Ward.WardId +
@@ -96,22 +95,12 @@ namespace ClanTerritory.Features.WardMenu.Services
             CloseWithReason("Manual");
         }
 
-        private void CloseByInput()
+        public void CloseWithReason(string reason)
         {
-            CloseWithReason("Input");
-        }
-
-        private void CloseByDistance()
-        {
-            CloseWithReason("Distance");
-        }
-
-        private void CloseWithReason(string reason)
-        {
-            if (!IsOpen)
+            if (!_isOpen)
                 return;
 
-            _view.Hide();
+            _controller.Hide();
 
             ModLog.Info(
                 "[WardMenu] Closed ward territory menu: " + _currentWardId +
@@ -120,11 +109,12 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentRuntimeWard = null;
             _currentPrivateArea = null;
             _currentPlayer = null;
+            _isOpen = false;
         }
 
         public void Update()
         {
-            if (!IsOpen)
+            if (!_isOpen)
                 return;
 
             if (_currentPrivateArea == null)
@@ -151,15 +141,15 @@ namespace ClanTerritory.Features.WardMenu.Services
                 return;
             }
 
-            _view.Tick(_currentPrivateArea, _currentPlayer);
+            _controller.Tick(_currentPrivateArea, _currentPlayer);
         }
 
         public void Shutdown()
         {
             CloseWithReason("Shutdown");
 
-            if (_view != null)
-                _view.Destroy();
+            if (_controller != null)
+                _controller.Destroy();
         }
 
         private static WardMenuModel BuildModel(

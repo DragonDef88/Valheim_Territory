@@ -28,8 +28,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         private GameObject _permissionsPanel;
         private GameObject _settingsPanel;
 
+        private Action _showOverviewAction;
+        private Action _showWardAction;
+        private Action _showTerritoryAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
+
         private int _hiddenFrames = 9999;
         private bool _useReleasedAfterOpen;
 
@@ -40,6 +44,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         public void Show(
             WardMenuModel model,
+            Action showOverviewAction,
+            Action showWardAction,
+            Action showTerritoryAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -48,6 +55,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             EnsureCreated();
 
+            _showOverviewAction = showOverviewAction;
+            _showWardAction = showWardAction;
+            _showTerritoryAction = showTerritoryAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
             _useReleasedAfterOpen = false;
@@ -75,8 +85,6 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
-
-            ShowOverview();
 
             _root.SetActive(true);
             _hiddenFrames = 0;
@@ -159,8 +167,26 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewPanel = null;
             _permissionsPanel = null;
             _settingsPanel = null;
+            _showOverviewAction = null;
+            _showWardAction = null;
+            _showTerritoryAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
+        }
+
+        public void ShowOverviewPanel()
+        {
+            SetActiveTab(_overviewPanel);
+        }
+
+        public void ShowWardPanel()
+        {
+            SetActiveTab(_permissionsPanel);
+        }
+
+        public void ShowTerritoryPanel()
+        {
+            SetActiveTab(_settingsPanel);
         }
 
         private void EnsureCreated()
@@ -281,9 +307,9 @@ namespace ClanTerritory.Features.WardMenu.UI
                 new Vector2(180f, 44f),
                 "Close");
 
-            _overviewButton.onClick.AddListener(ShowOverview);
-            _permissionsButton.onClick.AddListener(ShowPermissions);
-            _settingsButton.onClick.AddListener(ShowSettings);
+            _overviewButton.onClick.AddListener(RequestShowOverview);
+            _permissionsButton.onClick.AddListener(RequestShowWard);
+            _settingsButton.onClick.AddListener(RequestShowTerritory);
             _closeButton.onClick.AddListener(RequestCloseByInput);
         }
 
@@ -379,21 +405,6 @@ namespace ClanTerritory.Features.WardMenu.UI
             return button;
         }
 
-        private void ShowOverview()
-        {
-            SetActiveTab(_overviewPanel);
-        }
-
-        private void ShowPermissions()
-        {
-            SetActiveTab(_permissionsPanel);
-        }
-
-        private void ShowSettings()
-        {
-            SetActiveTab(_settingsPanel);
-        }
-
         private void SetActiveTab(GameObject activePanel)
         {
             _overviewPanel.SetActive(activePanel == _overviewPanel);
@@ -416,6 +427,24 @@ namespace ClanTerritory.Features.WardMenu.UI
             }
 
             return text;
+        }
+
+        private void RequestShowOverview()
+        {
+            if (_showOverviewAction != null)
+                _showOverviewAction();
+        }
+
+        private void RequestShowWard()
+        {
+            if (_showWardAction != null)
+                _showWardAction();
+        }
+
+        private void RequestShowTerritory()
+        {
+            if (_showTerritoryAction != null)
+                _showTerritoryAction();
         }
 
         private void RequestCloseByInput()
