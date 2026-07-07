@@ -15,6 +15,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private readonly Action<string> _closeAction;
 
         private WardId _currentWardId;
+        private PrivateArea _currentPrivateArea;
+        private Player _currentPlayer;
 
         public WardMenuController(
             WardMenuView view,
@@ -28,18 +30,24 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _closeAction = closeAction;
         }
 
-        public void Show(WardMenuModel model)
+        public void Show(
+            WardMenuModel model,
+            PrivateArea privateArea,
+            Player player)
         {
             if (model == null)
                 return;
 
             _currentWardId = model.Ward.WardId;
+            _currentPrivateArea = privateArea;
+            _currentPlayer = player;
 
             _view.Show(
                 model,
                 ShowOverview,
                 ShowWard,
                 ShowTerritory,
+                RequestToggleProtection,
                 CloseByInput,
                 CloseByDistance);
 
@@ -56,16 +64,25 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         public void Hide()
         {
             _view.Hide();
+
+            _currentPrivateArea = null;
+            _currentPlayer = null;
         }
 
         public void Destroy()
         {
             _view.Destroy();
+
+            _currentPrivateArea = null;
+            _currentPlayer = null;
         }
 
         public void RequestToggleProtection()
         {
-            _wardActions.ToggleProtection(_currentWardId);
+            _wardActions.ToggleProtection(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer);
         }
 
         public void RequestSetRadius(float radius)

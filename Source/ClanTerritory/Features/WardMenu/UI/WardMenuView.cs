@@ -9,6 +9,8 @@ namespace ClanTerritory.Features.WardMenu.UI
     internal sealed class WardMenuView
     {
         private const float HideDistance = 5f;
+        private Button _toggleProtectionButton;
+        private Action _toggleProtectionAction;
 
         private GameObject _root;
         private GameObject _panel;
@@ -47,6 +49,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showOverviewAction,
             Action showWardAction,
             Action showTerritoryAction,
+            Action toggleProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -58,6 +61,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showOverviewAction = showOverviewAction;
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
+            _toggleProtectionAction = toggleProtectionAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
             _useReleasedAfterOpen = false;
@@ -172,6 +176,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showTerritoryAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
+            _toggleProtectionButton = null;
+            _toggleProtectionAction = null;
         }
 
         public void ShowOverviewPanel()
@@ -285,11 +291,18 @@ namespace ClanTerritory.Features.WardMenu.UI
             _permissionsText = CreateText(
                 "WardText",
                 _permissionsPanel.transform,
-                Vector2.zero,
-                new Vector2(650f, 230f),
+                new Vector2(0f, 35f),
+                new Vector2(650f, 170f),
                 20,
                 TextAlignmentOptions.TopLeft,
                 Color.white);
+
+            _toggleProtectionButton = CreateButton(
+                 "ToggleProtectionButton",
+            _permissionsPanel.transform,
+                  new Vector2(0f, -105f),
+                  new Vector2(240f, 38f),
+                  "Toggle Protection");
 
             _settingsText = CreateText(
                 "TerritoryText",
@@ -311,6 +324,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _permissionsButton.onClick.AddListener(RequestShowWard);
             _settingsButton.onClick.AddListener(RequestShowTerritory);
             _closeButton.onClick.AddListener(RequestCloseByInput);
+            _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
         }
 
         private GameObject CreateContentPanel(string name)
@@ -453,6 +467,11 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _closeByInputAction();
         }
 
+        private void RequestToggleProtection()
+        {
+            if (_toggleProtectionAction != null)
+                _toggleProtectionAction();
+        }
         private void RequestCloseByDistance()
         {
             if (_closeByDistanceAction != null)

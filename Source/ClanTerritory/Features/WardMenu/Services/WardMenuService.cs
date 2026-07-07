@@ -84,7 +84,10 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentPlayer = player;
             _isOpen = true;
 
-            _controller.Show(model);
+            _controller.Show(
+                         model,
+                         privateArea,
+                         player);
 
             ModLog.Info(
                 "[WardMenu] Opened ward territory menu: " + model.Ward.WardId +
