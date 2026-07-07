@@ -1,13 +1,13 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using ClanTerritory.Domain.Entities;
-using ClanTerritory.Features.Territory.Registry;
+﻿using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using UnityEngine;
+using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
 
 namespace ClanTerritory.Features.Map.Services
 {
@@ -137,7 +137,7 @@ namespace ClanTerritory.Features.Map.Services
             if (ward == null || _territoryRegistry == null)
                 return false;
 
-            foreach (Territory territory in _territoryRegistry.GetAll())
+            foreach (TerritoryEntity territory in _territoryRegistry.GetAll())
             {
                 if (territory.WardId.ToString() == ward.Id)
                     return false;
