@@ -13,9 +13,22 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private GameObject _root;
         private GameObject _panel;
+
         private TMP_Text _title;
-        private TMP_Text _body;
+        private TMP_Text _subtitle;
+        private TMP_Text _overviewText;
+        private TMP_Text _permissionsText;
+        private TMP_Text _settingsText;
+
+        private Button _overviewButton;
+        private Button _permissionsButton;
+        private Button _settingsButton;
         private Button _closeButton;
+
+        private GameObject _overviewPanel;
+        private GameObject _permissionsPanel;
+        private GameObject _settingsPanel;
+
         private Action _closeAction;
         private int _hiddenFrames = 9999;
 
@@ -36,11 +49,29 @@ namespace ClanTerritory.Features.WardMenu.UI
             _closeAction = closeAction;
 
             _title.text = "Clan Territory";
-            _body.text =
-                "Ward menu\n\n" +
-                "Ward: " + wardId + "\n" +
-                "Position: " + runtimeWard.Position + "\n\n" +
-                "This is the first UI shell.";
+            _subtitle.text = "Ward Management";
+
+            _overviewText.text =
+                "Territory Overview\n\n" +
+                "Ward ID:\n" + wardId + "\n\n" +
+                "Position:\n" + runtimeWard.Position + "\n\n" +
+                "Runtime:\n" + (runtimeWard.IsActive ? "Active" : "Inactive");
+
+            _permissionsText.text =
+                "Permissions\n\n" +
+                "Owner:\n" +
+                player.GetPlayerName() + "\n\n" +
+                "Members:\n" +
+                "Coming next.";
+
+            _settingsText.text =
+                "Settings\n\n" +
+                "Territory name:\n" +
+                "Coming next.\n\n" +
+                "Clan access:\n" +
+                "Coming next.";
+
+            ShowOverview();
 
             _root.SetActive(true);
             _hiddenFrames = 0;
@@ -91,11 +122,21 @@ namespace ClanTerritory.Features.WardMenu.UI
                 return;
 
             UnityEngine.Object.Destroy(_root);
+
             _root = null;
             _panel = null;
             _title = null;
-            _body = null;
+            _subtitle = null;
+            _overviewText = null;
+            _permissionsText = null;
+            _settingsText = null;
+            _overviewButton = null;
+            _permissionsButton = null;
+            _settingsButton = null;
             _closeButton = null;
+            _overviewPanel = null;
+            _permissionsPanel = null;
+            _settingsPanel = null;
             _closeAction = null;
         }
 
@@ -133,43 +174,127 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void CreatePanel()
         {
-            _panel = new GameObject("Panel");
-            _panel.transform.SetParent(_root.transform, false);
-
-            Image panelImage = _panel.AddComponent<Image>();
-            panelImage.color = new Color(0f, 0f, 0f, 0.85f);
-
-            RectTransform panelRect = _panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(520f, 360f);
-            panelRect.anchoredPosition = Vector2.zero;
+            _panel = CreatePanelObject(
+                "Panel",
+                _root.transform,
+                new Vector2(760f, 520f),
+                Vector2.zero,
+                new Color(0f, 0f, 0f, 0.88f));
 
             _title = CreateText(
                 "Title",
                 _panel.transform,
-                new Vector2(0f, 125f),
-                new Vector2(460f, 60f),
-                28,
-                TextAlignmentOptions.Center);
+                new Vector2(0f, 220f),
+                new Vector2(700f, 44f),
+                30,
+                TextAlignmentOptions.Center,
+                Color.white);
 
-            _body = CreateText(
-                "Body",
+            _subtitle = CreateText(
+                "Subtitle",
                 _panel.transform,
-                new Vector2(0f, 15f),
-                new Vector2(460f, 170f),
+                new Vector2(0f, 185f),
+                new Vector2(700f, 32f),
+                18,
+                TextAlignmentOptions.Center,
+                new Color(0.75f, 0.75f, 0.75f, 1f));
+
+            _overviewButton = CreateButton(
+                "OverviewButton",
+                _panel.transform,
+                new Vector2(-235f, 135f),
+                new Vector2(190f, 42f),
+                "Overview");
+
+            _permissionsButton = CreateButton(
+                "PermissionsButton",
+                _panel.transform,
+                new Vector2(0f, 135f),
+                new Vector2(190f, 42f),
+                "Permissions");
+
+            _settingsButton = CreateButton(
+                "SettingsButton",
+                _panel.transform,
+                new Vector2(235f, 135f),
+                new Vector2(190f, 42f),
+                "Settings");
+
+            _overviewPanel = CreateContentPanel("OverviewPanel");
+            _permissionsPanel = CreateContentPanel("PermissionsPanel");
+            _settingsPanel = CreateContentPanel("SettingsPanel");
+
+            _overviewText = CreateText(
+                "OverviewText",
+                _overviewPanel.transform,
+                Vector2.zero,
+                new Vector2(650f, 230f),
                 20,
-                TextAlignmentOptions.TopLeft);
+                TextAlignmentOptions.TopLeft,
+                Color.white);
+
+            _permissionsText = CreateText(
+                "PermissionsText",
+                _permissionsPanel.transform,
+                Vector2.zero,
+                new Vector2(650f, 230f),
+                20,
+                TextAlignmentOptions.TopLeft,
+                Color.white);
+
+            _settingsText = CreateText(
+                "SettingsText",
+                _settingsPanel.transform,
+                Vector2.zero,
+                new Vector2(650f, 230f),
+                20,
+                TextAlignmentOptions.TopLeft,
+                Color.white);
 
             _closeButton = CreateButton(
                 "CloseButton",
                 _panel.transform,
-                new Vector2(0f, -125f),
-                new Vector2(180f, 48f),
+                new Vector2(0f, -220f),
+                new Vector2(180f, 44f),
                 "Close");
 
+            _overviewButton.onClick.AddListener(ShowOverview);
+            _permissionsButton.onClick.AddListener(ShowPermissions);
+            _settingsButton.onClick.AddListener(ShowSettings);
             _closeButton.onClick.AddListener(RequestClose);
+        }
+
+        private GameObject CreateContentPanel(string name)
+        {
+            return CreatePanelObject(
+                name,
+                _panel.transform,
+                new Vector2(680f, 260f),
+                new Vector2(0f, -25f),
+                new Color(0.08f, 0.08f, 0.08f, 0.9f));
+        }
+
+        private GameObject CreatePanelObject(
+            string name,
+            Transform parent,
+            Vector2 size,
+            Vector2 position,
+            Color color)
+        {
+            GameObject panel = new GameObject(name);
+            panel.transform.SetParent(parent, false);
+
+            Image image = panel.AddComponent<Image>();
+            image.color = color;
+
+            RectTransform rect = panel.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+
+            return panel;
         }
 
         private TMP_Text CreateText(
@@ -178,7 +303,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Vector2 position,
             Vector2 size,
             int fontSize,
-            TextAlignmentOptions alignment)
+            TextAlignmentOptions alignment,
+            Color color)
         {
             GameObject textObject = new GameObject(name);
             textObject.transform.SetParent(parent, false);
@@ -190,8 +316,9 @@ namespace ClanTerritory.Features.WardMenu.UI
             TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
             text.alignment = alignment;
-            text.color = Color.white;
+            text.color = color;
             text.text = "";
+            text.enableWordWrapping = true;
 
             return text;
         }
@@ -211,7 +338,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             rect.anchoredPosition = position;
 
             Image image = buttonObject.AddComponent<Image>();
-            image.color = new Color(0.25f, 0.25f, 0.25f, 1f);
+            image.color = new Color(0.24f, 0.24f, 0.24f, 1f);
 
             Button button = buttonObject.AddComponent<Button>();
 
@@ -220,12 +347,35 @@ namespace ClanTerritory.Features.WardMenu.UI
                 buttonObject.transform,
                 Vector2.zero,
                 size,
-                20,
-                TextAlignmentOptions.Center);
+                18,
+                TextAlignmentOptions.Center,
+                Color.white);
 
             buttonText.text = label;
 
             return button;
+        }
+
+        private void ShowOverview()
+        {
+            SetActiveTab(_overviewPanel);
+        }
+
+        private void ShowPermissions()
+        {
+            SetActiveTab(_permissionsPanel);
+        }
+
+        private void ShowSettings()
+        {
+            SetActiveTab(_settingsPanel);
+        }
+
+        private void SetActiveTab(GameObject activePanel)
+        {
+            _overviewPanel.SetActive(activePanel == _overviewPanel);
+            _permissionsPanel.SetActive(activePanel == _permissionsPanel);
+            _settingsPanel.SetActive(activePanel == _settingsPanel);
         }
 
         private void RequestClose()

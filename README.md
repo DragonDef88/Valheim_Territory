@@ -30,7 +30,7 @@ The goal of the project is to provide a reliable runtime capable of supporting c
 - ✅ Runtime Orchestrator
 - ✅ Runtime Discovery
 - ✅ Runtime Infrastructure
-- 🚧 Runtime Registry (in progress)
+- ✅ Runtime Registry
 
 ## Territory System
 
@@ -89,7 +89,7 @@ Persistence                ✅ Completed
 
 Living World Runtime v1    ✅ Completed
 
-Living World Runtime v2    🚧 In Progress
+Living World Runtime v2    ✅ Completed
 
 Territory Gameplay         🚧 In Progress
 
