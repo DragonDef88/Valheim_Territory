@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
+using ClanTerritory.Features.TerritoryInteraction.Services;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
-using ClanTerritory.Features.WardInteraction.Services;
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
@@ -48,12 +48,12 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (player == null)
                 return true;
 
-            IWardInteractionService wardInteractionService;
+            ITerritoryInteractionService territoryInteractionService;
 
-            if (!ServiceContainer.TryGet<IWardInteractionService>(out wardInteractionService))
+            if (!ServiceContainer.TryGet<ITerritoryInteractionService>(out territoryInteractionService))
                 return true;
 
-            if (!wardInteractionService.TryOpenWardMenu(__instance, player))
+            if (!territoryInteractionService.TryOpenTerritoryMenu(__instance, player))
                 return true;
 
             __result = true;

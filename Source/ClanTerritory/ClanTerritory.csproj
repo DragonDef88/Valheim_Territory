@@ -315,6 +315,10 @@
     <Compile Include="Features\Runtime\Steps\PersistenceLoadStep.cs" />
     <Compile Include="Features\Runtime\Steps\RuntimeRestoreStep.cs" />
     <Compile Include="Features\Runtime\Steps\WorldDiscoveryStep.cs" />
+    <Compile Include="Features\TerritoryInteraction\Services\ITerritoryInteractionService.cs" />
+    <Compile Include="Features\TerritoryInteraction\Services\TerritoryInteractionService.cs" />
+    <Compile Include="Features\TerritoryInteraction\TerritoryInteractionModule.cs" />
+    <Compile Include="Features\TerritoryInteraction\TerritoryInteractionRequestedEvent.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
     <Compile Include="Features\WardInteraction\Services\IWardInteractionService.cs" />
     <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />

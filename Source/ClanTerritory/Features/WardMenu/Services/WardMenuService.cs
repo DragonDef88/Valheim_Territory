@@ -2,7 +2,7 @@
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
-using ClanTerritory.Features.WardInteraction;
+using ClanTerritory.Features.TerritoryInteraction;
 using ClanTerritory.Features.WardMenu.Models;
 using ClanTerritory.Features.WardMenu.UI;
 using ClanTerritory.Utils;
@@ -11,7 +11,7 @@ namespace ClanTerritory.Features.WardMenu.Services
 {
     internal sealed class WardMenuService :
         IWardMenuService,
-        IEventHandler<WardInteractionRequestedEvent>
+        IEventHandler<TerritoryInteractionRequestedEvent>
     {
         private readonly WardMenuView _view;
 
@@ -35,11 +35,11 @@ namespace ClanTerritory.Features.WardMenu.Services
             _view = view;
         }
 
-        public void Handle(WardInteractionRequestedEvent eventData)
+        public void Handle(TerritoryInteractionRequestedEvent eventData)
         {
             if (eventData == null)
             {
-                ModLog.Debug("[WardMenu] Ignored null interaction event.");
+                ModLog.Debug("[WardMenu] Ignored null territory interaction event.");
                 return;
             }
 
@@ -84,7 +84,7 @@ namespace ClanTerritory.Features.WardMenu.Services
                 CloseByDistance);
 
             ModLog.Info(
-                "[WardMenu] Opened: " + wardId +
+                "[WardMenu] Opened territory menu: " + wardId +
                 ", owner: " + model.OwnerName +
                 ", enabled: " + model.Enabled +
                 ", permitted: " + model.PermittedPlayers.Count);
@@ -113,7 +113,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             _view.Hide();
 
             ModLog.Info(
-                "[WardMenu] Closed: " + _currentWardId +
+                "[WardMenu] Closed territory menu: " + _currentWardId +
                 ", reason: " + reason);
 
             _currentRuntimeWard = null;
@@ -172,7 +172,7 @@ namespace ClanTerritory.Features.WardMenu.Services
                 : null;
 
             if (zdo == null)
-                ModLog.Debug("[WardMenu] Building model without ZDO: " + wardId);
+                ModLog.Debug("[WardMenu] Building territory model without ZDO: " + wardId);
 
             string ownerName = zdo != null
                 ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
@@ -192,7 +192,7 @@ namespace ClanTerritory.Features.WardMenu.Services
                 permittedPlayers);
 
             ModLog.Debug(
-                "[WardMenu] Model created: " + wardId +
+                "[WardMenu] Territory model created: " + wardId +
                 ", owner: " + ownerName +
                 ", radius: " + privateArea.m_radius +
                 ", enabled: " + enabled +

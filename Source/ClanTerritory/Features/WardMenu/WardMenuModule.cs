@@ -1,7 +1,7 @@
 ﻿using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
-using ClanTerritory.Features.WardInteraction;
+using ClanTerritory.Features.TerritoryInteraction;
 using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
 using ClanTerritory.Utils;
@@ -26,7 +26,7 @@ namespace ClanTerritory.Features.WardMenu
             ServiceContainer.Register<IWardMenuService>(_wardMenuService);
 
             EventBus eventBus = ServiceContainer.Get<EventBus>();
-            eventBus.Subscribe<WardInteractionRequestedEvent>(_wardMenuService);
+            eventBus.Subscribe<TerritoryInteractionRequestedEvent>(_wardMenuService);
 
             _runnerObject = new GameObject("ClanTerritory_WardMenuRunner");
             Object.DontDestroyOnLoad(_runnerObject);
