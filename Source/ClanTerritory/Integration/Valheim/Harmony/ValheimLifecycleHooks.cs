@@ -1,14 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
-using HarmonyLib;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Diagnostics.Services;
+using HarmonyLib;
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
     [HarmonyPatch]
     internal static class ValheimLifecycleHooks
     {
+        private static readonly List<MethodBase> _methods =
+            new List<MethodBase>();
+
         private static IEnumerable<MethodBase> TargetMethods()
         {
             AddIfExists(typeof(Game), "Start");
@@ -25,11 +28,15 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                 yield return method;
         }
 
-        private static readonly List<MethodBase> _methods = new List<MethodBase>();
-
         private static void AddIfExists(System.Type type, string methodName)
         {
-            MethodInfo method = AccessTools.Method(type, methodName);
+            MethodInfo method =
+                type.GetMethod(
+                    methodName,
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance |
+                    BindingFlags.Static);
 
             if (method != null && !_methods.Contains(method))
                 _methods.Add(method);

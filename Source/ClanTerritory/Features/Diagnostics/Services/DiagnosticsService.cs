@@ -1,5 +1,5 @@
 ﻿using System;
-using HarmonyLib;
+using System.Reflection;
 using UnityEngine;
 using ClanTerritory.Utils;
 
@@ -30,20 +30,27 @@ namespace ClanTerritory.Features.Diagnostics.Services
                 "Player Count: " + players + "\n" +
                 "ZNet: " + zNetState + "\n" +
                 "ZNetScene: " + zNetSceneState + "\n" +
-                "ZoneSystem: " + zoneSystemState
-            );
+                "ZoneSystem: " + zoneSystemState);
         }
 
         private static int CountObjects<T>() where T : Object
         {
             try
             {
-                T[] objects = Object.FindObjectsByType<T>(FindObjectsSortMode.None);
+                T[] objects =
+                    Object.FindObjectsByType<T>(
+                        FindObjectsSortMode.None);
+
                 return objects == null ? 0 : objects.Length;
             }
             catch (Exception ex)
             {
-                ModLog.Warning("[Diagnostics] Count failed: " + typeof(T).Name + " — " + ex.Message);
+                ModLog.Warning(
+                    "[Diagnostics] Count failed: " +
+                    typeof(T).Name +
+                    " — " +
+                    ex.Message);
+
                 return -1;
             }
         }
@@ -52,7 +59,12 @@ namespace ClanTerritory.Features.Diagnostics.Services
         {
             try
             {
-                var field = AccessTools.Field(type, "instance");
+                FieldInfo field =
+                    type.GetField(
+                        "instance",
+                        BindingFlags.Public |
+                        BindingFlags.NonPublic |
+                        BindingFlags.Static);
 
                 if (field == null)
                     return "NO_INSTANCE_FIELD";
