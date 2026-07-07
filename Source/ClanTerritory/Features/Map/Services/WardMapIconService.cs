@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using BepInEx;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
 using HarmonyLib;
+using UnityEngine;
 
 namespace ClanTerritory.Features.Map.Services
 {
@@ -11,11 +14,19 @@ namespace ClanTerritory.Features.Map.Services
     {
         private const string PinNamePrefix = "ClanTerritory_Ward_";
 
+        private const string AssetBundleFileName = "clanterritory_mapicons";
+        private const string NeutralSpriteName = "clan_ward_neutral";
+        private const string ClanSpriteName = "clan_ward_clan";
+
         private readonly TerritoryZdoService _zdoService;
         private readonly TerritoryRegistry _territoryRegistry;
 
         private readonly Dictionary<string, Minimap.PinData> _pins =
             new Dictionary<string, Minimap.PinData>();
+
+        private AssetBundle _assetBundle;
+        private Sprite _neutralSprite;
+        private Sprite _clanSprite;
 
         public WardMapIconService(
             TerritoryZdoService zdoService,
@@ -27,6 +38,8 @@ namespace ClanTerritory.Features.Map.Services
 
         public void Initialize()
         {
+            LoadIcons();
+
             ModLog.Info("[Map] Ward map icon service initialized.");
         }
 
@@ -63,6 +76,7 @@ namespace ClanTerritory.Features.Map.Services
                 if (IsPinStillRegistered(existing))
                 {
                     existing.m_pos = ward.Position;
+                    existing.m_icon = SelectSprite(ward, existing.m_icon);
                     return;
                 }
 
@@ -78,6 +92,7 @@ namespace ClanTerritory.Features.Map.Services
                     false,
                     0L);
 
+            pin.m_icon = SelectSprite(ward, pin.m_icon);
             pin.m_doubleSize = true;
 
             _pins[ward.Id] = pin;
@@ -115,6 +130,61 @@ namespace ClanTerritory.Features.Map.Services
             }
 
             _pins.Clear();
+        }
+
+        private Sprite SelectSprite(WardModel ward, Sprite fallback)
+        {
+            if (HasClan(ward) && _clanSprite != null)
+                return _clanSprite;
+
+            if (_neutralSprite != null)
+                return _neutralSprite;
+
+            return fallback;
+        }
+
+        private bool HasClan(WardModel ward)
+        {
+            return false;
+        }
+
+        private void LoadIcons()
+        {
+            string bundlePath =
+                Path.Combine(
+                    Paths.PluginPath,
+                    "ClanTerritory",
+                    AssetBundleFileName);
+
+            if (!File.Exists(bundlePath))
+            {
+                ModLog.Warning(
+                    "[Map] Ward icon asset bundle not found: " +
+                    bundlePath +
+                    ". Using default Valheim pin icon.");
+
+                return;
+            }
+
+            _assetBundle = AssetBundle.LoadFromFile(bundlePath);
+
+            if (_assetBundle == null)
+            {
+                ModLog.Warning(
+                    "[Map] Failed to load ward icon asset bundle: " +
+                    bundlePath);
+
+                return;
+            }
+
+            _neutralSprite = _assetBundle.LoadAsset<Sprite>(NeutralSpriteName);
+            _clanSprite = _assetBundle.LoadAsset<Sprite>(ClanSpriteName);
+
+            ModLog.Info(
+                "[Map] Ward map sprites loaded. Neutral: " +
+                (_neutralSprite != null) +
+                ", Clan: " +
+                (_clanSprite != null));
         }
 
         private static bool IsPinStillRegistered(Minimap.PinData pin)
