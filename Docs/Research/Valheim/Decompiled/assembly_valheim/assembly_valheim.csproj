@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>assembly_valheim</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net40</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="assembly_googleanalytics" />
+    <Reference Include="System.Core">
+      <HintPath>../../../../usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.25/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_utils" />
+    <Reference Include="UnityEngine.ParticleSystemModule" />
+    <Reference Include="UnityEngine.AnimationModule" />
+    <Reference Include="UnityEngine.ClothModule" />
+    <Reference Include="SoftReferenceableAssets" />
+    <Reference Include="Splatform" />
+    <Reference Include="UnityEngine.AudioModule" />
+    <Reference Include="Unity.TextMeshPro" />
+    <Reference Include="assembly_postprocessing" />
+    <Reference Include="assembly_sunshafts" />
+    <Reference Include="UnityEngine.UI" />
+    <Reference Include="gui_framework" />
+    <Reference Include="assembly_guiutils" />
+    <Reference Include="UnityEngine.UIModule" />
+    <Reference Include="com.rlabrecque.steamworks.net" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="PlayFab" />
+    <Reference Include="PlayFabParty" />
+    <Reference Include="UnityEngine.AIModule" />
+    <Reference Include="UnityEngine.UnityWebRequestModule" />
+    <Reference Include="UnityEngine.IMGUIModule" />
+    <Reference Include="UnityEngine.ImageConversionModule" />
+    <Reference Include="UnityEngine.ScreenCaptureModule" />
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule" />
+  </ItemGroup>
+</Project>
