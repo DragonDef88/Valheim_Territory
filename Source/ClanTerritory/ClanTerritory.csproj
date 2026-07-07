@@ -32,7 +32,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Forteca\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\core\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_utils">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_utils.dll</HintPath>
     </Reference>
     <Reference Include="assembly_valheim">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_valheim.dll</HintPath>

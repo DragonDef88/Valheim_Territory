@@ -10,7 +10,7 @@ namespace ClanTerritory.Features.Territory.Zdo
         private const string WardPieceName = "guard_stone";
 
         private static readonly int WardPrefabHash =
-            StringExtensionMethods.GetStableHashCode(WardPieceName);
+    WardPieceName.GetStableHashCode();
 
         public List<WardModel> GetAllWards()
         {
