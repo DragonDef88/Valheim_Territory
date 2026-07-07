@@ -38,7 +38,10 @@ namespace ClanTerritory.Features.WardMenu.Services
         public void Handle(WardInteractionRequestedEvent eventData)
         {
             if (eventData == null)
+            {
+                ModLog.Debug("[WardMenu] Ignored null interaction event.");
                 return;
+            }
 
             Open(
                 eventData.WardId,
@@ -54,10 +57,16 @@ namespace ClanTerritory.Features.WardMenu.Services
             Player player)
         {
             if (privateArea == null)
+            {
+                ModLog.Debug("[WardMenu] Open ignored. PrivateArea is null.");
                 return;
+            }
 
             if (player == null)
+            {
+                ModLog.Debug("[WardMenu] Open ignored. Player is null.");
                 return;
+            }
 
             WardMenuModel model = BuildModel(
                 wardId,
@@ -71,19 +80,41 @@ namespace ClanTerritory.Features.WardMenu.Services
 
             _view.Show(
                 model,
-                Close);
+                CloseByInput,
+                CloseByDistance);
 
-            ModLog.Info("Ward menu opened: " + wardId);
+            ModLog.Info(
+                "[WardMenu] Opened: " + wardId +
+                ", owner: " + model.OwnerName +
+                ", enabled: " + model.Enabled +
+                ", permitted: " + model.PermittedPlayers.Count);
         }
 
         public void Close()
+        {
+            CloseWithReason("Manual");
+        }
+
+        private void CloseByInput()
+        {
+            CloseWithReason("Input");
+        }
+
+        private void CloseByDistance()
+        {
+            CloseWithReason("Distance");
+        }
+
+        private void CloseWithReason(string reason)
         {
             if (!IsOpen)
                 return;
 
             _view.Hide();
 
-            ModLog.Info("Ward menu closed: " + _currentWardId);
+            ModLog.Info(
+                "[WardMenu] Closed: " + _currentWardId +
+                ", reason: " + reason);
 
             _currentRuntimeWard = null;
             _currentPrivateArea = null;
@@ -97,13 +128,25 @@ namespace ClanTerritory.Features.WardMenu.Services
 
             if (_currentPrivateArea == null)
             {
-                Close();
+                CloseWithReason("InvalidPrivateArea");
                 return;
             }
 
-            if (_currentPlayer == null || _currentPlayer.IsDead() || _currentPlayer.InCutscene())
+            if (_currentPlayer == null)
             {
-                Close();
+                CloseWithReason("InvalidPlayer");
+                return;
+            }
+
+            if (_currentPlayer.IsDead())
+            {
+                CloseWithReason("PlayerDead");
+                return;
+            }
+
+            if (_currentPlayer.InCutscene())
+            {
+                CloseWithReason("PlayerInCutscene");
                 return;
             }
 
@@ -112,7 +155,7 @@ namespace ClanTerritory.Features.WardMenu.Services
 
         public void Shutdown()
         {
-            Close();
+            CloseWithReason("Shutdown");
 
             if (_view != null)
                 _view.Destroy();
@@ -128,6 +171,9 @@ namespace ClanTerritory.Features.WardMenu.Services
                 ? zNetView.GetZDO()
                 : null;
 
+            if (zdo == null)
+                ModLog.Debug("[WardMenu] Building model without ZDO: " + wardId);
+
             string ownerName = zdo != null
                 ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
                 : "Unknown";
@@ -137,13 +183,23 @@ namespace ClanTerritory.Features.WardMenu.Services
             List<WardMenuPlayerModel> permittedPlayers =
                 BuildPermittedPlayers(zdo);
 
-            return new WardMenuModel(
+            WardMenuModel model = new WardMenuModel(
                 wardId,
                 ownerName,
                 privateArea.m_radius,
                 enabled,
                 runtimeWard != null && runtimeWard.IsActive,
                 permittedPlayers);
+
+            ModLog.Debug(
+                "[WardMenu] Model created: " + wardId +
+                ", owner: " + ownerName +
+                ", radius: " + privateArea.m_radius +
+                ", enabled: " + enabled +
+                ", runtimeActive: " + model.RuntimeActive +
+                ", permitted: " + permittedPlayers.Count);
+
+            return model;
         }
 
         private static List<WardMenuPlayerModel> BuildPermittedPlayers(ZDO zdo)
@@ -162,7 +218,10 @@ namespace ClanTerritory.Features.WardMenu.Services
                 string playerName = zdo.GetString("pu_name" + i, "Unknown");
 
                 if (playerId == 0L)
+                {
+                    ModLog.Debug("[WardMenu] Ignored permitted player with empty id at index: " + i);
                     continue;
+                }
 
                 players.Add(new WardMenuPlayerModel(
                     playerId,

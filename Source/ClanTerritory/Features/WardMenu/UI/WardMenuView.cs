@@ -28,7 +28,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         private GameObject _permissionsPanel;
         private GameObject _settingsPanel;
 
-        private Action _closeAction;
+        private Action _closeByInputAction;
+        private Action _closeByDistanceAction;
         private int _hiddenFrames = 9999;
         private bool _useReleasedAfterOpen;
 
@@ -39,14 +40,16 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         public void Show(
             WardMenuModel model,
-            Action closeAction)
+            Action closeByInputAction,
+            Action closeByDistanceAction)
         {
             if (model == null)
                 return;
 
             EnsureCreated();
 
-            _closeAction = closeAction;
+            _closeByInputAction = closeByInputAction;
+            _closeByDistanceAction = closeByDistanceAction;
             _useReleasedAfterOpen = false;
 
             _title.text = "Clan Territory";
@@ -99,7 +102,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (Vector3.Distance(privateArea.transform.position, player.transform.position) > HideDistance)
             {
-                RequestClose();
+                RequestCloseByDistance();
                 return;
             }
 
@@ -130,7 +133,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 ZInput.ResetButtonStatus("Use");
                 ZInput.ResetButtonStatus("JoyUse");
                 ZInput.ResetButtonStatus("JoyButtonB");
-                RequestClose();
+                RequestCloseByInput();
             }
         }
 
@@ -155,7 +158,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewPanel = null;
             _permissionsPanel = null;
             _settingsPanel = null;
-            _closeAction = null;
+            _closeByInputAction = null;
+            _closeByDistanceAction = null;
         }
 
         private void EnsureCreated()
@@ -279,7 +283,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewButton.onClick.AddListener(ShowOverview);
             _permissionsButton.onClick.AddListener(ShowPermissions);
             _settingsButton.onClick.AddListener(ShowSettings);
-            _closeButton.onClick.AddListener(RequestClose);
+            _closeButton.onClick.AddListener(RequestCloseByInput);
         }
 
         private GameObject CreateContentPanel(string name)
@@ -413,10 +417,16 @@ namespace ClanTerritory.Features.WardMenu.UI
             return text;
         }
 
-        private void RequestClose()
+        private void RequestCloseByInput()
         {
-            if (_closeAction != null)
-                _closeAction();
+            if (_closeByInputAction != null)
+                _closeByInputAction();
+        }
+
+        private void RequestCloseByDistance()
+        {
+            if (_closeByDistanceAction != null)
+                _closeByDistanceAction();
         }
     }
 }
