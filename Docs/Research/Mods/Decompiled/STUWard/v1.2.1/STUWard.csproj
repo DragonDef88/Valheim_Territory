@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>STUWard</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="STUWard.translations.English.yml" />
+    <None Remove="STUWard.translations.Korean.yml" />
+    <None Remove="ILRepack.List" />
+    <EmbeddedResource Include="STUWard.translations.English.yml" LogicalName="STUWard.translations.English.yml" />
+    <EmbeddedResource Include="STUWard.translations.Korean.yml" LogicalName="STUWard.translations.Korean.yml" />
+    <EmbeddedResource Include="ILRepack.List" LogicalName="ILRepack.List" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" />
+    <Reference Include="Jotunn" />
+    <Reference Include="System.Core">
+      <HintPath>../../../../usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.25/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_guiutils" />
+    <Reference Include="0Harmony" />
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="assembly_valheim" />
+    <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="UnityEngine.UI" />
+    <Reference Include="UnityEngine.TextRenderingModule" />
+    <Reference Include="Splatform" />
+    <Reference Include="UnityEngine.AudioModule" />
+    <Reference Include="assembly_utils" />
+    <Reference Include="UnityEngine.InputLegacyModule" />
+    <Reference Include="Unity.TextMeshPro" />
+  </ItemGroup>
+</Project>

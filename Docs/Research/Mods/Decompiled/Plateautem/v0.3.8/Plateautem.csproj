@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Plateautem</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Plateautem.Embedded.plateautem" />
+    <EmbeddedResource Include="Plateautem.Embedded.plateautem" LogicalName="Plateautem.Embedded.plateautem" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx" />
+    <Reference Include="Jotunn" />
+    <Reference Include="UnityEngine.AssetBundleModule" />
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="assembly_valheim" />
+    <Reference Include="UnityEngine.AudioModule" />
+    <Reference Include="UnityEngine.ParticleSystemModule" />
+    <Reference Include="assembly_utils" />
+    <Reference Include="0Harmony" />
+    <Reference Include="System.Core">
+      <HintPath>../../../../usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.25/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_guiutils" />
+  </ItemGroup>
+</Project>

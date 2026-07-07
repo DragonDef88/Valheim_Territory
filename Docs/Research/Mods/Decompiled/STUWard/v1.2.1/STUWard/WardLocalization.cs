@@ -1,0 +1,189 @@
+using System;
+
+namespace STUWard;
+
+internal static class WardLocalization
+{
+	internal const string PieceNameToken = "$stuw_piece_name";
+
+	internal const string PieceDescriptionToken = "$stuw_piece_desc";
+
+	internal const string UiTitleToken = "$stuw_ui_title";
+
+	internal const string UiOwnerToken = "$stuw_ui_owner";
+
+	internal const string UiGuildToken = "$stuw_ui_guild";
+
+	internal const string UiCloseToken = "$stuw_ui_close";
+
+	internal const string UiRadiusToken = "$stuw_ui_radius";
+
+	internal const string UiRangeSpeedToken = "$stuw_ui_range_speed";
+
+	internal const string UiRangeBrightnessToken = "$stuw_ui_range_brightness";
+
+	internal const string UiDoorCloseDelayToken = "$stuw_ui_door_close_delay";
+
+	internal const string UiWarningEffectsToken = "$stuw_ui_warning_effects";
+
+	internal const string UiWarningSoundToken = "$stuw_ui_warning_sound";
+
+	internal const string UiWarningFlashToken = "$stuw_ui_warning_flash";
+
+	internal const string UiRegisteredPlayersToken = "$stuw_ui_registered_players";
+
+	internal const string UiRestrictionsToken = "$stuw_ui_restrictions";
+
+	internal const string UiRestrictionForcedToken = "$stuw_ui_restriction_forced";
+
+	internal const string UiRestrictionDoorsToken = "$stuw_ui_restriction_doors";
+
+	internal const string UiRestrictionPortalsToken = "$stuw_ui_restriction_portals";
+
+	internal const string UiRestrictionPickupToken = "$stuw_ui_restriction_pickup";
+
+	internal const string UiRestrictionPlacedConsumablesToken = "$stuw_ui_restriction_placed_consumables";
+
+	internal const string UiRestrictionItemStandsToken = "$stuw_ui_restriction_item_stands";
+
+	internal const string UiRestrictionArmorStandsToken = "$stuw_ui_restriction_armor_stands";
+
+	internal const string UiRestrictionContainersToken = "$stuw_ui_restriction_containers";
+
+	internal const string UiRestrictionCraftingStationsToken = "$stuw_ui_restriction_crafting_stations";
+
+	internal const string UiRestrictionTameablesAndSaddlesToken = "$stuw_ui_restriction_tameables_and_saddles";
+
+	internal const string UiNoRegisteredPlayersToken = "$stuw_ui_no_registered_players";
+
+	internal const string UiRemoveToken = "$stuw_ui_remove";
+
+	internal const string UiOffToken = "$stuw_ui_off";
+
+	internal const string UiRadiusValueToken = "$stuw_ui_radius_value";
+
+	internal const string UiDelayValueToken = "$stuw_ui_delay_value";
+
+	internal const string UiRegisteredPlayerFormatToken = "$stuw_ui_registered_player_format";
+
+	internal const string HoverSettingsToken = "$stuw_hover_settings";
+
+	internal const string MessageBlockedItemToken = "$stuw_msg_blocked_item";
+
+	internal const string MessageBuildingDamageProtectedToken = "$stuw_msg_building_damage_protected";
+
+	internal const string MessageOverlapToken = "$stuw_msg_overlap";
+
+	internal const string MessageLimitWithMaxToken = "$stuw_msg_limit_with_max";
+
+	internal const string ShortcutUnboundToken = "$stuw_shortcut_unbound";
+
+	internal const string PieceNameFallback = "Ward";
+
+	internal const string PieceDescriptionFallback = "Configurable ward with extended protection.";
+
+	internal const string UiTitleFallback = "Ward Settings";
+
+	internal const string UiOwnerFallback = "Owner: {0}";
+
+	internal const string UiGuildFallback = "Guild: {0}";
+
+	internal const string UiCloseFallback = "Close";
+
+	internal const string UiRadiusFallback = "Ward radius";
+
+	internal const string UiRangeSpeedFallback = "Range speed";
+
+	internal const string UiRangeBrightnessFallback = "Range brightness";
+
+	internal const string UiDoorCloseDelayFallback = "Door close delay";
+
+	internal const string UiWarningEffectsFallback = "Warning effects";
+
+	internal const string UiWarningSoundFallback = "Sound";
+
+	internal const string UiWarningFlashFallback = "Flash";
+
+	internal const string UiRegisteredPlayersFallback = "Registered players";
+
+	internal const string UiRestrictionsFallback = "Restrictions";
+
+	internal const string UiRestrictionForcedFallback = "Forced";
+
+	internal const string UiRestrictionDoorsFallback = "Doors";
+
+	internal const string UiRestrictionPortalsFallback = "Portals";
+
+	internal const string UiRestrictionPickupFallback = "Pickup";
+
+	internal const string UiRestrictionPlacedConsumablesFallback = "Consumables";
+
+	internal const string UiRestrictionItemStandsFallback = "Item stands";
+
+	internal const string UiRestrictionArmorStandsFallback = "Armor stands";
+
+	internal const string UiRestrictionContainersFallback = "Containers";
+
+	internal const string UiRestrictionCraftingStationsFallback = "Crafting stations";
+
+	internal const string UiRestrictionTameablesAndSaddlesFallback = "Tames";
+
+	internal const string UiNoRegisteredPlayersFallback = "No registered players.";
+
+	internal const string UiRemoveFallback = "Remove";
+
+	internal const string UiOffFallback = "Off";
+
+	internal const string UiRadiusValueFallback = "{0} m";
+
+	internal const string UiDelayValueFallback = "{0} s";
+
+	internal const string UiRegisteredPlayerFormatFallback = "{0} / {1} / {2}";
+
+	internal const string HoverSettingsFallback = "[<color=yellow><b>{0}</b></color>] Ward settings";
+
+	internal const string MessageBlockedItemFallback = "A ward prevents using this item here.";
+
+	internal const string MessageBuildingDamageProtectedFallback = "An active Ward prevents damaging protected structures.";
+
+	internal const string MessageOverlapFallback = "Another Ward is too close.";
+
+	internal const string MessageLimitWithMaxFallback = "Ward limit reached (max {0})";
+
+	internal const string ShortcutUnboundFallback = "Unbound";
+
+	internal static string Localize(string token, string fallback)
+	{
+		Localization instance = Localization.instance;
+		if (instance == null)
+		{
+			return fallback;
+		}
+		string text = instance.Localize(token);
+		string text2;
+		if (!token.StartsWith("$", StringComparison.Ordinal))
+		{
+			text2 = "[" + token + "]";
+		}
+		else
+		{
+			text2 = "[" + token.Substring(1, token.Length - 1) + "]";
+		}
+		string text3 = text2;
+		if (!string.IsNullOrWhiteSpace(text) && !(text == token) && !(text == text3))
+		{
+			return text;
+		}
+		return fallback;
+	}
+
+	internal static string LocalizeFormat(string token, string fallback, params object[] args)
+	{
+		string text = Localize(token, fallback);
+		if (args != null && args.Length != 0)
+		{
+			return string.Format(text, args);
+		}
+		return text;
+	}
+}
