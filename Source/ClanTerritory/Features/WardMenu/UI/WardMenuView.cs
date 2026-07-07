@@ -10,6 +10,7 @@ namespace ClanTerritory.Features.WardMenu.UI
     internal sealed class WardMenuView
     {
         private const float HideDistance = 5f;
+        private bool _useReleasedAfterOpen;
 
         private GameObject _root;
         private GameObject _panel;
@@ -88,17 +89,19 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         public void Tick(PrivateArea privateArea, Player player)
         {
-            if (_root == null || !_root.activeSelf)
-            {
-                _hiddenFrames++;
-                return;
-            }
+            bool usePressed =
+    ZInput.GetButtonDown("Use") ||
+    ZInput.GetButtonDown("JoyUse");
 
-            _hiddenFrames = 0;
+            bool useHeld =
+                ZInput.GetButton("Use") ||
+                ZInput.GetButton("JoyUse");
 
-            if (Vector3.Distance(privateArea.transform.position, player.transform.position) > HideDistance)
+            if (!_useReleasedAfterOpen)
             {
-                RequestClose();
+                if (!useHeld)
+                    _useReleasedAfterOpen = true;
+
                 return;
             }
 
@@ -107,10 +110,11 @@ namespace ClanTerritory.Features.WardMenu.UI
                 !Menu.IsVisible() &&
                 !Minimap.IsOpen() &&
                 (ZInput.GetKeyDown(KeyCode.Escape, true) ||
-                 ZInput.GetButtonDown("Use") ||
+                 usePressed ||
                  ZInput.GetButtonDown("JoyButtonB")))
             {
                 ZInput.ResetButtonStatus("Use");
+                ZInput.ResetButtonStatus("JoyUse");
                 ZInput.ResetButtonStatus("JoyButtonB");
                 RequestClose();
             }
