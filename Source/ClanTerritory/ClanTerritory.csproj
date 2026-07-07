@@ -319,6 +319,10 @@
     <Compile Include="Features\TerritoryInteraction\Services\TerritoryInteractionService.cs" />
     <Compile Include="Features\TerritoryInteraction\TerritoryInteractionModule.cs" />
     <Compile Include="Features\TerritoryInteraction\TerritoryInteractionRequestedEvent.cs" />
+    <Compile Include="Features\TerritoryNaming\Services\ITerritoryNamingService.cs" />
+    <Compile Include="Features\TerritoryNaming\Services\TerritoryNamingService.cs" />
+    <Compile Include="Features\TerritoryNaming\TerritoryNamingModule.cs" />
+    <Compile Include="Features\TerritoryNaming\TerritoryNamingZdoKeys.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
     <Compile Include="Features\WardInteraction\Services\IWardInteractionService.cs" />
     <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />

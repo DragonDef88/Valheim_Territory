@@ -2,6 +2,7 @@
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.TerritoryInteraction.Services;
+using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
 
@@ -17,6 +18,11 @@ namespace ClanTerritory.Integration.Valheim.Harmony
         [HarmonyPatch("Awake")]
         private static void AwakePostfix(PrivateArea __instance)
         {
+            ITerritoryNamingService territoryNamingService;
+
+            if (ServiceContainer.TryGet<ITerritoryNamingService>(out territoryNamingService))
+                territoryNamingService.RegisterRpc(__instance);
+
             if (!Scanner.TryCreateWardModel(
                     __instance,
                     out WardModel model))
