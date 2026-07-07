@@ -1,9 +1,10 @@
 ﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
 
 namespace ClanTerritory.Features.TerritoryInteraction
 {
-    internal sealed class TerritoryInteractionRequestedEvent
+    internal sealed class TerritoryInteractionRequestedEvent : IEvent
     {
         public WardId WardId { get; private set; }
 
