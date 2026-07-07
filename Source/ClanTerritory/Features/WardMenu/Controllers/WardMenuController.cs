@@ -97,7 +97,11 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestRenameTerritory(string name)
         {
-            _territoryActions.RenameTerritory(_currentWardId, name);
+            _territoryActions.RenameTerritory(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer,
+                name);
         }
 
         public void RequestToggleGuildAccess()
