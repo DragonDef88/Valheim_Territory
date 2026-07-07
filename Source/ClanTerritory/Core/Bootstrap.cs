@@ -14,6 +14,8 @@ using ClanTerritory.Utils;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.WardInteraction;
 using ClanTerritory.Features.WardMenu;
+using ClanTerritory.Integration.Guilds;
+using ClanTerritory.Integration.Groups;
 
 namespace ClanTerritory.Core
 {
@@ -49,6 +51,10 @@ namespace ClanTerritory.Core
 
             _moduleManager.Register(new DiagnosticsModule());
             _moduleManager.Register(new PersistenceModule());
+
+            _moduleManager.Register(new GuildsModule());
+            _moduleManager.Register(new GroupsModule());
+
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
             _moduleManager.Register(new WorldDiscoveryModule());

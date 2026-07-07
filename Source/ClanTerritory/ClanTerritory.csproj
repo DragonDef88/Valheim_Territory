@@ -325,6 +325,12 @@
     <Compile Include="Features\WardMenu\Services\WardMenuService.cs" />
     <Compile Include="Features\WardMenu\UI\WardMenuView.cs" />
     <Compile Include="Features\WardMenu\WardMenuModule.cs" />
+    <Compile Include="Integration\Groups\GroupsAdapter.cs" />
+    <Compile Include="Integration\Groups\GroupsModule.cs" />
+    <Compile Include="Integration\Groups\IGroupsService.cs" />
+    <Compile Include="Integration\Guilds\GuildsAdapter.cs" />
+    <Compile Include="Integration\Guilds\GuildsModule.cs" />
+    <Compile Include="Integration\Guilds\IGuildService.cs" />
     <Compile Include="Integration\Valheim\Harmony\MinimapHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
