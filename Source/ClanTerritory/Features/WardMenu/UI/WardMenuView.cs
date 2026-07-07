@@ -142,6 +142,16 @@ namespace ClanTerritory.Features.WardMenu.UI
             }
 
             if ((Chat.instance == null || !Chat.instance.HasFocus()) &&
+                 !Console.IsVisible() &&
+                 !Menu.IsVisible() &&
+                 !Minimap.IsOpen() &&
+                 ZInput.GetKeyDown(KeyCode.R, true))
+            {
+                RequestRenameTerritory();
+                return;
+            }
+
+            if ((Chat.instance == null || !Chat.instance.HasFocus()) &&
                 !Console.IsVisible() &&
                 !Menu.IsVisible() &&
                 !Minimap.IsOpen() &&
