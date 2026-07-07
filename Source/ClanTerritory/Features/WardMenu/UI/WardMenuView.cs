@@ -10,7 +10,6 @@ namespace ClanTerritory.Features.WardMenu.UI
     internal sealed class WardMenuView
     {
         private const float HideDistance = 5f;
-        private bool _useReleasedAfterOpen;
 
         private GameObject _root;
         private GameObject _panel;
@@ -32,6 +31,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private Action _closeAction;
         private int _hiddenFrames = 9999;
+        private bool _useReleasedAfterOpen;
 
         public bool IsVisible
         {
@@ -48,22 +48,38 @@ namespace ClanTerritory.Features.WardMenu.UI
             EnsureCreated();
 
             _closeAction = closeAction;
+            _useReleasedAfterOpen = false;
 
             _title.text = "Clan Territory";
             _subtitle.text = "Ward Management";
 
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+            ZDO zdo = zNetView != null && zNetView.IsValid()
+                ? zNetView.GetZDO()
+                : null;
+
+            string creatorName = zdo != null
+                ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
+                : "Unknown";
+
+            bool enabled = zdo != null && zdo.GetBool(ZDOVars.s_enabled);
+
+            int permittedCount = zdo != null
+                ? zdo.GetInt(ZDOVars.s_permitted)
+                : 0;
+
             _overviewText.text =
                 "Territory Overview\n\n" +
                 "Ward ID:\n" + wardId + "\n\n" +
-                "Position:\n" + runtimeWard.Position + "\n\n" +
+                "Owner:\n" + creatorName + "\n\n" +
+                "Radius:\n" + privateArea.m_radius + "\n\n" +
+                "Enabled:\n" + (enabled ? "Yes" : "No") + "\n\n" +
                 "Runtime:\n" + (runtimeWard.IsActive ? "Active" : "Inactive");
 
             _permissionsText.text =
                 "Permissions\n\n" +
-                "Owner:\n" +
-                player.GetPlayerName() + "\n\n" +
-                "Members:\n" +
-                "Coming next.";
+                "Permitted players: " + permittedCount + "\n\n" +
+                BuildPermittedPlayersText(zdo, permittedCount);
 
             _settingsText.text =
                 "Settings\n\n" +
@@ -89,9 +105,23 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         public void Tick(PrivateArea privateArea, Player player)
         {
+            if (_root == null || !_root.activeSelf)
+            {
+                _hiddenFrames++;
+                return;
+            }
+
+            _hiddenFrames = 0;
+
+            if (Vector3.Distance(privateArea.transform.position, player.transform.position) > HideDistance)
+            {
+                RequestClose();
+                return;
+            }
+
             bool usePressed =
-    ZInput.GetButtonDown("Use") ||
-    ZInput.GetButtonDown("JoyUse");
+                ZInput.GetButtonDown("Use") ||
+                ZInput.GetButtonDown("JoyUse");
 
             bool useHeld =
                 ZInput.GetButton("Use") ||
@@ -380,6 +410,30 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewPanel.SetActive(activePanel == _overviewPanel);
             _permissionsPanel.SetActive(activePanel == _permissionsPanel);
             _settingsPanel.SetActive(activePanel == _settingsPanel);
+        }
+
+        private static string BuildPermittedPlayersText(ZDO zdo, int permittedCount)
+        {
+            if (zdo == null || permittedCount <= 0)
+                return "No permitted players.";
+
+            string text = "";
+
+            for (int i = 0; i < permittedCount; i++)
+            {
+                long playerId = zdo.GetLong("pu_id" + i, 0L);
+                string playerName = zdo.GetString("pu_name" + i, "Unknown");
+
+                if (playerId == 0L)
+                    continue;
+
+                text += "- " + playerName + " (" + playerId + ")\n";
+            }
+
+            if (string.IsNullOrEmpty(text))
+                return "No permitted players.";
+
+            return text;
         }
 
         private void RequestClose()
