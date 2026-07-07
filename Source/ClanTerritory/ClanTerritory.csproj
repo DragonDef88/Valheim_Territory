@@ -111,6 +111,9 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -317,6 +320,10 @@
     <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />
     <Compile Include="Features\WardInteraction\WardInteractionRequestedEvent.cs" />
     <Compile Include="Features\WardInteraction\Services\WardInteractionService.cs" />
+    <Compile Include="Features\WardMenu\Services\IWardMenuService.cs" />
+    <Compile Include="Features\WardMenu\Services\WardMenuService.cs" />
+    <Compile Include="Features\WardMenu\UI\WardMenuView.cs" />
+    <Compile Include="Features\WardMenu\WardMenuModule.cs" />
     <Compile Include="Integration\Valheim\Harmony\MinimapHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
@@ -392,6 +399,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Features\WardDetection\Hooks\" />
+    <Folder Include="Features\WardMenu\Events\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\Icons\Map\clan_ward_clan.png" />

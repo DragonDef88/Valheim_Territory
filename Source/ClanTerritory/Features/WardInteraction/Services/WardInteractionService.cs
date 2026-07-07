@@ -1,5 +1,4 @@
-﻿using ClanTerritory.Core;
-using ClanTerritory.Domain.Identifiers;
+﻿using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Utils;
@@ -55,16 +54,7 @@ namespace ClanTerritory.Features.WardInteraction.Services
                 privateArea,
                 player));
 
-            ShowTemporaryMenuMessage(player, wardId);
-
             return true;
-        }
-
-        private static void ShowTemporaryMenuMessage(Player player, WardId wardId)
-        {
-            player.Message(
-                MessageHud.MessageType.Center,
-                "Clan Territory\nWard menu requested\n" + wardId);
         }
     }
 }
