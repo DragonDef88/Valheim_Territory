@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Runtime.Registry;
+using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardMenu.Models;
 using ClanTerritory.Utils;
 
@@ -8,6 +9,13 @@ namespace ClanTerritory.Features.WardMenu.Builders
 {
     internal sealed class WardMenuModelBuilder
     {
+        private readonly ITerritoryNamingService _territoryNamingService;
+
+        public WardMenuModelBuilder(ITerritoryNamingService territoryNamingService)
+        {
+            _territoryNamingService = territoryNamingService;
+        }
+
         public WardMenuModel Build(
             WardId wardId,
             RuntimeWard runtimeWard,
@@ -27,6 +35,10 @@ namespace ClanTerritory.Features.WardMenu.Builders
 
             bool enabled = zdo != null && zdo.GetBool(ZDOVars.s_enabled);
 
+            string territoryName = _territoryNamingService != null
+                ? _territoryNamingService.GetTerritoryName(privateArea)
+                : "Unnamed Territory";
+
             List<WardMenuPlayerModel> permittedPlayers =
                 BuildPermittedPlayers(zdo);
 
@@ -38,7 +50,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 permittedPlayers);
 
             WardMenuTerritorySection territorySection = new WardMenuTerritorySection(
-                "Unnamed Territory",
+                territoryName,
                 runtimeWard != null && runtimeWard.IsActive,
                 false,
                 false,
@@ -53,6 +65,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", owner: " + wardSection.OwnerName +
                 ", radius: " + wardSection.Radius +
                 ", enabled: " + wardSection.Enabled +
+                ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
 
