@@ -1,31 +1,20 @@
-﻿using ClanTerritory.Features.Territory.Registry;
+﻿using System.Collections.Generic;
+using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using UnityEngine;
-using TerritoryEntity = ClanTerritory.Domain.Entities.Territory;
 
 namespace ClanTerritory.Features.Map.Services
 {
     internal sealed class WardMapIconService
     {
         private const string PinNamePrefix = "ClanTerritory_Ward_";
-        private const string NeutralIconResourceSuffix =
-            "Resources.Icons.Map.clan_ward_neutral.png";
-        private const string ClanIconResourceSuffix =
-            "Resources.Icons.Map.clan_ward_clan.png";
 
         private readonly TerritoryZdoService _zdoService;
         private readonly TerritoryRegistry _territoryRegistry;
+
         private readonly Dictionary<string, Minimap.PinData> _pins =
             new Dictionary<string, Minimap.PinData>();
-
-        private Sprite _neutralSprite;
-        private Sprite _clanSprite;
 
         public WardMapIconService(
             TerritoryZdoService zdoService,
@@ -37,9 +26,6 @@ namespace ClanTerritory.Features.Map.Services
 
         public void Initialize()
         {
-            _neutralSprite = LoadSprite(NeutralIconResourceSuffix);
-            _clanSprite = LoadSprite(ClanIconResourceSuffix);
-
             ModLog.Info("[Map] Ward map icon service initialized.");
         }
 
@@ -74,7 +60,6 @@ namespace ClanTerritory.Features.Map.Services
             if (_pins.TryGetValue(ward.Id, out existing))
             {
                 existing.m_pos = ward.Position;
-                existing.m_icon = SelectSprite(ward);
                 return;
             }
 
@@ -87,7 +72,6 @@ namespace ClanTerritory.Features.Map.Services
                     false,
                     0L);
 
-            pin.m_icon = SelectSprite(ward);
             pin.m_doubleSize = true;
 
             _pins[ward.Id] = pin;
@@ -122,65 +106,6 @@ namespace ClanTerritory.Features.Map.Services
             }
 
             _pins.Clear();
-        }
-
-        private Sprite SelectSprite(WardModel ward)
-        {
-            if (HasClan(ward) && _clanSprite != null)
-                return _clanSprite;
-
-            return _neutralSprite;
-        }
-
-        private bool HasClan(WardModel ward)
-        {
-            if (ward == null || _territoryRegistry == null)
-                return false;
-
-            foreach (TerritoryEntity territory in _territoryRegistry.GetAll())
-            {
-                if (territory.WardId.ToString() == ward.Id)
-                    return false;
-            }
-
-            return false;
-        }
-
-        private static Sprite LoadSprite(string resourceSuffix)
-        {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-
-            string resourceName =
-                assembly
-                    .GetManifestResourceNames()
-                    .FirstOrDefault(name => name.EndsWith(resourceSuffix));
-
-            if (string.IsNullOrEmpty(resourceName))
-            {
-                ModLog.Warning(
-                    "[Map] Ward icon resource not found: " +
-                    resourceSuffix);
-
-                return null;
-            }
-
-            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-            {
-                if (stream == null)
-                    return null;
-
-                byte[] data = new byte[stream.Length];
-                stream.Read(data, 0, data.Length);
-
-                Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                ImageConversion.LoadImage(texture, data);
-
-                return Sprite.Create(
-                    texture,
-                    new Rect(0f, 0f, texture.width, texture.height),
-                    new Vector2(0.5f, 0.5f),
-                    100f);
-            }
         }
     }
 }
