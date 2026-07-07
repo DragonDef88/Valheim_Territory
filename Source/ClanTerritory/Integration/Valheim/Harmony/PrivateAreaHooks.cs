@@ -32,7 +32,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
         [HarmonyPatch("Interact")]
         private static void InteractPostfix(
             PrivateArea __instance,
-            Humanoid character,
+            Humanoid human,
             bool hold,
             bool alt,
             bool __result)
@@ -43,7 +43,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (hold)
                 return;
 
-            Player player = character as Player;
+            Player player = human as Player;
 
             if (player == null)
                 return;
