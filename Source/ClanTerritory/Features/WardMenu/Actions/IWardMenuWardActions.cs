@@ -4,7 +4,10 @@ namespace ClanTerritory.Features.WardMenu.Actions
 {
     internal interface IWardMenuWardActions
     {
-        void ToggleProtection(WardId wardId);
+        void ToggleProtection(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
 
         void SetRadius(WardId wardId, float radius);
 

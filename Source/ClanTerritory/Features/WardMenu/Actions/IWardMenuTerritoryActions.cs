@@ -2,15 +2,12 @@
 
 namespace ClanTerritory.Features.WardMenu.Actions
 {
-    internal interface IWardMenuWardActions
+    internal interface IWardMenuTerritoryActions
     {
-        void ToggleProtection(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player);
+        void RenameTerritory(WardId wardId, string name);
 
-        void SetRadius(WardId wardId, float radius);
+        void ToggleGuildAccess(WardId wardId);
 
-        void RemovePermittedPlayer(WardId wardId, long playerId);
+        void ToggleGroupAccess(WardId wardId);
     }
 }
