@@ -1,9 +1,7 @@
 ﻿using HarmonyLib;
-using UnityEngine;
 using ClanTerritory.Core;
 using ClanTerritory.Domain.Identifiers;
-using ClanTerritory.Events;
-using ClanTerritory.Features.WardDetection;
+using ClanTerritory.Features.WardDetection.Services;
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
@@ -53,10 +51,10 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (!__state.HasValue)
                 return;
 
-            EventBus eventBus;
+            IWardService wardService;
 
-            if (ServiceContainer.TryGet<EventBus>(out eventBus))
-                eventBus.Publish(new WardDestroyedEvent(__state.Value));
+            if (ServiceContainer.TryGet<IWardService>(out wardService))
+                wardService.UnregisterWard(__state.Value);
         }
     }
 }

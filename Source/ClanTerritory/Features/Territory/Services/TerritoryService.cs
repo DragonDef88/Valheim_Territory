@@ -94,24 +94,24 @@ namespace ClanTerritory.Features.Territory.Services
 
         private void RemoveTerritoryFromWard(ClanTerritory.Domain.Identifiers.WardId wardId)
         {
+            MarkWardDeleted(wardId.ToString());
+
             if (_registry.RemoveByWard(wardId))
             {
-                MarkWardDeleted(wardId.ToString());
-
                 ModLog.Info(
-                    "Territory removed for ward: " +
+                    "Territory removed for destroyed ward: " +
                     wardId +
                     ", total: " +
                     _registry.Count);
-
-                SaveNow();
             }
             else
             {
                 ModLog.Warning(
-                    "Ward destroyed, but territory was not found: " +
+                    "Ward destroyed, but territory was not found in runtime registry: " +
                     wardId);
             }
+
+            SaveNow();
         }
 
         private static bool IsRuntimeGameplayReady()

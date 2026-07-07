@@ -1,23 +1,17 @@
-﻿using ClanTerritory.Features.Territory.Factories;
-using ClanTerritory.Features.Territory.Placement.Rules;
-using ClanTerritory.Features.Territory.Registry;
+﻿using ClanTerritory.Features.Territory.Placement.Rules;
+using ClanTerritory.Features.Territory.Zdo;
 
 namespace ClanTerritory.Features.Territory.Placement
 {
     internal static class WardPlacementPolicyFactory
     {
         public static IWardPlacementPolicy Create(
-            TerritoryRegistry registry,
-            TerritoryFactory factory)
+            TerritoryZdoService zdoService)
         {
             IPlacementRule[] rules =
             {
-                new TerritoryOverlapRule(
-                    registry,
-                    factory),
-
-                new MaxWardLimitRule(
-                    registry)
+                new TerritoryOverlapRule(zdoService),
+                new MaxWardLimitRule(zdoService)
             };
 
             return new WardPlacementPolicy(rules);

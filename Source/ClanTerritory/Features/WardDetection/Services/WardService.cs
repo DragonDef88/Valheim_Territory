@@ -11,8 +11,6 @@ namespace ClanTerritory.Features.WardDetection.Services
 {
     internal sealed class WardService : IWardService
     {
-        private const int MaxRuntimeWards = 3;
-
         private readonly WardRegistry _registry;
 
         public WardService(WardRegistry registry)
@@ -47,27 +45,23 @@ namespace ClanTerritory.Features.WardDetection.Services
 
         public void UnregisterWard(WardId wardId)
         {
-            if (_registry.Unregister(wardId.ToString()))
+            _registry.Unregister(wardId.ToString());
+
+            if (!IsGameplayReady())
             {
-                if (!IsGameplayReady())
-                {
-                    ModLog.Info(
-                        "[Runtime] Ward unload ignored before gameplay-ready: " +
-                        wardId);
+                ModLog.Info(
+                    "[Runtime] Ward destroy ignored before gameplay-ready: " +
+                    wardId);
 
-                    return;
-                }
-
-                bool runtimeRemoved = UnregisterRuntimeWard(wardId);
-
-                if (!runtimeRemoved)
-                    return;
-
-                EventBus eventBus;
-
-                if (ServiceContainer.TryGet(out eventBus))
-                    eventBus.Publish(new WardDestroyedEvent(wardId));
+                return;
             }
+
+            UnregisterRuntimeWard(wardId);
+
+            EventBus eventBus;
+
+            if (ServiceContainer.TryGet(out eventBus))
+                eventBus.Publish(new WardDestroyedEvent(wardId));
         }
 
         private static bool RegisterRuntimeWard(WardModel ward)
@@ -94,17 +88,6 @@ namespace ClanTerritory.Features.WardDetection.Services
             {
                 ModLog.Info(
                     "[Runtime] Ward already known, load ignored: " +
-                    ward.Id);
-
-                return false;
-            }
-
-            if (runtimeRegistry.GetAll().Count >= MaxRuntimeWards)
-            {
-                ModLog.Warning(
-                    "[Runtime] Ward registration blocked: max runtime wards reached (" +
-                    MaxRuntimeWards +
-                    "). Ward: " +
                     ward.Id);
 
                 return false;
@@ -137,14 +120,14 @@ namespace ClanTerritory.Features.WardDetection.Services
             if (runtimeRegistry.Remove(wardId))
             {
                 ModLog.Info(
-                    "[Runtime] Ward unloaded: " +
+                    "[Runtime] Ward destroyed: " +
                     wardId);
 
                 return true;
             }
 
             ModLog.Info(
-                "[Runtime] Ward unload ignored, not found: " +
+                "[Runtime] Ward destroy observed, but runtime ward was not found: " +
                 wardId);
 
             return false;

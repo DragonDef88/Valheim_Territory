@@ -1,17 +1,16 @@
 ﻿using ClanTerritory.Config;
-using ClanTerritory.Domain.Identifiers;
-using ClanTerritory.Features.Territory.Registry;
+using ClanTerritory.Features.Territory.Zdo;
 using UnityEngine;
 
 namespace ClanTerritory.Features.Territory.Placement.Rules
 {
     internal sealed class MaxWardLimitRule : IPlacementRule
     {
-        private readonly TerritoryRegistry _registry;
+        private readonly TerritoryZdoService _zdoService;
 
-        public MaxWardLimitRule(TerritoryRegistry registry)
+        public MaxWardLimitRule(TerritoryZdoService zdoService)
         {
-            _registry = registry;
+            _zdoService = zdoService;
         }
 
         public PlacementValidationResult Validate(Player player, Vector3 position)
@@ -23,9 +22,8 @@ namespace ClanTerritory.Features.Territory.Placement.Rules
                     "Cannot place Ward: invalid player.");
             }
 
-            PlayerId playerId = new PlayerId(player.GetPlayerID());
-
-            if (_registry.CountByOwner(playerId) >= ConfigValues.MaxWardsPerPlayer)
+            if (_zdoService.CountByOwner(player.GetPlayerID()) >=
+                ConfigValues.MaxWardsPerPlayer)
             {
                 return PlacementValidationResult.Failure(
                     PlacementResult.MaxWardLimit,

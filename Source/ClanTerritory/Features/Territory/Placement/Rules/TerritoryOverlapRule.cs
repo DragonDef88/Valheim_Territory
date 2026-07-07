@@ -1,23 +1,16 @@
-﻿using ClanTerritory.Domain.Identifiers;
-using ClanTerritory.Domain.ValueObjects;
-using ClanTerritory.Features.Territory.Factories;
-using ClanTerritory.Features.Territory.Registry;
-using ClanTerritory.Features.WardDetection.Models;
+﻿using ClanTerritory.Config;
+using ClanTerritory.Features.Territory.Zdo;
 using UnityEngine;
 
 namespace ClanTerritory.Features.Territory.Placement.Rules
 {
     internal sealed class TerritoryOverlapRule : IPlacementRule
     {
-        private readonly TerritoryRegistry _registry;
-        private readonly TerritoryFactory _factory;
+        private readonly TerritoryZdoService _zdoService;
 
-        public TerritoryOverlapRule(
-            TerritoryRegistry registry,
-            TerritoryFactory factory)
+        public TerritoryOverlapRule(TerritoryZdoService zdoService)
         {
-            _registry = registry;
-            _factory = factory;
+            _zdoService = zdoService;
         }
 
         public PlacementValidationResult Validate(Player player, Vector3 position)
@@ -29,17 +22,10 @@ namespace ClanTerritory.Features.Territory.Placement.Rules
                     "Cannot place Ward: invalid player.");
             }
 
-            WardModel candidateWard = new WardModel(
-                "preview",
-                player.GetPlayerID(),
-                player.GetPlayerName(),
-                position,
-                true);
+            if (ConfigValues.AllowOverlap)
+                return PlacementValidationResult.Success;
 
-            Domain.Entities.Territory candidate =
-                _factory.CreateFromWard(candidateWard);
-
-            if (_registry.HasOverlap(candidate))
+            if (_zdoService.HasOverlap(position, ConfigValues.TerritoryRadius))
             {
                 return PlacementValidationResult.Failure(
                     PlacementResult.TerritoryOverlap,

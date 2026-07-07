@@ -9,6 +9,9 @@ using ClanTerritory.Features.Runtime.Pipeline.Steps;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Runtime.Restore;
 using ClanTerritory.Features.Runtime.Services;
+using ClanTerritory.Features.Territory.Registry;
+using ClanTerritory.Features.Territory.Services;
+using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WorldDiscovery.Services;
 using ClanTerritory.Utils;
 
@@ -20,45 +23,36 @@ namespace ClanTerritory.Features.Runtime
         private IRuntimeInitializationService _runtimeInitializationService;
         private RuntimePipeline _runtimePipeline;
         private RuntimePipelineCoordinator _runtimePipelineCoordinator;
-        private RuntimeRestoreContext _runtimeRestoreContext;
-        private RuntimeRestoreMapper _runtimeRestoreMapper;
         private IRuntimeRegistryRestoreService _runtimeRegistryRestoreService;
 
         public void Initialize()
         {
             if (!ServiceContainer.TryGet<EventBus>(out EventBus eventBus))
-            {
-                throw new InvalidOperationException(
-                    "EventBus is not registered.");
-            }
+                throw new InvalidOperationException("EventBus is not registered.");
 
             if (!ServiceContainer.TryGet<IWorldDiscoveryService>(
                     out IWorldDiscoveryService worldDiscoveryService))
-            {
-                throw new InvalidOperationException(
-                    "WorldDiscoveryService is not registered.");
-            }
-
-            if (!ServiceContainer.TryGet<IPersistenceService>(
-                    out IPersistenceService persistenceService))
-            {
-                throw new InvalidOperationException(
-                    "PersistenceService is not registered.");
-            }
+                throw new InvalidOperationException("WorldDiscoveryService is not registered.");
 
             if (!ServiceContainer.TryGet<PersistenceWriteGate>(
                     out PersistenceWriteGate persistenceWriteGate))
-            {
-                throw new InvalidOperationException(
-                    "PersistenceWriteGate is not registered.");
-            }
+                throw new InvalidOperationException("PersistenceWriteGate is not registered.");
 
             if (!ServiceContainer.TryGet<IRuntimeRegistry>(
                     out IRuntimeRegistry runtimeRegistry))
-            {
-                throw new InvalidOperationException(
-                    "RuntimeRegistry is not registered.");
-            }
+                throw new InvalidOperationException("RuntimeRegistry is not registered.");
+
+            if (!ServiceContainer.TryGet<TerritoryRegistry>(
+                    out TerritoryRegistry territoryRegistry))
+                throw new InvalidOperationException("TerritoryRegistry is not registered.");
+
+            if (!ServiceContainer.TryGet<ITerritoryService>(
+                    out ITerritoryService territoryService))
+                throw new InvalidOperationException("TerritoryService is not registered.");
+
+            if (!ServiceContainer.TryGet<TerritoryZdoService>(
+                    out TerritoryZdoService zdoService))
+                throw new InvalidOperationException("TerritoryZdoService is not registered.");
 
             _stateMachine = new RuntimeStateMachine(eventBus);
             ServiceContainer.Register(_stateMachine);
@@ -66,12 +60,6 @@ namespace ClanTerritory.Features.Runtime
             _runtimeInitializationService = new RuntimeInitializationService();
             ServiceContainer.Register<IRuntimeInitializationService>(
                 _runtimeInitializationService);
-
-            _runtimeRestoreContext = new RuntimeRestoreContext();
-            ServiceContainer.Register(_runtimeRestoreContext);
-
-            _runtimeRestoreMapper = new RuntimeRestoreMapper();
-            ServiceContainer.Register(_runtimeRestoreMapper);
 
             _runtimeRegistryRestoreService =
                 new RuntimeRegistryRestoreService(runtimeRegistry);
@@ -86,15 +74,11 @@ namespace ClanTerritory.Features.Runtime
                     worldDiscoveryService));
 
             _runtimePipeline.AddStep(
-                new PersistenceLoadStep(
-                    persistenceService,
-                    _runtimeRestoreContext));
-
-            _runtimePipeline.AddStep(
                 new RuntimeRestoreStep(
-                    _runtimeRestoreContext,
-                    _runtimeRestoreMapper,
+                    zdoService,
                     _runtimeRegistryRestoreService,
+                    territoryService,
+                    territoryRegistry,
                     persistenceWriteGate));
 
             ServiceContainer.Register(_runtimePipeline);
