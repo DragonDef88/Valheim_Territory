@@ -3,6 +3,7 @@ using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Utils;
+using HarmonyLib;
 
 namespace ClanTerritory.Features.Map.Services
 {
@@ -59,8 +60,13 @@ namespace ClanTerritory.Features.Map.Services
 
             if (_pins.TryGetValue(ward.Id, out existing))
             {
-                existing.m_pos = ward.Position;
-                return;
+                if (IsPinStillRegistered(existing))
+                {
+                    existing.m_pos = ward.Position;
+                    return;
+                }
+
+                _pins.Remove(ward.Id);
             }
 
             Minimap.PinData pin =
@@ -89,7 +95,7 @@ namespace ClanTerritory.Features.Map.Services
             if (!_pins.TryGetValue(wardId, out pin))
                 return;
 
-            if (Minimap.instance != null)
+            if (Minimap.instance != null && IsPinStillRegistered(pin))
                 Minimap.instance.RemovePin(pin);
 
             _pins.Remove(wardId);
@@ -102,10 +108,29 @@ namespace ClanTerritory.Features.Map.Services
             if (Minimap.instance != null)
             {
                 foreach (Minimap.PinData pin in _pins.Values)
-                    Minimap.instance.RemovePin(pin);
+                {
+                    if (IsPinStillRegistered(pin))
+                        Minimap.instance.RemovePin(pin);
+                }
             }
 
             _pins.Clear();
+        }
+
+        private static bool IsPinStillRegistered(Minimap.PinData pin)
+        {
+            if (pin == null || Minimap.instance == null)
+                return false;
+
+            List<Minimap.PinData> minimapPins =
+                AccessTools
+                    .Field(typeof(Minimap), "m_pins")
+                    .GetValue(Minimap.instance) as List<Minimap.PinData>;
+
+            if (minimapPins == null)
+                return false;
+
+            return minimapPins.Contains(pin);
         }
     }
 }
