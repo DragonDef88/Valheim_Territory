@@ -2,6 +2,7 @@
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.TerritoryInteraction;
+using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
@@ -18,16 +19,21 @@ namespace ClanTerritory.Features.WardMenu
         private WardMenuRunner _runner;
         private WardMenuService _wardMenuService;
         private WardMenuController _wardMenuController;
+        private WardMenuModelBuilder _wardMenuModelBuilder;
 
         public void Initialize()
         {
             WardMenuView view = new WardMenuView();
 
+            _wardMenuModelBuilder = new WardMenuModelBuilder();
+
             _wardMenuController = new WardMenuController(
                 view,
                 CloseWithReason);
 
-            _wardMenuService = new WardMenuService(_wardMenuController);
+            _wardMenuService = new WardMenuService(
+                _wardMenuController,
+                _wardMenuModelBuilder);
 
             ServiceContainer.Register<IWardMenuService>(_wardMenuService);
 
@@ -53,6 +59,7 @@ namespace ClanTerritory.Features.WardMenu
 
             _runner = null;
             _runnerObject = null;
+            _wardMenuModelBuilder = null;
             _wardMenuController = null;
             _wardMenuService = null;
 
