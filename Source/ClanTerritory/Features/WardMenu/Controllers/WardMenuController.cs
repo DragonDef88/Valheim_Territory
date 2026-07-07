@@ -7,8 +7,10 @@ using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Controllers
 {
-    internal sealed class WardMenuController
+    internal sealed class WardMenuController : TextReceiver
     {
+        private const int TerritoryNameCharacterLimit = 50;
+
         private readonly WardMenuView _view;
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
@@ -17,6 +19,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private WardId _currentWardId;
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
+        private string _currentTerritoryName = "";
 
         public WardMenuController(
             WardMenuView view,
@@ -41,6 +44,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentWardId = model.Ward.WardId;
             _currentPrivateArea = privateArea;
             _currentPlayer = player;
+            _currentTerritoryName = model.Territory.Name;
 
             _view.Show(
                 model,
@@ -48,6 +52,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowWard,
                 ShowTerritory,
                 RequestToggleProtection,
+                RequestRenameTerritoryDialog,
                 CloseByInput,
                 CloseByDistance);
 
@@ -61,12 +66,15 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (model == null)
                 return;
 
+            _currentTerritoryName = model.Territory.Name;
+
             _view.Show(
                 model,
                 ShowOverview,
                 ShowWard,
                 ShowTerritory,
                 RequestToggleProtection,
+                RequestRenameTerritoryDialog,
                 CloseByInput,
                 CloseByDistance);
 
@@ -86,6 +94,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             _currentPrivateArea = null;
             _currentPlayer = null;
+            _currentTerritoryName = "";
         }
 
         public void Destroy()
@@ -94,6 +103,17 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             _currentPrivateArea = null;
             _currentPlayer = null;
+            _currentTerritoryName = "";
+        }
+
+        public string GetText()
+        {
+            return _currentTerritoryName;
+        }
+
+        public void SetText(string text)
+        {
+            RequestRenameTerritory(text);
         }
 
         public void RequestToggleProtection()
@@ -112,6 +132,22 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         public void RequestRemovePermittedPlayer(long playerId)
         {
             _wardActions.RemovePermittedPlayer(_currentWardId, playerId);
+        }
+
+        public void RequestRenameTerritoryDialog()
+        {
+            if (TextInput.instance == null)
+            {
+                ModLog.Debug("[WardMenuController] Rename ignored. TextInput is null: " + _currentWardId);
+                return;
+            }
+
+            TextInput.instance.RequestText(
+                this,
+                "Territory name",
+                TerritoryNameCharacterLimit);
+
+            ModLog.Debug("[WardMenuController] Rename dialog opened: " + _currentWardId);
         }
 
         public void RequestRenameTerritory(string name)

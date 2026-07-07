@@ -9,8 +9,12 @@ namespace ClanTerritory.Features.WardMenu.UI
     internal sealed class WardMenuView
     {
         private const float HideDistance = 5f;
+
         private Button _toggleProtectionButton;
         private Action _toggleProtectionAction;
+
+        private Button _renameTerritoryButton;
+        private Action _renameTerritoryAction;
 
         private GameObject _root;
         private GameObject _panel;
@@ -50,6 +54,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action toggleProtectionAction,
+            Action renameTerritoryAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -62,6 +67,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
             _toggleProtectionAction = toggleProtectionAction;
+            _renameTerritoryAction = renameTerritoryAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
             _useReleasedAfterOpen = false;
@@ -178,6 +184,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _closeByDistanceAction = null;
             _toggleProtectionButton = null;
             _toggleProtectionAction = null;
+            _renameTerritoryButton = null;
+            _renameTerritoryAction = null;
         }
 
         public void ShowOverviewPanel()
@@ -298,20 +306,27 @@ namespace ClanTerritory.Features.WardMenu.UI
                 Color.white);
 
             _toggleProtectionButton = CreateButton(
-                 "ToggleProtectionButton",
-            _permissionsPanel.transform,
-                  new Vector2(0f, -105f),
-                  new Vector2(240f, 38f),
-                  "Toggle Protection");
+                "ToggleProtectionButton",
+                _permissionsPanel.transform,
+                new Vector2(0f, -105f),
+                new Vector2(240f, 38f),
+                "Toggle Protection");
 
             _settingsText = CreateText(
                 "TerritoryText",
                 _settingsPanel.transform,
-                Vector2.zero,
-                new Vector2(650f, 230f),
+                new Vector2(0f, 35f),
+                new Vector2(650f, 170f),
                 20,
                 TextAlignmentOptions.TopLeft,
                 Color.white);
+
+            _renameTerritoryButton = CreateButton(
+                "RenameTerritoryButton",
+                _settingsPanel.transform,
+                new Vector2(0f, -105f),
+                new Vector2(240f, 38f),
+                "Rename Territory");
 
             _closeButton = CreateButton(
                 "CloseButton",
@@ -325,6 +340,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _settingsButton.onClick.AddListener(RequestShowTerritory);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
+            _renameTerritoryButton.onClick.AddListener(RequestRenameTerritory);
         }
 
         private GameObject CreateContentPanel(string name)
@@ -461,17 +477,24 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _showTerritoryAction();
         }
 
+        private void RequestToggleProtection()
+        {
+            if (_toggleProtectionAction != null)
+                _toggleProtectionAction();
+        }
+
+        private void RequestRenameTerritory()
+        {
+            if (_renameTerritoryAction != null)
+                _renameTerritoryAction();
+        }
+
         private void RequestCloseByInput()
         {
             if (_closeByInputAction != null)
                 _closeByInputAction();
         }
 
-        private void RequestToggleProtection()
-        {
-            if (_toggleProtectionAction != null)
-                _toggleProtectionAction();
-        }
         private void RequestCloseByDistance()
         {
             if (_closeByDistanceAction != null)

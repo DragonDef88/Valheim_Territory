@@ -36,7 +36,7 @@ namespace ClanTerritory.Features.WardMenu
 
             _territoryActions = new WardMenuTerritoryActions(
                 territoryNamingService);
-                      
+
             _wardMenuModelBuilder = new WardMenuModelBuilder(
                 territoryNamingService);
 
