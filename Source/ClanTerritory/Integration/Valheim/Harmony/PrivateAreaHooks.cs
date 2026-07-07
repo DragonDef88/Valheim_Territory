@@ -28,30 +28,36 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                 wardService.RegisterWard(model);
         }
 
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch("Interact")]
-        private static void InteractPostfix(
+        private static bool InteractPrefix(
             PrivateArea __instance,
             Humanoid human,
             bool hold,
             bool alt,
-            bool __result)
+            ref bool __result)
         {
-            if (!__result)
-                return;
-
             if (hold)
-                return;
+            {
+                __result = false;
+                return false;
+            }
 
             Player player = human as Player;
 
             if (player == null)
-                return;
+                return true;
 
             IWardInteractionService wardInteractionService;
 
-            if (ServiceContainer.TryGet<IWardInteractionService>(out wardInteractionService))
-                wardInteractionService.TryOpenWardMenu(__instance, player);
+            if (!ServiceContainer.TryGet<IWardInteractionService>(out wardInteractionService))
+                return true;
+
+            if (!wardInteractionService.TryOpenWardMenu(__instance, player))
+                return true;
+
+            __result = true;
+            return false;
         }
     }
 }
