@@ -56,6 +56,25 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             ModLog.Debug("[WardMenuController] Shown: " + _currentWardId);
         }
 
+        public void Refresh(WardMenuModel model)
+        {
+            if (model == null)
+                return;
+
+            _view.Show(
+                model,
+                ShowOverview,
+                ShowWard,
+                ShowTerritory,
+                RequestToggleProtection,
+                CloseByInput,
+                CloseByDistance);
+
+            ShowTerritory();
+
+            ModLog.Debug("[WardMenuController] Refreshed: " + model.Ward.WardId);
+        }
+
         public void Tick(PrivateArea privateArea, Player player)
         {
             _view.Tick(privateArea, player);

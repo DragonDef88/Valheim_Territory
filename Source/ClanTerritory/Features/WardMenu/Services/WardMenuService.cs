@@ -118,7 +118,28 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentPlayer = null;
             _isOpen = false;
         }
+        
+        public void Refresh()
+        {
+            if (!_isOpen)
+                return;
 
+            if (_currentPrivateArea == null)
+                return;
+
+            WardMenuModel model = _modelBuilder.Build(
+                _currentWardId,
+                _currentRuntimeWard,
+                _currentPrivateArea);
+
+            _controller.Refresh(model);
+
+            ModLog.Info(
+                "[WardMenu] Refreshed ward territory menu: " +
+                model.Ward.WardId +
+                ", territory: " +
+                model.Territory.Name);
+        }
         public void Update()
         {
             if (!_isOpen)
