@@ -13,6 +13,7 @@ using ClanTerritory.Features.WorldDiscovery;
 using ClanTerritory.Utils;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.WardInteraction;
+using ClanTerritory.Features.WardMenu;
 
 namespace ClanTerritory.Core
 {
@@ -53,6 +54,7 @@ namespace ClanTerritory.Core
             _moduleManager.Register(new WorldDiscoveryModule());
             _moduleManager.Register(new RuntimeRegistryModule());
             _moduleManager.Register(new WardInteractionModule());
+            _moduleManager.Register(new WardMenuModule());
             _moduleManager.Register(new RuntimeModule());
 
             ServiceContainer.Register<ModuleManager>(_moduleManager);
