@@ -110,7 +110,20 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
 
-            SetVisible(true);
+            private void SetVisible(bool visible)
+        {
+            bool wasVisible = _visible;
+
+            _visible = visible;
+
+            if (_root != null)
+                _root.SetActive(visible);
+
+            GUIManager.BlockInput(visible);
+
+            if (wasVisible && !visible)
+                RestoreGameInput();
+        }
         }
 
         public void Hide()
