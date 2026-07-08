@@ -74,9 +74,10 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return;
             }
 
-            radiusService.ApplyRadius(
-                privateArea,
-                radius);
+            radiusService.RequestSetRadius(
+                  privateArea,
+                  Player.m_localPlayer,
+                  radius);
 
             ModLog.Info("[WardMenuActions] SetRadius applied: " + wardId + ", radius: " + radius);
         }

@@ -29,7 +29,11 @@ namespace ClanTerritory.Features.Territory
             _factory = new TerritoryFactory();
             _zdoService = new TerritoryZdoService();
 
-            _wardRadiusService = new TerritoryWardRadiusService();
+            EventBus eventBus =
+                    ServiceContainer.Get<EventBus>();
+
+            _wardRadiusService =
+                new TerritoryWardRadiusService(eventBus);
 
             _mapIconService =
                 new WardMapIconService(
@@ -55,8 +59,6 @@ namespace ClanTerritory.Features.Territory
 
             ServiceContainer.Register<IWardPlacementPolicy>(
                 placementPolicy);
-
-            EventBus eventBus;
 
             if (ServiceContainer.TryGet<EventBus>(out eventBus))
             {

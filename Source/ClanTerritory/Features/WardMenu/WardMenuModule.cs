@@ -9,6 +9,7 @@ using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Utils;
 using UnityEngine;
 
@@ -57,6 +58,7 @@ namespace ClanTerritory.Features.WardMenu
             EventBus eventBus = ServiceContainer.Get<EventBus>();
             eventBus.Subscribe<TerritoryInteractionRequestedEvent>(_wardMenuService);
             eventBus.Subscribe<TerritoryRenamedEvent>(_wardMenuService);
+            eventBus.Subscribe<TerritoryRadiusChangedEvent>(_wardMenuService);
 
             _runnerObject = new GameObject("ClanTerritory_WardMenuRunner");
             Object.DontDestroyOnLoad(_runnerObject);

@@ -6,6 +6,7 @@ using ClanTerritory.Features.TerritoryNaming.Events;
 using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Models;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Services
@@ -13,7 +14,8 @@ namespace ClanTerritory.Features.WardMenu.Services
     internal sealed class WardMenuService :
         IWardMenuService,
         IEventHandler<TerritoryInteractionRequestedEvent>,
-        IEventHandler<TerritoryRenamedEvent>
+        IEventHandler<TerritoryRenamedEvent>,
+        IEventHandler<TerritoryRadiusChangedEvent>
     {
         private readonly WardMenuController _controller;
         private readonly WardMenuModelBuilder _modelBuilder;
@@ -29,6 +31,19 @@ namespace ClanTerritory.Features.WardMenu.Services
             get { return _isOpen; }
         }
 
+        public void Handle(TerritoryRadiusChangedEvent eventData)
+        {
+            if (!_isOpen)
+                return;
+
+            if (eventData == null)
+                return;
+
+            if (!eventData.WardId.Equals(_currentWardId))
+                return;
+
+            Refresh();
+        }
         public WardId CurrentWardId
         {
             get { return _currentWardId; }

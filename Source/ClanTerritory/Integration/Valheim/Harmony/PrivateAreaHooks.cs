@@ -27,7 +27,8 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             TerritoryWardRadiusService territoryWardRadiusService;
 
             if (ServiceContainer.TryGet<TerritoryWardRadiusService>(out territoryWardRadiusService))
-                territoryWardRadiusService.ApplyConfiguredRadius(__instance);
+                territoryWardRadiusService.RegisterRpc(__instance);
+            territoryWardRadiusService.ApplyStoredOrConfiguredRadius(__instance);
 
             if (!Scanner.TryCreateWardModel(
                     __instance,

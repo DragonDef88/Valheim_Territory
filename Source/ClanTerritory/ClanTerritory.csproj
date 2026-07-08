@@ -324,7 +324,9 @@
     <Compile Include="Features\TerritoryNaming\Services\TerritoryNamingService.cs" />
     <Compile Include="Features\TerritoryNaming\TerritoryNamingModule.cs" />
     <Compile Include="Features\TerritoryNaming\TerritoryNamingZdoKeys.cs" />
+    <Compile Include="Features\Territory\Events\TerritoryRadiusChangedEvent.cs" />
     <Compile Include="Features\Territory\Services\TerritoryWardRadiusService.cs" />
+    <Compile Include="Features\Territory\TerritoryZdoKeys.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
     <Compile Include="Features\WardInteraction\Services\IWardInteractionService.cs" />
     <Compile Include="Features\WardInteraction\WardInteractionModule.cs" />
