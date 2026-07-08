@@ -1,4 +1,6 @@
-﻿using ClanTerritory.Domain.Identifiers;
+﻿using ClanTerritory.Core;
+using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Actions
@@ -53,9 +55,30 @@ namespace ClanTerritory.Features.WardMenu.Actions
             ModLog.Info("[WardMenuActions] ToggleProtection invoked through Valheim RPC: " + wardId);
         }
 
-        public void SetRadius(WardId wardId, float radius)
+        public void SetRadius(
+            WardId wardId,
+            PrivateArea privateArea,
+            float radius)
         {
-            ModLog.Debug("[WardMenuActions] SetRadius requested: " + wardId + ", radius: " + radius);
+            if (privateArea == null)
+            {
+                ModLog.Debug("[WardMenuActions] SetRadius ignored. PrivateArea is null: " + wardId);
+                return;
+            }
+
+            TerritoryWardRadiusService radiusService;
+
+            if (!ServiceContainer.TryGet<TerritoryWardRadiusService>(out radiusService))
+            {
+                ModLog.Debug("[WardMenuActions] SetRadius ignored. TerritoryWardRadiusService is missing: " + wardId);
+                return;
+            }
+
+            radiusService.ApplyRadius(
+                privateArea,
+                radius);
+
+            ModLog.Info("[WardMenuActions] SetRadius applied: " + wardId + ", radius: " + radius);
         }
 
         public void RemovePermittedPlayer(WardId wardId, long playerId)

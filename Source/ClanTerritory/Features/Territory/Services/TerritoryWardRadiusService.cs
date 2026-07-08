@@ -7,20 +7,33 @@ namespace ClanTerritory.Features.Territory.Services
     {
         public void ApplyConfiguredRadius(PrivateArea privateArea)
         {
+            ApplyRadius(
+                privateArea,
+                ConfigValues.TerritoryRadius);
+        }
+
+        public void ApplyRadius(
+            PrivateArea privateArea,
+            float radius)
+        {
             if (privateArea == null)
             {
                 ModLog.Debug("[TerritoryRadius] Apply ignored. PrivateArea is null.");
                 return;
             }
 
-            float radius = ConfigValues.TerritoryRadius;
+            if (radius <= 0f)
+            {
+                ModLog.Debug("[TerritoryRadius] Apply ignored. Radius is invalid: " + radius);
+                return;
+            }
 
             privateArea.m_radius = radius;
 
             if (privateArea.m_areaMarker != null)
                 privateArea.m_areaMarker.m_radius = radius;
 
-            ModLog.Debug("[TerritoryRadius] Configured territory radius applied to ward: " + radius);
+            ModLog.Info("[TerritoryRadius] Territory radius applied to ward: " + radius);
         }
     }
 }

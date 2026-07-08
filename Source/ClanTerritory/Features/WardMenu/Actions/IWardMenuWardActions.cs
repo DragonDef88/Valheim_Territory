@@ -9,7 +9,10 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
-        void SetRadius(WardId wardId, float radius);
+        void SetRadius(
+            WardId wardId,
+            PrivateArea privateArea,
+            float radius);
 
         void RemovePermittedPlayer(WardId wardId, long playerId);
     }

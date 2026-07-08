@@ -141,7 +141,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestSetRadius(float radius)
         {
-            _wardActions.SetRadius(_currentWardId, radius);
+            _wardActions.SetRadius(
+                _currentWardId,
+                _currentPrivateArea,
+                radius);
+
+            _currentWardRadius = radius;
         }
 
         public void RequestRemovePermittedPlayer(long playerId)
