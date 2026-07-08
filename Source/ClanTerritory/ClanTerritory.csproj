@@ -328,6 +328,7 @@
     <Compile Include="Features\TerritoryNaming\TerritoryNamingModule.cs" />
     <Compile Include="Features\TerritoryNaming\TerritoryNamingZdoKeys.cs" />
     <Compile Include="Features\Territory\Events\TerritoryRadiusChangedEvent.cs" />
+    <Compile Include="Features\Territory\Services\TerritoryRuleService.cs" />
     <Compile Include="Features\Territory\Services\TerritoryWardRadiusService.cs" />
     <Compile Include="Features\Territory\TerritoryZdoKeys.cs" />
     <Compile Include="Features\Territory\Zdo\TerritoryZdoService.cs" />
@@ -354,6 +355,7 @@
     <Compile Include="Integration\Guilds\GuildsAdapter.cs" />
     <Compile Include="Integration\Guilds\GuildsModule.cs" />
     <Compile Include="Integration\Guilds\IGuildService.cs" />
+    <Compile Include="Integration\Valheim\Harmony\DoorHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\MinimapHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\ValheimLifecycleHooks.cs" />
     <Compile Include="Features\Diagnostics\RuntimeStateLogger.cs" />
@@ -412,6 +414,7 @@
     <Compile Include="Features\WorldDiscovery\WorldDiscoveryModule.cs" />
     <Compile Include="Integration\Valheim\Harmony\PieceDestroyHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\PiecePlacementHooks.cs" />
+    <Compile Include="Integration\Valheim\Harmony\WearNTearHooks.cs" />
     <Compile Include="Features\WardDetection\Models\WardModel.cs" />
     <Compile Include="Features\WardDetection\Registry\WardRegistry.cs" />
     <Compile Include="Features\WardDetection\Services\IWardService.cs" />

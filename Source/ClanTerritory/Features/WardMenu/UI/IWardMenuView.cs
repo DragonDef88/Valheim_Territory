@@ -18,6 +18,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action renameTerritoryAction,
             Action<long> removePermittedPlayerAction,
             Action toggleSelfPermissionAction,
+            Action toggleDoorLockAction,
+            Action toggleStructureDamageProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 

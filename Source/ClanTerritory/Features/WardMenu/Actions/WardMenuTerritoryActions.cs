@@ -1,4 +1,5 @@
 using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Utils;
 
@@ -7,11 +8,14 @@ namespace ClanTerritory.Features.WardMenu.Actions
     internal sealed class WardMenuTerritoryActions : IWardMenuTerritoryActions
     {
         private readonly ITerritoryNamingService _territoryNamingService;
+        private readonly TerritoryRuleService _territoryRuleService;
 
         public WardMenuTerritoryActions(
-            ITerritoryNamingService territoryNamingService)
+            ITerritoryNamingService territoryNamingService,
+            TerritoryRuleService territoryRuleService)
         {
             _territoryNamingService = territoryNamingService;
+            _territoryRuleService = territoryRuleService;
         }
 
         public void RenameTerritory(
@@ -29,7 +33,8 @@ namespace ClanTerritory.Features.WardMenu.Actions
             if (!IsWardCreator(
                     wardId,
                     privateArea,
-                    player))
+                    player,
+                    "RenameTerritory"))
             {
                 return;
             }
@@ -40,6 +45,48 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 name);
 
             ModLog.Info("[WardMenuActions] RenameTerritory requested: " + wardId + ", name: " + name);
+        }
+
+        public bool ToggleDoorLock(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (_territoryRuleService == null)
+            {
+                ModLog.Debug("[WardMenuActions] ToggleDoorLock ignored. TerritoryRuleService is null: " + wardId);
+                return false;
+            }
+
+            bool nextValue =
+                !_territoryRuleService.GetDoorLockEnabled(privateArea);
+
+            return _territoryRuleService.RequestSetDoorLock(
+                wardId,
+                privateArea,
+                player,
+                nextValue);
+        }
+
+        public bool ToggleStructureDamageProtection(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (_territoryRuleService == null)
+            {
+                ModLog.Debug("[WardMenuActions] ToggleStructureDamageProtection ignored. TerritoryRuleService is null: " + wardId);
+                return false;
+            }
+
+            bool nextValue =
+                !_territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
+
+            return _territoryRuleService.RequestSetStructureDamageProtection(
+                wardId,
+                privateArea,
+                player,
+                nextValue);
         }
 
         public void ToggleGuildAccess(WardId wardId)
@@ -55,17 +102,18 @@ namespace ClanTerritory.Features.WardMenu.Actions
         private static bool IsWardCreator(
             WardId wardId,
             PrivateArea privateArea,
-            Player player)
+            Player player,
+            string actionName)
         {
             if (privateArea == null)
             {
-                ModLog.Debug("[WardMenuActions] RenameTerritory ignored. PrivateArea is null: " + wardId);
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. PrivateArea is null: " + wardId);
                 return false;
             }
 
             if (player == null)
             {
-                ModLog.Debug("[WardMenuActions] RenameTerritory ignored. Player is null: " + wardId);
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is null: " + wardId);
                 return false;
             }
 
@@ -73,13 +121,13 @@ namespace ClanTerritory.Features.WardMenu.Actions
 
             if (piece == null)
             {
-                ModLog.Debug("[WardMenuActions] RenameTerritory ignored. Piece is null: " + wardId);
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Piece is null: " + wardId);
                 return false;
             }
 
             if (piece.GetCreator() != player.GetPlayerID())
             {
-                ModLog.Debug("[WardMenuActions] RenameTerritory ignored. Player is not ward creator: " + wardId);
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is not ward creator: " + wardId);
                 return false;
             }
 

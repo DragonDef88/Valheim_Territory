@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Abstractions;
+using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Map.Services;
@@ -22,6 +22,7 @@ namespace ClanTerritory.Features.Territory
         private TerritoryZdoService _zdoService;
         private WardMapIconService _mapIconService;
         private TerritoryWardRadiusService _wardRadiusService;
+        private TerritoryRuleService _ruleService;
 
         public void Initialize()
         {
@@ -34,6 +35,9 @@ namespace ClanTerritory.Features.Territory
 
             _wardRadiusService =
                 new TerritoryWardRadiusService(eventBus);
+
+            _ruleService =
+                new TerritoryRuleService();
 
             _mapIconService =
                 new WardMapIconService(
@@ -51,6 +55,7 @@ namespace ClanTerritory.Features.Territory
             ServiceContainer.Register<TerritoryRegistry>(_registry);
             ServiceContainer.Register<TerritoryZdoService>(_zdoService);
             ServiceContainer.Register<TerritoryWardRadiusService>(_wardRadiusService);
+            ServiceContainer.Register<TerritoryRuleService>(_ruleService);
             ServiceContainer.Register<WardMapIconService>(_mapIconService);
             ServiceContainer.Register<ITerritoryService>(_service);
 
@@ -76,6 +81,8 @@ namespace ClanTerritory.Features.Territory
 
             if (_registry != null)
                 _registry.Clear();
+
+            _ruleService = null;
 
             ModLog.Info("Territory module shutdown.");
         }

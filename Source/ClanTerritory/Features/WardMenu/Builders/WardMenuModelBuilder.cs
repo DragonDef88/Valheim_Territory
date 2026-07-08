@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Runtime.Registry;
+using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardMenu.Models;
 using ClanTerritory.Utils;
@@ -10,10 +11,14 @@ namespace ClanTerritory.Features.WardMenu.Builders
     internal sealed class WardMenuModelBuilder
     {
         private readonly ITerritoryNamingService _territoryNamingService;
+        private readonly TerritoryRuleService _territoryRuleService;
 
-        public WardMenuModelBuilder(ITerritoryNamingService territoryNamingService)
+        public WardMenuModelBuilder(
+            ITerritoryNamingService territoryNamingService,
+            TerritoryRuleService territoryRuleService)
         {
             _territoryNamingService = territoryNamingService;
+            _territoryRuleService = territoryRuleService;
         }
 
         public WardMenuModel Build(
@@ -53,6 +58,14 @@ namespace ClanTerritory.Features.WardMenu.Builders
                     permittedPlayers,
                     player);
 
+            bool doorLockEnabled =
+                _territoryRuleService != null &&
+                _territoryRuleService.GetDoorLockEnabled(privateArea);
+
+            bool structureDamageProtectionEnabled =
+                _territoryRuleService != null &&
+                _territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
+
             WardMenuWardSection wardSection = new WardMenuWardSection(
                 wardId,
                 ownerName,
@@ -67,7 +80,11 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 runtimeWard != null && runtimeWard.IsActive,
                 false,
                 false,
-                "Default rules");
+                doorLockEnabled,
+                structureDamageProtectionEnabled,
+                BuildRulesSummary(
+                    doorLockEnabled,
+                    structureDamageProtectionEnabled));
 
             WardMenuModel model = new WardMenuModel(
                 wardSection,
@@ -80,6 +97,8 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", enabled: " + wardSection.Enabled +
                 ", creator: " + wardSection.IsCurrentPlayerCreator +
                 ", currentPermitted: " + wardSection.IsCurrentPlayerPermitted +
+                ", doorsLocked: " + territorySection.DoorLockEnabled +
+                ", structureDamageProtection: " + territorySection.StructureDamageProtectionEnabled +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
@@ -114,6 +133,14 @@ namespace ClanTerritory.Features.WardMenu.Builders
             }
 
             return players;
+        }
+
+        private static string BuildRulesSummary(
+            bool doorLockEnabled,
+            bool structureDamageProtectionEnabled)
+        {
+            return "Doors: " + (doorLockEnabled ? "Locked" : "Unlocked") +
+                   "\nStructures: " + (structureDamageProtectionEnabled ? "Protected" : "Vulnerable");
         }
 
         private static bool IsCurrentPlayerCreator(

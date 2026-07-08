@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.TerritoryInteraction.Services;
@@ -27,8 +27,15 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             TerritoryWardRadiusService territoryWardRadiusService;
 
             if (ServiceContainer.TryGet<TerritoryWardRadiusService>(out territoryWardRadiusService))
+            {
                 territoryWardRadiusService.RegisterRpc(__instance);
-            territoryWardRadiusService.ApplyStoredOrConfiguredRadius(__instance);
+                territoryWardRadiusService.ApplyStoredOrConfiguredRadius(__instance);
+            }
+
+            TerritoryRuleService territoryRuleService;
+
+            if (ServiceContainer.TryGet<TerritoryRuleService>(out territoryRuleService))
+                territoryRuleService.RegisterRpc(__instance);
 
             if (!Scanner.TryCreateWardModel(
                     __instance,

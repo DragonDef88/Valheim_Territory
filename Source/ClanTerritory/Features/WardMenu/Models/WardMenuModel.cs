@@ -68,6 +68,10 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool GroupAccessEnabled { get; private set; }
 
+        public bool DoorLockEnabled { get; private set; }
+
+        public bool StructureDamageProtectionEnabled { get; private set; }
+
         public string RulesSummary { get; private set; }
 
         public WardMenuTerritorySection(
@@ -75,12 +79,16 @@ namespace ClanTerritory.Features.WardMenu.Models
             bool runtimeActive,
             bool guildAccessEnabled,
             bool groupAccessEnabled,
+            bool doorLockEnabled,
+            bool structureDamageProtectionEnabled,
             string rulesSummary)
         {
             Name = name;
             RuntimeActive = runtimeActive;
             GuildAccessEnabled = guildAccessEnabled;
             GroupAccessEnabled = groupAccessEnabled;
+            DoorLockEnabled = doorLockEnabled;
+            StructureDamageProtectionEnabled = structureDamageProtectionEnabled;
             RulesSummary = rulesSummary;
         }
     }

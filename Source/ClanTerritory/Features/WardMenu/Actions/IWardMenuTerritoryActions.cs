@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Domain.Identifiers;
 
 namespace ClanTerritory.Features.WardMenu.Actions
 {
@@ -9,6 +9,16 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player,
             string name);
+
+        bool ToggleDoorLock(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
+        bool ToggleStructureDamageProtection(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
 
         void ToggleGuildAccess(WardId wardId);
 

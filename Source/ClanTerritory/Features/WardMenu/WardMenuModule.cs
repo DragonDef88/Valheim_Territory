@@ -2,6 +2,7 @@ using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Territory.Events;
+using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryInteraction;
 using ClanTerritory.Features.TerritoryNaming.Events;
 using ClanTerritory.Features.TerritoryNaming.Services;
@@ -35,11 +36,16 @@ namespace ClanTerritory.Features.WardMenu
             ITerritoryNamingService territoryNamingService =
                 ServiceContainer.Get<ITerritoryNamingService>();
 
+            TerritoryRuleService territoryRuleService =
+                ServiceContainer.Get<TerritoryRuleService>();
+
             _territoryActions = new WardMenuTerritoryActions(
-                territoryNamingService);
+                territoryNamingService,
+                territoryRuleService);
 
             _wardMenuModelBuilder = new WardMenuModelBuilder(
-                territoryNamingService);
+                territoryNamingService,
+                territoryRuleService);
 
             _wardMenuController = new WardMenuController(
                 view,

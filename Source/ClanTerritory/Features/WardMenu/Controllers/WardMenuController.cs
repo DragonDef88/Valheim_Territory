@@ -71,6 +71,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestRenameTerritoryDialog,
                 RequestRemovePermittedPlayer,
                 RequestToggleSelfPermission,
+                RequestToggleDoorLock,
+                RequestToggleStructureDamageProtection,
                 CloseByInput,
                 CloseByDistance);
 
@@ -179,6 +181,28 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ToggleSelfPermission");
+        }
+
+        public void RequestToggleDoorLock()
+        {
+            bool actionStarted = _territoryActions.ToggleDoorLock(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer);
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("ToggleDoorLock");
+        }
+
+        public void RequestToggleStructureDamageProtection()
+        {
+            bool actionStarted = _territoryActions.ToggleStructureDamageProtection(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer);
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("ToggleStructureDamageProtection");
         }
 
         public void RequestRenameTerritoryDialog()

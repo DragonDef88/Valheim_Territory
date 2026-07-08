@@ -133,6 +133,8 @@ namespace ClanTerritory.Features.WardMenu.Services
                 ", enabled: " + model.Ward.Enabled +
                 ", creator: " + model.Ward.IsCurrentPlayerCreator +
                 ", currentPermitted: " + model.Ward.IsCurrentPlayerPermitted +
+                ", doorsLocked: " + model.Territory.DoorLockEnabled +
+                ", structureDamageProtection: " + model.Territory.StructureDamageProtectionEnabled +
                 ", permitted: " + model.Ward.PermittedPlayers.Count +
                 ", territory: " + model.Territory.Name);
         }
@@ -266,6 +268,10 @@ namespace ClanTerritory.Features.WardMenu.Services
                 model.Ward.IsCurrentPlayerCreator +
                 ", currentPermitted: " +
                 model.Ward.IsCurrentPlayerPermitted +
+                ", doorsLocked: " +
+                model.Territory.DoorLockEnabled +
+                ", structureDamageProtection: " +
+                model.Territory.StructureDamageProtectionEnabled +
                 ", permitted: " +
                 model.Ward.PermittedPlayers.Count +
                 ", radius: " +
