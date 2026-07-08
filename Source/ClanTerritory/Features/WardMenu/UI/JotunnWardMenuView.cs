@@ -2,8 +2,8 @@
 using ClanTerritory.Features.WardMenu.Models;
 using Jotunn.Managers;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace ClanTerritory.Features.WardMenu.UI
 {
@@ -219,6 +219,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _visible = false;
             GUIManager.BlockInput(false);
+            GameplayInputRestorer.Request();
         }
 
         public void ShowOverviewPanel()
@@ -496,38 +497,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             GUIManager.BlockInput(visible);
 
             if (wasVisible && !visible)
-                RestoreGameplayInput();
-        }
-
-        private static void RestoreGameplayInput()
-        {
-            if (Player.m_localPlayer == null)
-                return;
-
-            if (TextInput.IsVisible())
-                return;
-
-            if (Menu.IsVisible())
-                return;
-
-            if (Minimap.IsOpen())
-                return;
-
-            if (InventoryGui.IsVisible())
-                return;
-
-            if (Chat.instance != null && Chat.instance.HasFocus())
-                return;
-
-            if (Console.IsVisible())
-                return;
-
-            if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(null);
-
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-            ZInput.WorkaroundEnabled = true;
+                GameplayInputRestorer.Request();
         }
 
         private void SetActivePanel(GameObject activePanel)
@@ -611,6 +581,88 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_closeByDistanceAction != null)
                 _closeByDistanceAction();
+        }
+
+        private sealed class GameplayInputRestorer : MonoBehaviour
+        {
+            private const int RestoreFrames = 8;
+
+            private int _remainingFrames;
+
+            public static void Request()
+            {
+                if (Player.m_localPlayer == null)
+                    return;
+
+                GameObject host = GameObject.Find("ClanTerritory_GameplayInputRestorer");
+
+                if (host == null)
+                {
+                    host = new GameObject("ClanTerritory_GameplayInputRestorer");
+                    UnityEngine.Object.DontDestroyOnLoad(host);
+                }
+
+                GameplayInputRestorer restorer = host.GetComponent<GameplayInputRestorer>();
+
+                if (restorer == null)
+                    restorer = host.AddComponent<GameplayInputRestorer>();
+
+                restorer._remainingFrames = RestoreFrames;
+            }
+
+            private void Update()
+            {
+                if (_remainingFrames <= 0)
+                {
+                    enabled = false;
+                    return;
+                }
+
+                _remainingFrames--;
+
+                if (!CanRestoreGameplayInput())
+                    return;
+
+                if (EventSystem.current != null)
+                    EventSystem.current.SetSelectedGameObject(null);
+
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                ZInput.WorkaroundEnabled = true;
+            }
+
+            private static bool CanRestoreGameplayInput()
+            {
+                if (Player.m_localPlayer == null)
+                    return false;
+
+                if (TextInput.IsVisible())
+                    return false;
+
+                if (Menu.IsVisible())
+                    return false;
+
+                if (Minimap.IsOpen())
+                    return false;
+
+                if (InventoryGui.IsVisible())
+                    return false;
+
+                if (Chat.instance != null && Chat.instance.HasFocus())
+                    return false;
+
+                if (Console.IsVisible())
+                    return false;
+
+                if (ZNet.instance != null &&
+                    (ZNet.instance.InPasswordDialog() ||
+                     ZNet.instance.InConnectingScreen()))
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
     }
 }
