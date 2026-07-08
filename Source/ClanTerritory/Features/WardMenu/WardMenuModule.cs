@@ -29,7 +29,7 @@ namespace ClanTerritory.Features.WardMenu
 
         public void Initialize()
         {
-            WardMenuView view = new WardMenuView();
+            IWardMenuView view = new JotunnWardMenuView();
 
             _wardActions = new WardMenuWardActions();
             ITerritoryNamingService territoryNamingService =

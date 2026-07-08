@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace ClanTerritory.Features.WardMenu.UI
 {
-    internal sealed class JotunnWardMenuView
+    internal sealed class JotunnWardMenuView : IWardMenuView
     {
         private const float HideDistance = 5f;
 

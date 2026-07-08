@@ -11,7 +11,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
     {
         private const int TerritoryNameCharacterLimit = 50;
 
-        private readonly WardMenuView _view;
+        private readonly IWardMenuView _view;
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
         private readonly Action<string> _closeAction;
@@ -22,7 +22,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private string _currentTerritoryName = "";
 
         public WardMenuController(
-            WardMenuView view,
+            IWardMenuView view,
             IWardMenuWardActions wardActions,
             IWardMenuTerritoryActions territoryActions,
             Action<string> closeAction)

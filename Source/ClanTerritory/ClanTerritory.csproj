@@ -34,7 +34,7 @@
     <Reference Include="0Harmony">
       <HintPath>Libs\0Harmony.dll</HintPath>
     </Reference>
-	<Reference Include="Jotunn">
+    <Reference Include="Jotunn">
       <HintPath>Libs\Jotunn.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
@@ -344,6 +344,8 @@
     <Compile Include="Features\WardMenu\Models\WardMenuModel.cs" />
     <Compile Include="Features\WardMenu\Services\IWardMenuService.cs" />
     <Compile Include="Features\WardMenu\Services\WardMenuService.cs" />
+    <Compile Include="Features\WardMenu\UI\IWardMenuView.cs" />
+    <Compile Include="Features\WardMenu\UI\JotunnWardMenuView.cs" />
     <Compile Include="Features\WardMenu\UI\WardMenuView.cs" />
     <Compile Include="Features\WardMenu\WardMenuModule.cs" />
     <Compile Include="Integration\Groups\GroupsAdapter.cs" />
