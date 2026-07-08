@@ -21,6 +21,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Text _overviewText;
         private Text _wardText;
         private Text _territoryText;
+        private Text _radiusValueText;
 
         private Button _overviewButton;
         private Button _wardButton;
@@ -190,6 +191,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewText = null;
             _wardText = null;
             _territoryText = null;
+            _radiusValueText = null;
 
             _overviewButton = null;
             _wardButton = null;
@@ -287,17 +289,20 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
 
+            if (_radiusValueText != null)
+                _radiusValueText.text = radiusText + " m";
+
             SetButtonText(
                 _toggleProtectionButton,
                 model.Ward.Enabled ? "Disable Protection" : "Enable Protection");
 
             SetButtonText(
                 _decreaseRadiusButton,
-                "Radius -5");
+                "-5");
 
             SetButtonText(
                 _increaseRadiusButton,
-                "Radius +5");
+                "+5");
         }
 
         private void EnsureCreated()
@@ -422,14 +427,26 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _decreaseRadiusButton = CreateButton(
                 _wardPanel.transform,
-                "Radius -5",
+                "-5",
                 new Vector2(-130f, -150f),
                 110f,
                 38f);
 
+            _radiusValueText = CreateLabel(
+                "",
+                new Vector2(0f, -150f),
+                22,
+                120f,
+                38f,
+                TextAnchor.MiddleCenter,
+                gui.AveriaSerifBold,
+                gui.ValheimOrange);
+
+            _radiusValueText.transform.SetParent(_wardPanel.transform, false);
+
             _increaseRadiusButton = CreateButton(
                 _wardPanel.transform,
-                "Radius +5",
+                "+5",
                 new Vector2(130f, -150f),
                 110f,
                 38f);
