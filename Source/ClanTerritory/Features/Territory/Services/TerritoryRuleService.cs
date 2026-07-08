@@ -23,11 +23,6 @@ namespace ClanTerritory.Features.Territory.Services
         private static readonly MethodInfo DoorUpdateStateMethod =
             AccessTools.Method(typeof(Door), "UpdateState");
 
-        private static readonly MethodInfo PrivateAreaFlashShieldMethod =
-            AccessTools.Method(
-                typeof(PrivateArea),
-                "FlashShield");
-
         private readonly Dictionary<ZDOID, ScheduledDoorClose> _scheduledDoorClosures =
             new Dictionary<ZDOID, ScheduledDoorClose>();
 
@@ -453,39 +448,35 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Vector3 damagePosition)
         {
+            const float customBubbleRadius = 5f;
+            const float vanillaBubbleRadius = 50f;
+            const float customBubbleScale = customBubbleRadius / vanillaBubbleRadius;
+
             if (privateArea == null)
                 return;
 
-            if (privateArea.m_flashEffect != null)
+            if (privateArea.m_flashEffect == null)
             {
-                privateArea.m_flashEffect.Create(
-                    damagePosition,
-                    Quaternion.identity);
-            }
-
-            if (PrivateAreaFlashShieldMethod != null)
-            {
-                PrivateAreaFlashShieldMethod.Invoke(
-                    privateArea,
-                    new object[] { false });
-
-                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback shown at protected piece.");
+                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback skipped because flash effect is null.");
                 return;
             }
 
-            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+            GameObject[] effects = privateArea.m_flashEffect.Create(
+                damagePosition,
+                Quaternion.identity);
 
-            if (zNetView != null && zNetView.IsValid())
+            for (int i = 0; i < effects.Length; i++)
             {
-                zNetView.InvokeRPC(
-                    ZNetView.Everybody,
-                    "FlashShield");
+                GameObject effect = effects[i];
 
-                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback shown through RPC fallback.");
-                return;
+                if (effect == null)
+                    continue;
+
+                effect.transform.localScale =
+                    effect.transform.localScale * customBubbleScale;
             }
 
-            ModLog.Info("[TerritoryRules] Structure damage blocked. Local shield feedback shown at protected piece.");
+            ModLog.Info("[TerritoryRules] Structure damage blocked. Local 5m shield bubble shown at protected piece.");
         }
 
         private static bool SetBoolRuleOnOwner(
