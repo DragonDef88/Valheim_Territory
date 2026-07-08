@@ -3,6 +3,7 @@ using ClanTerritory.Features.WardMenu.Models;
 using Jotunn.Managers;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace ClanTerritory.Features.WardMenu.UI
 {
@@ -485,12 +486,48 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void SetVisible(bool visible)
         {
+            bool wasVisible = _visible;
+
             _visible = visible;
 
             if (_root != null)
                 _root.SetActive(visible);
 
             GUIManager.BlockInput(visible);
+
+            if (wasVisible && !visible)
+                RestoreGameplayInput();
+        }
+
+        private static void RestoreGameplayInput()
+        {
+            if (Player.m_localPlayer == null)
+                return;
+
+            if (TextInput.IsVisible())
+                return;
+
+            if (Menu.IsVisible())
+                return;
+
+            if (Minimap.IsOpen())
+                return;
+
+            if (InventoryGui.IsVisible())
+                return;
+
+            if (Chat.instance != null && Chat.instance.HasFocus())
+                return;
+
+            if (Console.IsVisible())
+                return;
+
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(null);
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            ZInput.WorkaroundEnabled = true;
         }
 
         private void SetActivePanel(GameObject activePanel)
