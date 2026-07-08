@@ -472,9 +472,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             GameObject[] effects = privateArea.m_flashEffect.Create(
                 damagePosition,
-                Quaternion.identity,
-                null,
-                customBubbleScale);
+                Quaternion.identity);
 
             for (int i = 0; i < effects.Length; i++)
             {
@@ -483,20 +481,16 @@ namespace ClanTerritory.Features.Territory.Services
                 if (effect == null)
                     continue;
 
-                effect.transform.localScale =
-                    Vector3.one * customBubbleScale;
+                SetParticleSystemHierarchyScaling(effect);
 
-                ScaleParticleSystems(
-                    effect,
-                    customBubbleScale);
+                effect.transform.localScale =
+                    effect.transform.localScale * customBubbleScale;
             }
 
-            ModLog.Info("[TerritoryRules] Structure damage blocked. Local vanilla 2m shield bubble shown at protected piece.");
+            ModLog.Info("[TerritoryRules] Structure damage blocked. Local vanilla 2m shield bubble shown at protected piece. Scale: " + customBubbleScale);
         }
 
-        private static void ScaleParticleSystems(
-            GameObject root,
-            float scale)
+        private static void SetParticleSystemHierarchyScaling(GameObject root)
         {
             if (root == null)
                 return;
@@ -513,12 +507,6 @@ namespace ClanTerritory.Features.Territory.Services
 
                 ParticleSystem.MainModule main = particleSystem.main;
                 main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-
-                ParticleSystem.MinMaxCurve startSize = main.startSize;
-                startSize.constantMin *= scale;
-                startSize.constantMax *= scale;
-                startSize.constant *= scale;
-                main.startSize = startSize;
             }
         }
 
