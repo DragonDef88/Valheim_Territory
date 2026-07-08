@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using ClanTerritory.Config;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
@@ -46,26 +45,14 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ? _territoryNamingService.GetTerritoryName(privateArea)
                 : "Unnamed Territory";
 
-            List<WardMenuPlayerModel> permittedPlayers =
-                BuildPermittedPlayers(zdo);
+            List<WardMenuPlayerModel> permittedPlayers = BuildPermittedPlayers(zdo);
 
-            bool isCurrentPlayerCreator =
-                IsCurrentPlayerCreator(
-                    privateArea,
-                    player);
+            bool isCurrentPlayerCreator = IsCurrentPlayerCreator(privateArea, player);
+            bool isCurrentPlayerPermitted = IsCurrentPlayerPermitted(permittedPlayers, player);
 
-            bool isCurrentPlayerPermitted =
-                IsCurrentPlayerPermitted(
-                    permittedPlayers,
-                    player);
-
-            bool doorLockEnabled =
-                _territoryRuleService != null &&
-                _territoryRuleService.GetDoorLockEnabled(privateArea);
-
-            bool structureDamageProtectionEnabled =
-                _territoryRuleService != null &&
-                _territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
+            bool doorLockEnabled = _territoryRuleService != null && _territoryRuleService.GetDoorLockEnabled(privateArea);
+            bool structureDamageProtectionEnabled = _territoryRuleService != null && _territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
+            int doorAutoCloseSeconds = _territoryRuleService != null ? _territoryRuleService.GetDoorAutoCloseSeconds(privateArea) : 5;
 
             WardMenuWardSection wardSection = new WardMenuWardSection(
                 wardId,
@@ -83,14 +70,10 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 false,
                 doorLockEnabled,
                 structureDamageProtectionEnabled,
-                ConfigValues.DoorAutoCloseSeconds,
-                BuildRulesSummary(
-                    doorLockEnabled,
-                    structureDamageProtectionEnabled));
+                doorAutoCloseSeconds,
+                BuildRulesSummary(doorLockEnabled, structureDamageProtectionEnabled));
 
-            WardMenuModel model = new WardMenuModel(
-                wardSection,
-                territorySection);
+            WardMenuModel model = new WardMenuModel(wardSection, territorySection);
 
             ModLog.Debug(
                 "[WardMenu] Ward territory model created: " + wardId +
@@ -111,8 +94,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
 
         private static List<WardMenuPlayerModel> BuildPermittedPlayers(ZDO zdo)
         {
-            List<WardMenuPlayerModel> players =
-                new List<WardMenuPlayerModel>();
+            List<WardMenuPlayerModel> players = new List<WardMenuPlayerModel>();
 
             if (zdo == null)
                 return players;
@@ -130,25 +112,19 @@ namespace ClanTerritory.Features.WardMenu.Builders
                     continue;
                 }
 
-                players.Add(new WardMenuPlayerModel(
-                    playerId,
-                    playerName));
+                players.Add(new WardMenuPlayerModel(playerId, playerName));
             }
 
             return players;
         }
 
-        private static string BuildRulesSummary(
-            bool doorLockEnabled,
-            bool structureDamageProtectionEnabled)
+        private static string BuildRulesSummary(bool doorLockEnabled, bool structureDamageProtectionEnabled)
         {
             return "Doors: " + (doorLockEnabled ? "Locked" : "Unlocked") +
                    "\nStructures: " + (structureDamageProtectionEnabled ? "Protected" : "Vulnerable");
         }
 
-        private static bool IsCurrentPlayerCreator(
-            PrivateArea privateArea,
-            Player player)
+        private static bool IsCurrentPlayerCreator(PrivateArea privateArea, Player player)
         {
             if (privateArea == null || player == null)
                 return false;
@@ -161,9 +137,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
             return piece.GetCreator() == player.GetPlayerID();
         }
 
-        private static bool IsCurrentPlayerPermitted(
-            List<WardMenuPlayerModel> permittedPlayers,
-            Player player)
+        private static bool IsCurrentPlayerPermitted(List<WardMenuPlayerModel> permittedPlayers, Player player)
         {
             if (permittedPlayers == null || player == null)
                 return false;

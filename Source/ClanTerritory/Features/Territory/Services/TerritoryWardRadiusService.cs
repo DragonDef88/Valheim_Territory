@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Config;
+using ClanTerritory.Config;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Territory.Events;
@@ -66,7 +66,8 @@ namespace ClanTerritory.Features.Territory.Services
 
             ApplyRadius(
                 privateArea,
-                radius);
+                radius,
+                false);
         }
 
         public void RequestSetRadius(
@@ -108,6 +109,17 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             float radius)
         {
+            ApplyRadius(
+                privateArea,
+                radius,
+                true);
+        }
+
+        public void ApplyRadius(
+            PrivateArea privateArea,
+            float radius,
+            bool showMarker)
+        {
             if (privateArea == null)
             {
                 ModLog.Debug("[TerritoryRadius] Apply ignored. PrivateArea is null.");
@@ -120,6 +132,9 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (privateArea.m_areaMarker != null)
                 privateArea.m_areaMarker.m_radius = normalizedRadius;
+
+            if (showMarker)
+                PulseRadiusMarker(privateArea);
 
             ModLog.Info("[TerritoryRadius] Territory radius applied to ward: " + normalizedRadius);
         }
@@ -165,7 +180,8 @@ namespace ClanTerritory.Features.Territory.Services
 
             ApplyRadius(
                 privateArea,
-                normalizedRadius);
+                normalizedRadius,
+                true);
 
             WardId wardId = new WardId(zdo.m_uid.ToString());
 
@@ -182,6 +198,17 @@ namespace ClanTerritory.Features.Territory.Services
                 normalizedRadius +
                 ", playerId: " +
                 playerId);
+        }
+
+        private static void PulseRadiusMarker(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return;
+
+            if (privateArea.m_areaMarker != null)
+                privateArea.ShowAreaMarker();
+
+            privateArea.PokeConnectionEffects();
         }
 
         private static ZDO GetZdo(PrivateArea privateArea)

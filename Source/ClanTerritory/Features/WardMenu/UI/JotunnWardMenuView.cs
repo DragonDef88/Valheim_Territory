@@ -27,6 +27,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Text _wardText;
         private Text _territoryText;
         private Text _radiusValueText;
+        private Text _doorAutoCloseValueText;
 
         private Button _overviewButton;
         private Button _wardButton;
@@ -38,6 +39,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _increaseRadiusButton;
         private Button _renameTerritoryButton;
         private Button _toggleDoorLockButton;
+        private Button _decreaseDoorAutoCloseButton;
+        private Button _increaseDoorAutoCloseButton;
         private Button _toggleStructureDamageProtectionButton;
 
         private Action _showOverviewAction;
@@ -50,6 +53,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action<long> _removePermittedPlayerAction;
         private Action _toggleSelfPermissionAction;
         private Action _toggleDoorLockAction;
+        private Action _decreaseDoorAutoCloseAction;
+        private Action _increaseDoorAutoCloseAction;
         private Action _toggleStructureDamageProtectionAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
@@ -79,6 +84,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action<long> removePermittedPlayerAction,
             Action toggleSelfPermissionAction,
             Action toggleDoorLockAction,
+            Action decreaseDoorAutoCloseAction,
+            Action increaseDoorAutoCloseAction,
             Action toggleStructureDamageProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
@@ -97,6 +104,8 @@ namespace ClanTerritory.Features.WardMenu.UI
                 removePermittedPlayerAction,
                 toggleSelfPermissionAction,
                 toggleDoorLockAction,
+                decreaseDoorAutoCloseAction,
+                increaseDoorAutoCloseAction,
                 toggleStructureDamageProtectionAction,
                 closeByInputAction,
                 closeByDistanceAction);
@@ -213,6 +222,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardText = null;
             _territoryText = null;
             _radiusValueText = null;
+            _doorAutoCloseValueText = null;
 
             _overviewButton = null;
             _wardButton = null;
@@ -224,6 +234,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusButton = null;
             _renameTerritoryButton = null;
             _toggleDoorLockButton = null;
+            _decreaseDoorAutoCloseButton = null;
+            _increaseDoorAutoCloseButton = null;
             _toggleStructureDamageProtectionButton = null;
 
             ClearActions();
@@ -255,6 +267,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action<long> removePermittedPlayerAction,
             Action toggleSelfPermissionAction,
             Action toggleDoorLockAction,
+            Action decreaseDoorAutoCloseAction,
+            Action increaseDoorAutoCloseAction,
             Action toggleStructureDamageProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
@@ -269,6 +283,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _removePermittedPlayerAction = removePermittedPlayerAction;
             _toggleSelfPermissionAction = toggleSelfPermissionAction;
             _toggleDoorLockAction = toggleDoorLockAction;
+            _decreaseDoorAutoCloseAction = decreaseDoorAutoCloseAction;
+            _increaseDoorAutoCloseAction = increaseDoorAutoCloseAction;
             _toggleStructureDamageProtectionAction = toggleStructureDamageProtectionAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
@@ -286,6 +302,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _removePermittedPlayerAction = null;
             _toggleSelfPermissionAction = null;
             _toggleDoorLockAction = null;
+            _decreaseDoorAutoCloseAction = null;
+            _increaseDoorAutoCloseAction = null;
             _toggleStructureDamageProtectionAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
@@ -332,6 +350,9 @@ namespace ClanTerritory.Features.WardMenu.UI
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
 
+            if (_doorAutoCloseValueText != null)
+                _doorAutoCloseValueText.text = model.Territory.DoorAutoCloseSeconds + "s";
+
             SetButtonText(
                 _toggleProtectionButton,
                 model.Ward.Enabled ? "Disable Protection" : "Enable Protection");
@@ -356,6 +377,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             SetButtonText(_decreaseRadiusButton, "-5");
             SetButtonText(_increaseRadiusButton, "+5");
+            SetButtonText(_decreaseDoorAutoCloseButton, "-1");
+            SetButtonText(_increaseDoorAutoCloseButton, "+1");
 
             SetButtonActive(_toggleProtectionButton, ownerMode);
             SetButtonActive(_decreaseRadiusButton, ownerMode);
@@ -363,6 +386,9 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetTextActive(_radiusValueText, ownerMode);
             SetButtonActive(_renameTerritoryButton, ownerMode);
             SetButtonActive(_toggleDoorLockButton, ownerMode);
+            SetButtonActive(_decreaseDoorAutoCloseButton, ownerMode);
+            SetButtonActive(_increaseDoorAutoCloseButton, ownerMode);
+            SetTextActive(_doorAutoCloseValueText, ownerMode);
             SetButtonActive(_toggleStructureDamageProtectionButton, ownerMode);
             SetButtonActive(_toggleSelfPermissionButton, selfPermissionMode);
 
@@ -500,11 +526,26 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _territoryText.transform.SetParent(_territoryPanel.transform, false);
 
-            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, "Lock Doors", new Vector2(0f, -80f), 280f, 34f);
-            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, "Enable Structure Protection", new Vector2(0f, -122f), 280f, 34f);
-            _renameTerritoryButton = CreateButton(_territoryPanel.transform, "Rename Territory", new Vector2(0f, -164f), 280f, 34f);
+            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, "Lock Doors", new Vector2(0f, -66f), 280f, 32f);
+            _decreaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "-1", new Vector2(-104f, -104f), 76f, 30f);
 
-            _closeButton = CreateButton("Close", new Vector2(0f, -220f), 180f, 44f);
+            _doorAutoCloseValueText = CreateLabel(
+                "",
+                new Vector2(0f, -104f),
+                20,
+                94f,
+                30f,
+                TextAnchor.MiddleCenter,
+                gui.AveriaSerifBold,
+                gui.ValheimOrange);
+
+            _doorAutoCloseValueText.transform.SetParent(_territoryPanel.transform, false);
+
+            _increaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "+1", new Vector2(104f, -104f), 76f, 30f);
+            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, "Enable Structure Protection", new Vector2(0f, -142f), 280f, 32f);
+            _renameTerritoryButton = CreateButton(_territoryPanel.transform, "Rename Territory", new Vector2(0f, -180f), 280f, 32f);
+
+            _closeButton = CreateButton("Close", new Vector2(0f, -224f), 180f, 42f);
 
             _overviewButton.onClick.AddListener(RequestShowOverview);
             _wardButton.onClick.AddListener(RequestShowWard);
@@ -516,6 +557,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusButton.onClick.AddListener(RequestIncreaseRadius);
             _renameTerritoryButton.onClick.AddListener(RequestRenameTerritory);
             _toggleDoorLockButton.onClick.AddListener(RequestToggleDoorLock);
+            _decreaseDoorAutoCloseButton.onClick.AddListener(RequestDecreaseDoorAutoClose);
+            _increaseDoorAutoCloseButton.onClick.AddListener(RequestIncreaseDoorAutoClose);
             _toggleStructureDamageProtectionButton.onClick.AddListener(RequestToggleStructureDamageProtection);
 
             SetActivePanel(_overviewPanel);
@@ -805,6 +848,18 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_toggleDoorLockAction != null)
                 _toggleDoorLockAction();
+        }
+
+        private void RequestDecreaseDoorAutoClose()
+        {
+            if (_decreaseDoorAutoCloseAction != null)
+                _decreaseDoorAutoCloseAction();
+        }
+
+        private void RequestIncreaseDoorAutoClose()
+        {
+            if (_increaseDoorAutoCloseAction != null)
+                _increaseDoorAutoCloseAction();
         }
 
         private void RequestToggleStructureDamageProtection()

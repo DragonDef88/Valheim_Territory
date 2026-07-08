@@ -18,6 +18,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private readonly Action<string> _refreshAction;
 
         private float _currentWardRadius;
+        private int _currentDoorAutoCloseSeconds;
         private WardId _currentWardId;
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
@@ -45,10 +46,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _refreshAction = refreshAction;
         }
 
-        public void Show(
-            WardMenuModel model,
-            PrivateArea privateArea,
-            Player player)
+        public void Show(WardMenuModel model, PrivateArea privateArea, Player player)
         {
             if (model == null)
                 return;
@@ -58,6 +56,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentPlayer = player;
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
+            _currentDoorAutoCloseSeconds = model.Territory.DoorAutoCloseSeconds;
             _currentTab = WardMenuTab.Overview;
 
             _view.Show(
@@ -72,12 +71,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestRemovePermittedPlayer,
                 RequestToggleSelfPermission,
                 RequestToggleDoorLock,
+                RequestDecreaseDoorAutoCloseSeconds,
+                RequestIncreaseDoorAutoCloseSeconds,
                 RequestToggleStructureDamageProtection,
                 CloseByInput,
                 CloseByDistance);
 
             ShowOverview();
-
             ModLog.Debug("[WardMenuController] Shown: " + _currentWardId);
         }
 
@@ -88,10 +88,10 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
+            _currentDoorAutoCloseSeconds = model.Territory.DoorAutoCloseSeconds;
 
             _view.Refresh(model);
             ShowCurrentTab();
-
             ModLog.Debug("[WardMenuController] Refreshed: " + model.Ward.WardId);
         }
 
@@ -110,10 +110,19 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             RequestSetRadius(_currentWardRadius + 5f);
         }
 
+        public void RequestDecreaseDoorAutoCloseSeconds()
+        {
+            RequestSetDoorAutoCloseSeconds(_currentDoorAutoCloseSeconds - 1);
+        }
+
+        public void RequestIncreaseDoorAutoCloseSeconds()
+        {
+            RequestSetDoorAutoCloseSeconds(_currentDoorAutoCloseSeconds + 1);
+        }
+
         public void Hide()
         {
             _view.Hide();
-
             _currentPrivateArea = null;
             _currentPlayer = null;
             _currentTerritoryName = "";
@@ -122,7 +131,6 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         public void Destroy()
         {
             _view.Destroy();
-
             _currentPrivateArea = null;
             _currentPlayer = null;
             _currentTerritoryName = "";
@@ -140,10 +148,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestToggleProtection()
         {
-            bool actionStarted = _wardActions.ToggleProtection(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer);
+            bool actionStarted = _wardActions.ToggleProtection(_currentWardId, _currentPrivateArea, _currentPlayer);
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ProtectionToggle");
@@ -151,22 +156,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestSetRadius(float radius)
         {
-            _wardActions.SetRadius(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer,
-                radius);
-
+            _wardActions.SetRadius(_currentWardId, _currentPrivateArea, _currentPlayer, radius);
             _currentWardRadius = radius;
         }
 
         public void RequestRemovePermittedPlayer(long playerId)
         {
-            bool actionStarted = _wardActions.RemovePermittedPlayer(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer,
-                playerId);
+            bool actionStarted = _wardActions.RemovePermittedPlayer(_currentWardId, _currentPrivateArea, _currentPlayer, playerId);
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("RemovePermittedPlayer");
@@ -174,10 +170,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestToggleSelfPermission()
         {
-            bool actionStarted = _wardActions.ToggleSelfPermission(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer);
+            bool actionStarted = _wardActions.ToggleSelfPermission(_currentWardId, _currentPrivateArea, _currentPlayer);
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ToggleSelfPermission");
@@ -185,21 +178,26 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestToggleDoorLock()
         {
-            bool actionStarted = _territoryActions.ToggleDoorLock(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer);
+            bool actionStarted = _territoryActions.ToggleDoorLock(_currentWardId, _currentPrivateArea, _currentPlayer);
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ToggleDoorLock");
         }
 
+        public void RequestSetDoorAutoCloseSeconds(int seconds)
+        {
+            bool actionStarted = _territoryActions.SetDoorAutoCloseSeconds(_currentWardId, _currentPrivateArea, _currentPlayer, seconds);
+
+            if (actionStarted)
+                _currentDoorAutoCloseSeconds = seconds;
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("SetDoorAutoCloseSeconds");
+        }
+
         public void RequestToggleStructureDamageProtection()
         {
-            bool actionStarted = _territoryActions.ToggleStructureDamageProtection(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer);
+            bool actionStarted = _territoryActions.ToggleStructureDamageProtection(_currentWardId, _currentPrivateArea, _currentPlayer);
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ToggleStructureDamageProtection");
@@ -220,22 +218,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             }
 
             _view.Hide();
-
-            TextInput.instance.RequestText(
-                this,
-                "Territory name",
-                TerritoryNameCharacterLimit);
-
+            TextInput.instance.RequestText(this, "Territory name", TerritoryNameCharacterLimit);
             ModLog.Debug("[WardMenuController] Rename dialog opened: " + _currentWardId);
         }
 
         public void RequestRenameTerritory(string name)
         {
-            _territoryActions.RenameTerritory(
-                _currentWardId,
-                _currentPrivateArea,
-                _currentPlayer,
-                name);
+            _territoryActions.RenameTerritory(_currentWardId, _currentPrivateArea, _currentPlayer, name);
         }
 
         public void RequestToggleGuildAccess()

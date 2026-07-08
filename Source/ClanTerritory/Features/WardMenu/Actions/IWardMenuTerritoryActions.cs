@@ -15,6 +15,12 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
+        bool SetDoorAutoCloseSeconds(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int seconds);
+
         bool ToggleStructureDamageProtection(
             WardId wardId,
             PrivateArea privateArea,

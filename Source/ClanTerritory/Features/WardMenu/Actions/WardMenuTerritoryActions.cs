@@ -18,11 +18,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
             _territoryRuleService = territoryRuleService;
         }
 
-        public void RenameTerritory(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            string name)
+        public void RenameTerritory(WardId wardId, PrivateArea privateArea, Player player, string name)
         {
             if (_territoryNamingService == null)
             {
@@ -30,27 +26,14 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return;
             }
 
-            if (!IsWardCreator(
-                    wardId,
-                    privateArea,
-                    player,
-                    "RenameTerritory"))
-            {
+            if (!IsWardCreator(wardId, privateArea, player, "RenameTerritory"))
                 return;
-            }
 
-            _territoryNamingService.RequestRename(
-                privateArea,
-                player,
-                name);
-
+            _territoryNamingService.RequestRename(privateArea, player, name);
             ModLog.Info("[WardMenuActions] RenameTerritory requested: " + wardId + ", name: " + name);
         }
 
-        public bool ToggleDoorLock(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player)
+        public bool ToggleDoorLock(WardId wardId, PrivateArea privateArea, Player player)
         {
             if (_territoryRuleService == null)
             {
@@ -58,20 +41,23 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return false;
             }
 
-            bool nextValue =
-                !_territoryRuleService.GetDoorLockEnabled(privateArea);
+            bool nextValue = !_territoryRuleService.GetDoorLockEnabled(privateArea);
 
-            return _territoryRuleService.RequestSetDoorLock(
-                wardId,
-                privateArea,
-                player,
-                nextValue);
+            return _territoryRuleService.RequestSetDoorLock(wardId, privateArea, player, nextValue);
         }
 
-        public bool ToggleStructureDamageProtection(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player)
+        public bool SetDoorAutoCloseSeconds(WardId wardId, PrivateArea privateArea, Player player, int seconds)
+        {
+            if (_territoryRuleService == null)
+            {
+                ModLog.Debug("[WardMenuActions] SetDoorAutoCloseSeconds ignored. TerritoryRuleService is null: " + wardId);
+                return false;
+            }
+
+            return _territoryRuleService.RequestSetDoorAutoCloseSeconds(wardId, privateArea, player, seconds);
+        }
+
+        public bool ToggleStructureDamageProtection(WardId wardId, PrivateArea privateArea, Player player)
         {
             if (_territoryRuleService == null)
             {
@@ -79,14 +65,9 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return false;
             }
 
-            bool nextValue =
-                !_territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
+            bool nextValue = !_territoryRuleService.GetStructureDamageProtectionEnabled(privateArea);
 
-            return _territoryRuleService.RequestSetStructureDamageProtection(
-                wardId,
-                privateArea,
-                player,
-                nextValue);
+            return _territoryRuleService.RequestSetStructureDamageProtection(wardId, privateArea, player, nextValue);
         }
 
         public void ToggleGuildAccess(WardId wardId)
@@ -99,11 +80,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
             ModLog.Debug("[WardMenuActions] ToggleGroupAccess requested: " + wardId);
         }
 
-        private static bool IsWardCreator(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            string actionName)
+        private static bool IsWardCreator(WardId wardId, PrivateArea privateArea, Player player, string actionName)
         {
             if (privateArea == null)
             {
