@@ -39,13 +39,18 @@ namespace ClanTerritory.Features.WardMenu
             TerritoryRuleService territoryRuleService =
                 ServiceContainer.Get<TerritoryRuleService>();
 
+            TerritoryTerraformingService territoryTerraformingService =
+                ServiceContainer.Get<TerritoryTerraformingService>();
+
             _territoryActions = new WardMenuTerritoryActions(
                 territoryNamingService,
-                territoryRuleService);
+                territoryRuleService,
+                territoryTerraformingService);
 
             _wardMenuModelBuilder = new WardMenuModelBuilder(
                 territoryNamingService,
-                territoryRuleService);
+                territoryRuleService,
+                territoryTerraformingService);
 
             _wardMenuController = new WardMenuController(
                 view,

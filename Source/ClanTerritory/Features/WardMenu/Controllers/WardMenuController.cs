@@ -29,7 +29,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         {
             Overview,
             Ward,
-            Territory
+            Territory,
+            Terraforming
         }
 
         public WardMenuController(
@@ -64,6 +65,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowOverview,
                 ShowWard,
                 ShowTerritory,
+                ShowTerraforming,
                 RequestToggleProtection,
                 RequestDecreaseRadius,
                 RequestIncreaseRadius,
@@ -74,6 +76,17 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestDecreaseDoorAutoCloseSeconds,
                 RequestIncreaseDoorAutoCloseSeconds,
                 RequestToggleStructureDamageProtection,
+                RequestToggleTerraforming,
+                RequestToggleTerraformingRunning,
+                RequestCycleTerraformingMode,
+                RequestDecreaseTerraformingRadius,
+                RequestIncreaseTerraformingRadius,
+                RequestSetTerraformingTargetHeightFromWard,
+                RequestSetTerraformingTargetHeightFromPlayer,
+                RequestStoreTerraformingHoe,
+                RequestStoreTerraformingPickaxe,
+                RequestAddTerraformingFuel,
+                RequestAddTerraformingStone,
                 CloseByInput,
                 CloseByDistance);
 
@@ -203,6 +216,83 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 _refreshAction("ToggleStructureDamageProtection");
         }
 
+        public void RequestToggleTerraforming()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ToggleTerraforming(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "ToggleTerraforming");
+        }
+
+        public void RequestToggleTerraformingRunning()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ToggleTerraformingRunning(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "ToggleTerraformingRunning");
+        }
+
+        public void RequestCycleTerraformingMode()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.CycleTerraformingMode(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "CycleTerraformingMode");
+        }
+
+        public void RequestDecreaseTerraformingRadius()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.DecreaseTerraformingRadius(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "DecreaseTerraformingRadius");
+        }
+
+        public void RequestIncreaseTerraformingRadius()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.IncreaseTerraformingRadius(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "IncreaseTerraformingRadius");
+        }
+
+        public void RequestSetTerraformingTargetHeightFromWard()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.SetTerraformingTargetHeightFromWard(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "SetTerraformingTargetHeightFromWard");
+        }
+
+        public void RequestSetTerraformingTargetHeightFromPlayer()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.SetTerraformingTargetHeightFromPlayer(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "SetTerraformingTargetHeightFromPlayer");
+        }
+
+        public void RequestStoreTerraformingHoe()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.StoreTerraformingHoe(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "StoreTerraformingHoe");
+        }
+
+        public void RequestStoreTerraformingPickaxe()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.StoreTerraformingPickaxe(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "StoreTerraformingPickaxe");
+        }
+
+        public void RequestAddTerraformingFuel()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.AddTerraformingFuel(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "AddTerraformingFuel");
+        }
+
+        public void RequestAddTerraformingStone()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.AddTerraformingStone(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "AddTerraformingStone");
+        }
+
         public void RequestRenameTerritoryDialog()
         {
             if (!IsCurrentPlayerWardCreator())
@@ -255,6 +345,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _view.ShowTerritoryPanel();
         }
 
+        private void ShowTerraforming()
+        {
+            _currentTab = WardMenuTab.Terraforming;
+            _view.ShowTerraformingPanel();
+        }
+
         private void ShowCurrentTab()
         {
             if (_currentTab == WardMenuTab.Ward)
@@ -266,6 +362,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (_currentTab == WardMenuTab.Territory)
             {
                 _view.ShowTerritoryPanel();
+                return;
+            }
+
+            if (_currentTab == WardMenuTab.Terraforming)
+            {
+                _view.ShowTerraformingPanel();
                 return;
             }
 
@@ -283,6 +385,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 return false;
 
             return piece.GetCreator() == _currentPlayer.GetPlayerID();
+        }
+
+        private void RefreshIfActionStarted(bool actionStarted, string reason)
+        {
+            if (actionStarted && _refreshAction != null)
+                _refreshAction(reason);
         }
 
         private void CloseByInput()

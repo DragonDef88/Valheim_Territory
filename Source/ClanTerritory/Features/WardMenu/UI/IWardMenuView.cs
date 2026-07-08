@@ -12,6 +12,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showOverviewAction,
             Action showWardAction,
             Action showTerritoryAction,
+            Action showTerraformingAction,
             Action toggleProtectionAction,
             Action decreaseRadiusAction,
             Action increaseRadiusAction,
@@ -22,6 +23,17 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseDoorAutoCloseAction,
             Action increaseDoorAutoCloseAction,
             Action toggleStructureDamageProtectionAction,
+            Action toggleTerraformingAction,
+            Action toggleTerraformingRunningAction,
+            Action cycleTerraformingModeAction,
+            Action decreaseTerraformingRadiusAction,
+            Action increaseTerraformingRadiusAction,
+            Action setTerraformingTargetHeightFromWardAction,
+            Action setTerraformingTargetHeightFromPlayerAction,
+            Action storeTerraformingHoeAction,
+            Action storeTerraformingPickaxeAction,
+            Action addTerraformingFuelAction,
+            Action addTerraformingStoneAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 
@@ -38,5 +50,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         void ShowWardPanel();
 
         void ShowTerritoryPanel();
+
+        void ShowTerraformingPanel();
     }
 }

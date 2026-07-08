@@ -9,13 +9,16 @@ namespace ClanTerritory.Features.WardMenu.Actions
     {
         private readonly ITerritoryNamingService _territoryNamingService;
         private readonly TerritoryRuleService _territoryRuleService;
+        private readonly TerritoryTerraformingService _territoryTerraformingService;
 
         public WardMenuTerritoryActions(
             ITerritoryNamingService territoryNamingService,
-            TerritoryRuleService territoryRuleService)
+            TerritoryRuleService territoryRuleService,
+            TerritoryTerraformingService territoryTerraformingService)
         {
             _territoryNamingService = territoryNamingService;
             _territoryRuleService = territoryRuleService;
+            _territoryTerraformingService = territoryTerraformingService;
         }
 
         public void RenameTerritory(WardId wardId, PrivateArea privateArea, Player player, string name)
@@ -70,6 +73,94 @@ namespace ClanTerritory.Features.WardMenu.Actions
             return _territoryRuleService.RequestSetStructureDamageProtection(wardId, privateArea, player, nextValue);
         }
 
+        public bool ToggleTerraforming(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("ToggleTerraforming", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestToggleEnabled(wardId, privateArea, player);
+        }
+
+        public bool ToggleTerraformingRunning(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("ToggleTerraformingRunning", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestToggleRunning(wardId, privateArea, player);
+        }
+
+        public bool CycleTerraformingMode(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("CycleTerraformingMode", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestCycleMode(wardId, privateArea, player);
+        }
+
+        public bool DecreaseTerraformingRadius(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("DecreaseTerraformingRadius", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestDecreaseRadius(wardId, privateArea, player);
+        }
+
+        public bool IncreaseTerraformingRadius(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("IncreaseTerraformingRadius", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestIncreaseRadius(wardId, privateArea, player);
+        }
+
+        public bool SetTerraformingTargetHeightFromWard(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("SetTerraformingTargetHeightFromWard", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestSetTargetHeightFromWard(wardId, privateArea, player);
+        }
+
+        public bool SetTerraformingTargetHeightFromPlayer(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("SetTerraformingTargetHeightFromPlayer", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestSetTargetHeightFromPlayer(wardId, privateArea, player);
+        }
+
+        public bool StoreTerraformingHoe(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("StoreTerraformingHoe", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestStoreHoe(wardId, privateArea, player);
+        }
+
+        public bool StoreTerraformingPickaxe(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("StoreTerraformingPickaxe", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestStorePickaxe(wardId, privateArea, player);
+        }
+
+        public bool AddTerraformingFuel(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("AddTerraformingFuel", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestAddFuel(wardId, privateArea, player);
+        }
+
+        public bool AddTerraformingStone(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("AddTerraformingStone", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestAddStone(wardId, privateArea, player);
+        }
+
         public void ToggleGuildAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGuildAccess requested: " + wardId);
@@ -78,6 +169,15 @@ namespace ClanTerritory.Features.WardMenu.Actions
         public void ToggleGroupAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGroupAccess requested: " + wardId);
+        }
+
+        private bool TryGetTerraformingService(string actionName, WardId wardId)
+        {
+            if (_territoryTerraformingService != null)
+                return true;
+
+            ModLog.Debug("[WardMenuActions] " + actionName + " ignored. TerritoryTerraformingService is null: " + wardId);
+            return false;
         }
 
         private static bool IsWardCreator(WardId wardId, PrivateArea privateArea, Player player, string actionName)

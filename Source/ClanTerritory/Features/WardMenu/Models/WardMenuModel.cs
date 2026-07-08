@@ -9,12 +9,16 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public WardMenuTerritorySection Territory { get; private set; }
 
+        public WardMenuTerraformingSection Terraforming { get; private set; }
+
         public WardMenuModel(
             WardMenuWardSection ward,
-            WardMenuTerritorySection territory)
+            WardMenuTerritorySection territory,
+            WardMenuTerraformingSection terraforming)
         {
             Ward = ward;
             Territory = territory;
+            Terraforming = terraforming;
         }
     }
 
@@ -94,6 +98,78 @@ namespace ClanTerritory.Features.WardMenu.Models
             StructureDamageProtectionEnabled = structureDamageProtectionEnabled;
             DoorAutoCloseSeconds = doorAutoCloseSeconds;
             RulesSummary = rulesSummary;
+        }
+    }
+
+    internal sealed class WardMenuTerraformingSection
+    {
+        public bool Enabled { get; private set; }
+
+        public bool Running { get; private set; }
+
+        public string Mode { get; private set; }
+
+        public float Radius { get; private set; }
+
+        public float TargetHeight { get; private set; }
+
+        public float FuelStored { get; private set; }
+
+        public float StoneStored { get; private set; }
+
+        public bool HoeStored { get; private set; }
+
+        public bool PickaxeStored { get; private set; }
+
+        public float ScanProgress { get; private set; }
+
+        public int ScanIndex { get; private set; }
+
+        public string Status { get; private set; }
+
+        public WardMenuTerraformingSection(
+            bool enabled,
+            bool running,
+            string mode,
+            float radius,
+            float targetHeight,
+            float fuelStored,
+            float stoneStored,
+            bool hoeStored,
+            bool pickaxeStored,
+            float scanProgress,
+            int scanIndex,
+            string status)
+        {
+            Enabled = enabled;
+            Running = running;
+            Mode = mode;
+            Radius = radius;
+            TargetHeight = targetHeight;
+            FuelStored = fuelStored;
+            StoneStored = stoneStored;
+            HoeStored = hoeStored;
+            PickaxeStored = pickaxeStored;
+            ScanProgress = scanProgress;
+            ScanIndex = scanIndex;
+            Status = status;
+        }
+
+        public static WardMenuTerraformingSection Disabled()
+        {
+            return new WardMenuTerraformingSection(
+                false,
+                false,
+                "Level",
+                12f,
+                0f,
+                0f,
+                0f,
+                false,
+                false,
+                0f,
+                0,
+                "Terraforming service unavailable");
         }
     }
 

@@ -12,13 +12,16 @@ namespace ClanTerritory.Features.WardMenu.Builders
     {
         private readonly ITerritoryNamingService _territoryNamingService;
         private readonly TerritoryRuleService _territoryRuleService;
+        private readonly TerritoryTerraformingService _territoryTerraformingService;
 
         public WardMenuModelBuilder(
             ITerritoryNamingService territoryNamingService,
-            TerritoryRuleService territoryRuleService)
+            TerritoryRuleService territoryRuleService,
+            TerritoryTerraformingService territoryTerraformingService)
         {
             _territoryNamingService = territoryNamingService;
             _territoryRuleService = territoryRuleService;
+            _territoryTerraformingService = territoryTerraformingService;
         }
 
         public WardMenuModel Build(
@@ -73,7 +76,13 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 doorAutoCloseSeconds,
                 BuildRulesSummary(doorLockEnabled, structureDamageProtectionEnabled));
 
-            WardMenuModel model = new WardMenuModel(wardSection, territorySection);
+            WardMenuTerraformingSection terraformingSection =
+                BuildTerraformingSection(privateArea);
+
+            WardMenuModel model = new WardMenuModel(
+                wardSection,
+                territorySection,
+                terraformingSection);
 
             ModLog.Debug(
                 "[WardMenu] Ward territory model created: " + wardId +
@@ -85,11 +94,60 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", doorsLocked: " + territorySection.DoorLockEnabled +
                 ", structureDamageProtection: " + territorySection.StructureDamageProtectionEnabled +
                 ", doorAutoCloseSeconds: " + territorySection.DoorAutoCloseSeconds +
+                ", terraformingEnabled: " + terraformingSection.Enabled +
+                ", terraformingMode: " + terraformingSection.Mode +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
 
             return model;
+        }
+
+        private WardMenuTerraformingSection BuildTerraformingSection(PrivateArea privateArea)
+        {
+            if (_territoryTerraformingService == null)
+                return WardMenuTerraformingSection.Disabled();
+
+            TerraformingState state = _territoryTerraformingService.GetState(privateArea);
+
+            return new WardMenuTerraformingSection(
+                state.Enabled,
+                state.Running,
+                FormatMode(state.Mode),
+                state.Radius,
+                state.TargetHeight,
+                state.FuelStored,
+                state.StoneStored,
+                state.HoeStored,
+                state.PickaxeStored,
+                state.ScanProgress,
+                state.ScanIndex,
+                BuildTerraformingStatus(state));
+        }
+
+        private static string BuildTerraformingStatus(TerraformingState state)
+        {
+            if (!state.Enabled)
+                return "Disabled";
+
+            if (state.Running)
+                return "Running";
+
+            return "Ready";
+        }
+
+        private static string FormatMode(TerraformingMode mode)
+        {
+            if (mode == TerraformingMode.Raise)
+                return "Raise";
+
+            if (mode == TerraformingMode.Lower)
+                return "Lower";
+
+            if (mode == TerraformingMode.Smooth)
+                return "Smooth";
+
+            return "Level";
         }
 
         private static List<WardMenuPlayerModel> BuildPermittedPlayers(ZDO zdo)

@@ -37,6 +37,11 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (ServiceContainer.TryGet<TerritoryRuleService>(out territoryRuleService))
                 territoryRuleService.RegisterRpc(__instance);
 
+            TerritoryTerraformingService territoryTerraformingService;
+
+            if (ServiceContainer.TryGet<TerritoryTerraformingService>(out territoryTerraformingService))
+                territoryTerraformingService.RegisterRpc(__instance);
+
             if (!Scanner.TryCreateWardModel(
                     __instance,
                     out WardModel model))
