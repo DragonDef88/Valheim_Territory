@@ -14,11 +14,22 @@ namespace ClanTerritory.Features.Territory.Services
         private const string SetDoorAutoCloseSecondsRpc = "CT_SetTerritoryDoorAutoCloseSeconds";
         private const string SetStructureDamageProtectionRpc = "CT_SetTerritoryStructureDamageProtection";
 
-        private static readonly FieldInfo AllAreasField = AccessTools.Field(typeof(PrivateArea), "m_allAreas");
-        private static readonly FieldInfo DoorZNetViewField = AccessTools.Field(typeof(Door), "m_nview");
-        private static readonly MethodInfo DoorUpdateStateMethod = AccessTools.Method(typeof(Door), "UpdateState");
+        private static readonly FieldInfo AllAreasField =
+            AccessTools.Field(typeof(PrivateArea), "m_allAreas");
 
-        private readonly Dictionary<ZDOID, ScheduledDoorClose> _scheduledDoorClosures = new Dictionary<ZDOID, ScheduledDoorClose>();
+        private static readonly FieldInfo DoorZNetViewField =
+            AccessTools.Field(typeof(Door), "m_nview");
+
+        private static readonly MethodInfo DoorUpdateStateMethod =
+            AccessTools.Method(typeof(Door), "UpdateState");
+
+        private static readonly MethodInfo PrivateAreaFlashShieldMethod =
+            AccessTools.Method(
+                typeof(PrivateArea),
+                "FlashShield");
+
+        private readonly Dictionary<ZDOID, ScheduledDoorClose> _scheduledDoorClosures =
+            new Dictionary<ZDOID, ScheduledDoorClose>();
 
         public void RegisterRpc(PrivateArea privateArea)
         {
@@ -36,20 +47,41 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
             }
 
-            zNetView.Register<long, bool>(SetDoorLockRpc, delegate (long sender, long playerId, bool enabled)
-            {
-                RPC_SetDoorLock(privateArea, zNetView, sender, playerId, enabled);
-            });
+            zNetView.Register<long, bool>(
+                SetDoorLockRpc,
+                delegate (long sender, long playerId, bool enabled)
+                {
+                    RPC_SetDoorLock(
+                        privateArea,
+                        zNetView,
+                        sender,
+                        playerId,
+                        enabled);
+                });
 
-            zNetView.Register<long, int>(SetDoorAutoCloseSecondsRpc, delegate (long sender, long playerId, int seconds)
-            {
-                RPC_SetDoorAutoCloseSeconds(privateArea, zNetView, sender, playerId, seconds);
-            });
+            zNetView.Register<long, int>(
+                SetDoorAutoCloseSecondsRpc,
+                delegate (long sender, long playerId, int seconds)
+                {
+                    RPC_SetDoorAutoCloseSeconds(
+                        privateArea,
+                        zNetView,
+                        sender,
+                        playerId,
+                        seconds);
+                });
 
-            zNetView.Register<long, bool>(SetStructureDamageProtectionRpc, delegate (long sender, long playerId, bool enabled)
-            {
-                RPC_SetStructureDamageProtection(privateArea, zNetView, sender, playerId, enabled);
-            });
+            zNetView.Register<long, bool>(
+                SetStructureDamageProtectionRpc,
+                delegate (long sender, long playerId, bool enabled)
+                {
+                    RPC_SetStructureDamageProtection(
+                        privateArea,
+                        zNetView,
+                        sender,
+                        playerId,
+                        enabled);
+                });
 
             ModLog.Debug("[TerritoryRules] RPCs registered for ward.");
         }
@@ -84,7 +116,11 @@ namespace ClanTerritory.Features.Territory.Services
         public bool GetDoorLockEnabled(PrivateArea privateArea)
         {
             ZDO zdo = GetZdo(privateArea);
-            return zdo != null && zdo.GetBool(TerritoryZdoKeys.DoorLockEnabled, false);
+
+            return zdo != null &&
+                   zdo.GetBool(
+                       TerritoryZdoKeys.DoorLockEnabled,
+                       false);
         }
 
         public int GetDoorAutoCloseSeconds(PrivateArea privateArea)
@@ -94,19 +130,36 @@ namespace ClanTerritory.Features.Territory.Services
             if (zdo == null)
                 return ConfigValues.DoorAutoCloseSeconds;
 
-            return NormalizeDoorAutoCloseSeconds(zdo.GetInt(TerritoryZdoKeys.DoorAutoCloseSeconds, ConfigValues.DoorAutoCloseSeconds));
+            return NormalizeDoorAutoCloseSeconds(
+                zdo.GetInt(
+                    TerritoryZdoKeys.DoorAutoCloseSeconds,
+                    ConfigValues.DoorAutoCloseSeconds));
         }
 
         public bool GetStructureDamageProtectionEnabled(PrivateArea privateArea)
         {
             ZDO zdo = GetZdo(privateArea);
-            return zdo != null && zdo.GetBool(TerritoryZdoKeys.StructureDamageProtectionEnabled, false);
+
+            return zdo != null &&
+                   zdo.GetBool(
+                       TerritoryZdoKeys.StructureDamageProtectionEnabled,
+                       false);
         }
 
-        public bool RequestSetDoorLock(WardId wardId, PrivateArea privateArea, Player player, bool enabled)
+        public bool RequestSetDoorLock(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            bool enabled)
         {
-            if (!ValidateCreatorAction("SetDoorLock", wardId, privateArea, player))
+            if (!ValidateCreatorAction(
+                    "SetDoorLock",
+                    wardId,
+                    privateArea,
+                    player))
+            {
                 return false;
+            }
 
             ZNetView zNetView = privateArea.GetComponent<ZNetView>();
 
@@ -116,15 +169,29 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
-            zNetView.InvokeRPC(SetDoorLockRpc, player.GetPlayerID(), enabled);
+            zNetView.InvokeRPC(
+                SetDoorLockRpc,
+                player.GetPlayerID(),
+                enabled);
+
             ModLog.Info("[TerritoryRules] Door lock change requested: " + wardId + ", enabled: " + enabled);
             return true;
         }
 
-        public bool RequestSetDoorAutoCloseSeconds(WardId wardId, PrivateArea privateArea, Player player, int seconds)
+        public bool RequestSetDoorAutoCloseSeconds(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int seconds)
         {
-            if (!ValidateCreatorAction("SetDoorAutoCloseSeconds", wardId, privateArea, player))
+            if (!ValidateCreatorAction(
+                    "SetDoorAutoCloseSeconds",
+                    wardId,
+                    privateArea,
+                    player))
+            {
                 return false;
+            }
 
             ZNetView zNetView = privateArea.GetComponent<ZNetView>();
 
@@ -135,15 +202,30 @@ namespace ClanTerritory.Features.Territory.Services
             }
 
             int normalizedSeconds = NormalizeDoorAutoCloseSeconds(seconds);
-            zNetView.InvokeRPC(SetDoorAutoCloseSecondsRpc, player.GetPlayerID(), normalizedSeconds);
+
+            zNetView.InvokeRPC(
+                SetDoorAutoCloseSecondsRpc,
+                player.GetPlayerID(),
+                normalizedSeconds);
+
             ModLog.Info("[TerritoryRules] Door auto-close seconds change requested: " + wardId + ", seconds: " + normalizedSeconds);
             return true;
         }
 
-        public bool RequestSetStructureDamageProtection(WardId wardId, PrivateArea privateArea, Player player, bool enabled)
+        public bool RequestSetStructureDamageProtection(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            bool enabled)
         {
-            if (!ValidateCreatorAction("SetStructureDamageProtection", wardId, privateArea, player))
+            if (!ValidateCreatorAction(
+                    "SetStructureDamageProtection",
+                    wardId,
+                    privateArea,
+                    player))
+            {
                 return false;
+            }
 
             ZNetView zNetView = privateArea.GetComponent<ZNetView>();
 
@@ -153,12 +235,18 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
-            zNetView.InvokeRPC(SetStructureDamageProtectionRpc, player.GetPlayerID(), enabled);
+            zNetView.InvokeRPC(
+                SetStructureDamageProtectionRpc,
+                player.GetPlayerID(),
+                enabled);
+
             ModLog.Info("[TerritoryRules] Structure damage protection change requested: " + wardId + ", enabled: " + enabled);
             return true;
         }
 
-        public bool IsDoorLockedForPlayer(Vector3 position, Player player)
+        public bool IsDoorLockedForPlayer(
+            Vector3 position,
+            Player player)
         {
             List<PrivateArea> areas = GetPrivateAreas();
 
@@ -172,8 +260,12 @@ namespace ClanTerritory.Features.Territory.Services
                 if (!GetDoorLockEnabled(privateArea))
                     continue;
 
-                if (!HasAccess(privateArea, player))
+                if (!HasAccess(
+                        privateArea,
+                        player))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -186,20 +278,19 @@ namespace ClanTerritory.Features.Territory.Services
 
         public bool IsStructureDamageProtected(Vector3 position)
         {
-            List<PrivateArea> areas = GetPrivateAreas();
+            return FindStructureDamageProtectionArea(position) != null;
+        }
 
-            for (int i = 0; i < areas.Count; i++)
-            {
-                PrivateArea privateArea = areas[i];
+        public bool TryBlockStructureDamage(Vector3 position)
+        {
+            PrivateArea privateArea = FindStructureDamageProtectionArea(position);
 
-                if (!IsInside(privateArea, position))
-                    continue;
+            if (privateArea == null)
+                return false;
 
-                if (GetStructureDamageProtectionEnabled(privateArea))
-                    return true;
-            }
+            FlashStructureProtectionShield(privateArea);
 
-            return false;
+            return true;
         }
 
         public void ScheduleDoorAutoClose(Door door)
@@ -233,26 +324,73 @@ namespace ClanTerritory.Features.Territory.Services
 
             int seconds = GetDoorAutoCloseSeconds(privateArea);
             float dueTime = Time.time + seconds;
-            _scheduledDoorClosures[zdo.m_uid] = new ScheduledDoorClose(door, dueTime);
 
-            ModLog.Debug("[TerritoryRules] Door auto-close scheduled: " + zdo.m_uid + ", seconds: " + seconds);
+            _scheduledDoorClosures[zdo.m_uid] =
+                new ScheduledDoorClose(
+                    door,
+                    dueTime);
+
+            ModLog.Debug(
+                "[TerritoryRules] Door auto-close scheduled: " +
+                zdo.m_uid +
+                ", seconds: " +
+                seconds);
         }
 
-        private void RPC_SetDoorLock(PrivateArea privateArea, ZNetView zNetView, long sender, long playerId, bool enabled)
+        private void RPC_SetDoorLock(
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long sender,
+            long playerId,
+            bool enabled)
         {
-            if (SetBoolRuleOnOwner("DoorLock", TerritoryZdoKeys.DoorLockEnabled, privateArea, zNetView, playerId, enabled) && enabled)
+            if (SetBoolRuleOnOwner(
+                    "DoorLock",
+                    TerritoryZdoKeys.DoorLockEnabled,
+                    privateArea,
+                    zNetView,
+                    playerId,
+                    enabled) &&
+                enabled)
+            {
                 ScheduleOpenDoorsInsideTerritory(privateArea);
+            }
         }
 
-        private void RPC_SetDoorAutoCloseSeconds(PrivateArea privateArea, ZNetView zNetView, long sender, long playerId, int seconds)
+        private void RPC_SetDoorAutoCloseSeconds(
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long sender,
+            long playerId,
+            int seconds)
         {
-            if (SetIntRuleOnOwner("DoorAutoCloseSeconds", TerritoryZdoKeys.DoorAutoCloseSeconds, privateArea, zNetView, playerId, NormalizeDoorAutoCloseSeconds(seconds)) && GetDoorLockEnabled(privateArea))
+            if (SetIntRuleOnOwner(
+                    "DoorAutoCloseSeconds",
+                    TerritoryZdoKeys.DoorAutoCloseSeconds,
+                    privateArea,
+                    zNetView,
+                    playerId,
+                    NormalizeDoorAutoCloseSeconds(seconds)) &&
+                GetDoorLockEnabled(privateArea))
+            {
                 ScheduleOpenDoorsInsideTerritory(privateArea);
+            }
         }
 
-        private void RPC_SetStructureDamageProtection(PrivateArea privateArea, ZNetView zNetView, long sender, long playerId, bool enabled)
+        private void RPC_SetStructureDamageProtection(
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long sender,
+            long playerId,
+            bool enabled)
         {
-            SetBoolRuleOnOwner("StructureDamageProtection", TerritoryZdoKeys.StructureDamageProtectionEnabled, privateArea, zNetView, playerId, enabled);
+            SetBoolRuleOnOwner(
+                "StructureDamageProtection",
+                TerritoryZdoKeys.StructureDamageProtectionEnabled,
+                privateArea,
+                zNetView,
+                playerId,
+                enabled);
         }
 
         private void ScheduleOpenDoorsInsideTerritory(PrivateArea privateArea)
@@ -260,7 +398,8 @@ namespace ClanTerritory.Features.Territory.Services
             if (privateArea == null)
                 return;
 
-            Door[] doors = UnityEngine.Object.FindObjectsByType<Door>(FindObjectsSortMode.None);
+            Door[] doors = UnityEngine.Object.FindObjectsByType<Door>(
+                FindObjectsSortMode.None);
 
             for (int i = 0; i < doors.Length; i++)
             {
@@ -298,7 +437,9 @@ namespace ClanTerritory.Features.Territory.Services
             if (!IsDoorLockEnabledAt(door.transform.position))
                 return;
 
-            zdo.Set(ZDOVars.s_state, 0);
+            zdo.Set(
+                ZDOVars.s_state,
+                0);
 
             if (DoorUpdateStateMethod != null)
                 DoorUpdateStateMethod.Invoke(door, null);
@@ -306,31 +447,95 @@ namespace ClanTerritory.Features.Territory.Services
             ModLog.Debug("[TerritoryRules] Door auto-closed: " + zdo.m_uid);
         }
 
-        private static bool SetBoolRuleOnOwner(string ruleName, string zdoKey, PrivateArea privateArea, ZNetView zNetView, long playerId, bool enabled)
+        private static void FlashStructureProtectionShield(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return;
+
+            if (PrivateAreaFlashShieldMethod != null)
+            {
+                PrivateAreaFlashShieldMethod.Invoke(
+                    privateArea,
+                    new object[] { false });
+
+                ModLog.Debug("[TerritoryRules] Structure protection shield flashed.");
+                return;
+            }
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView != null && zNetView.IsValid())
+            {
+                zNetView.InvokeRPC(
+                    ZNetView.Everybody,
+                    "FlashShield");
+
+                ModLog.Debug("[TerritoryRules] Structure protection shield flashed through RPC fallback.");
+            }
+        }
+
+        private static bool SetBoolRuleOnOwner(
+            string ruleName,
+            string zdoKey,
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long playerId,
+            bool enabled)
         {
             ZDO zdo;
 
-            if (!TryGetOwnerRuleZdo(ruleName, privateArea, zNetView, playerId, out zdo))
+            if (!TryGetOwnerRuleZdo(
+                    ruleName,
+                    privateArea,
+                    zNetView,
+                    playerId,
+                    out zdo))
+            {
                 return false;
+            }
 
-            zdo.Set(zdoKey, enabled);
+            zdo.Set(
+                zdoKey,
+                enabled);
+
             ModLog.Info("[TerritoryRules] Rule saved: " + ruleName + ", enabled: " + enabled);
             return true;
         }
 
-        private static bool SetIntRuleOnOwner(string ruleName, string zdoKey, PrivateArea privateArea, ZNetView zNetView, long playerId, int value)
+        private static bool SetIntRuleOnOwner(
+            string ruleName,
+            string zdoKey,
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long playerId,
+            int value)
         {
             ZDO zdo;
 
-            if (!TryGetOwnerRuleZdo(ruleName, privateArea, zNetView, playerId, out zdo))
+            if (!TryGetOwnerRuleZdo(
+                    ruleName,
+                    privateArea,
+                    zNetView,
+                    playerId,
+                    out zdo))
+            {
                 return false;
+            }
 
-            zdo.Set(zdoKey, value);
+            zdo.Set(
+                zdoKey,
+                value);
+
             ModLog.Info("[TerritoryRules] Rule saved: " + ruleName + ", value: " + value);
             return true;
         }
 
-        private static bool TryGetOwnerRuleZdo(string ruleName, PrivateArea privateArea, ZNetView zNetView, long playerId, out ZDO zdo)
+        private static bool TryGetOwnerRuleZdo(
+            string ruleName,
+            PrivateArea privateArea,
+            ZNetView zNetView,
+            long playerId,
+            out ZDO zdo)
         {
             zdo = null;
 
@@ -369,7 +574,11 @@ namespace ClanTerritory.Features.Territory.Services
             return true;
         }
 
-        private static bool ValidateCreatorAction(string actionName, WardId wardId, PrivateArea privateArea, Player player)
+        private static bool ValidateCreatorAction(
+            string actionName,
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
         {
             if (privateArea == null)
             {
@@ -400,7 +609,9 @@ namespace ClanTerritory.Features.Territory.Services
             return true;
         }
 
-        private static bool HasAccess(PrivateArea privateArea, Player player)
+        private static bool HasAccess(
+            PrivateArea privateArea,
+            Player player)
         {
             if (privateArea == null || player == null)
                 return false;
@@ -446,18 +657,54 @@ namespace ClanTerritory.Features.Territory.Services
             return null;
         }
 
+        private static PrivateArea FindStructureDamageProtectionArea(Vector3 position)
+        {
+            List<PrivateArea> areas = GetPrivateAreas();
+
+            for (int i = 0; i < areas.Count; i++)
+            {
+                PrivateArea privateArea = areas[i];
+
+                if (!IsInside(privateArea, position))
+                    continue;
+
+                if (GetStaticStructureDamageProtectionEnabled(privateArea))
+                    return privateArea;
+            }
+
+            return null;
+        }
+
         private static bool GetStaticDoorLockEnabled(PrivateArea privateArea)
         {
             ZDO zdo = GetZdo(privateArea);
-            return zdo != null && zdo.GetBool(TerritoryZdoKeys.DoorLockEnabled, false);
+
+            return zdo != null &&
+                   zdo.GetBool(
+                       TerritoryZdoKeys.DoorLockEnabled,
+                       false);
         }
 
-        private static bool IsInside(PrivateArea privateArea, Vector3 position)
+        private static bool GetStaticStructureDamageProtectionEnabled(PrivateArea privateArea)
+        {
+            ZDO zdo = GetZdo(privateArea);
+
+            return zdo != null &&
+                   zdo.GetBool(
+                       TerritoryZdoKeys.StructureDamageProtectionEnabled,
+                       false);
+        }
+
+        private static bool IsInside(
+            PrivateArea privateArea,
+            Vector3 position)
         {
             if (privateArea == null)
                 return false;
 
-            return global::Utils.DistanceXZ(privateArea.transform.position, position) < privateArea.m_radius;
+            return global::Utils.DistanceXZ(
+                       privateArea.transform.position,
+                       position) < privateArea.m_radius;
         }
 
         private static List<PrivateArea> GetPrivateAreas()
@@ -465,7 +712,8 @@ namespace ClanTerritory.Features.Territory.Services
             if (AllAreasField == null)
                 return new List<PrivateArea>();
 
-            List<PrivateArea> areas = AllAreasField.GetValue(null) as List<PrivateArea>;
+            List<PrivateArea> areas =
+                AllAreasField.GetValue(null) as List<PrivateArea>;
 
             if (areas == null)
                 return new List<PrivateArea>();
@@ -508,9 +756,12 @@ namespace ClanTerritory.Features.Territory.Services
         private sealed class ScheduledDoorClose
         {
             public Door Door { get; private set; }
+
             public float DueTime { get; private set; }
 
-            public ScheduledDoorClose(Door door, float dueTime)
+            public ScheduledDoorClose(
+                Door door,
+                float dueTime)
             {
                 Door = door;
                 DueTime = dueTime;

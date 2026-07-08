@@ -24,7 +24,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (!ServiceContainer.TryGet<TerritoryRuleService>(out ruleService))
                 return true;
 
-            if (!ruleService.IsStructureDamageProtected(__instance.transform.position))
+            if (!ruleService.TryBlockStructureDamage(__instance.transform.position))
                 return true;
 
             __result = false;
