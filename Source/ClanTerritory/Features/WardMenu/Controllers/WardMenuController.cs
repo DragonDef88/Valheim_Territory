@@ -10,7 +10,6 @@ namespace ClanTerritory.Features.WardMenu.Controllers
     internal sealed class WardMenuController : TextReceiver
     {
         private const int TerritoryNameCharacterLimit = 50;
-
         private readonly IWardMenuView _view;
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
@@ -20,6 +19,14 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
         private string _currentTerritoryName = "";
+        private WardMenuTab _currentTab;
+
+        private enum WardMenuTab
+        {
+            Overview,
+            Ward,
+            Territory
+        }
 
         public WardMenuController(
             IWardMenuView view,
@@ -58,7 +65,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                         RequestRenameTerritoryDialog,
                         CloseByInput,
                         CloseByDistance);
-
+            _currentTab = WardMenuTab.Overview;
             ShowOverview();
 
             ModLog.Debug("[WardMenuController] Shown: " + _currentWardId);
@@ -84,7 +91,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                        CloseByInput,
                        CloseByDistance);
 
-            ShowTerritory();
+            ShowCurrentTab();
 
             ModLog.Debug("[WardMenuController] Refreshed: " + model.Ward.WardId);
         }
@@ -161,7 +168,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ModLog.Debug("[WardMenuController] Rename ignored. TextInput is null: " + _currentWardId);
                 return;
             }
-
+            _view.Hide();
             TextInput.instance.RequestText(
                 this,
                 "Territory name",
@@ -191,17 +198,37 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         private void ShowOverview()
         {
+            _currentTab = WardMenuTab.Overview;
             _view.ShowOverviewPanel();
         }
 
         private void ShowWard()
         {
+            _currentTab = WardMenuTab.Ward;
             _view.ShowWardPanel();
         }
 
         private void ShowTerritory()
         {
+            _currentTab = WardMenuTab.Territory;
             _view.ShowTerritoryPanel();
+        }
+
+        private void ShowCurrentTab()
+        {
+            if (_currentTab == WardMenuTab.Ward)
+            {
+                _view.ShowWardPanel();
+                return;
+            }
+
+            if (_currentTab == WardMenuTab.Territory)
+            {
+                _view.ShowTerritoryPanel();
+                return;
+            }
+
+            _view.ShowOverviewPanel();
         }
 
         private void CloseByInput()
