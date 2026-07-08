@@ -278,14 +278,22 @@ namespace ClanTerritory.Features.Territory.Services
 
         public bool TryBlockStructureDamage(Vector3 position)
         {
-            PrivateArea privateArea = FindStructureDamageProtectionArea(position);
+            return TryBlockStructureDamage(
+                position,
+                position);
+        }
+
+        public bool TryBlockStructureDamage(
+            Vector3 protectedPosition,
+            Vector3 feedbackPosition)
+        {
+            PrivateArea privateArea = FindStructureDamageProtectionArea(protectedPosition);
 
             if (privateArea == null)
                 return false;
 
             FlashStructureProtectionShield(
-                privateArea,
-                position);
+                feedbackPosition);
 
             return true;
         }
@@ -444,39 +452,13 @@ namespace ClanTerritory.Features.Territory.Services
             ModLog.Debug("[TerritoryRules] Door auto-closed: " + zdo.m_uid);
         }
 
-        private static void FlashStructureProtectionShield(
-            PrivateArea privateArea,
-            Vector3 damagePosition)
+        private static void FlashStructureProtectionShield(Vector3 damagePosition)
         {
-            const float customBubbleRadius = 5f;
-            const float vanillaBubbleRadius = 50f;
-            const float customBubbleScale = customBubbleRadius / vanillaBubbleRadius;
-
-            if (privateArea == null)
-                return;
-
-            if (privateArea.m_flashEffect == null)
-            {
-                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback skipped because flash effect is null.");
-                return;
-            }
-
-            GameObject[] effects = privateArea.m_flashEffect.Create(
+            StructureProtectionBubble.Create(
                 damagePosition,
-                Quaternion.identity);
+                5f);
 
-            for (int i = 0; i < effects.Length; i++)
-            {
-                GameObject effect = effects[i];
-
-                if (effect == null)
-                    continue;
-
-                effect.transform.localScale =
-                    effect.transform.localScale * customBubbleScale;
-            }
-
-            ModLog.Info("[TerritoryRules] Structure damage blocked. Local 5m shield bubble shown at protected piece.");
+            ModLog.Info("[TerritoryRules] Structure damage blocked. Custom 5m shield bubble shown at protected piece.");
         }
 
         private static bool SetBoolRuleOnOwner(
@@ -756,6 +738,148 @@ namespace ClanTerritory.Features.Territory.Services
                 return 10;
 
             return seconds;
+        }
+
+        private static class StructureProtectionBubble
+        {
+            private const int SegmentCount = 96;
+            private const float DurationSeconds = 1.35f;
+            private const float LineWidth = 0.08f;
+
+            public static void Create(
+                Vector3 center,
+                float radius)
+            {
+                center.y += radius * 0.55f;
+
+                GameObject root = new GameObject("ClanTerritory_StructureProtectionBubble");
+                root.transform.position = center;
+
+                Material material = CreateMaterial();
+
+                CreateCircle(
+                    root,
+                    material,
+                    center,
+                    radius,
+                    BubblePlane.Horizontal);
+
+                CreateCircle(
+                    root,
+                    material,
+                    center,
+                    radius,
+                    BubblePlane.VerticalX);
+
+                CreateCircle(
+                    root,
+                    material,
+                    center,
+                    radius,
+                    BubblePlane.VerticalZ);
+
+                StructureProtectionBubbleDestroyer destroyer =
+                    root.AddComponent<StructureProtectionBubbleDestroyer>();
+
+                destroyer.Initialize(material);
+
+                UnityEngine.Object.Destroy(
+                    root,
+                    DurationSeconds);
+            }
+
+            private static void CreateCircle(
+                GameObject root,
+                Material material,
+                Vector3 center,
+                float radius,
+                BubblePlane plane)
+            {
+                GameObject circle = new GameObject("Circle");
+                circle.transform.SetParent(root.transform, false);
+
+                LineRenderer lineRenderer = circle.AddComponent<LineRenderer>();
+                lineRenderer.material = material;
+                lineRenderer.useWorldSpace = true;
+                lineRenderer.loop = true;
+                lineRenderer.positionCount = SegmentCount;
+                lineRenderer.widthMultiplier = LineWidth;
+                lineRenderer.startColor = new Color(1f, 0.62f, 0.15f, 0.95f);
+                lineRenderer.endColor = new Color(1f, 0.62f, 0.15f, 0.95f);
+
+                for (int i = 0; i < SegmentCount; i++)
+                {
+                    float angle = ((float)i / SegmentCount) * Mathf.PI * 2f;
+                    float x = Mathf.Cos(angle) * radius;
+                    float y = Mathf.Sin(angle) * radius;
+
+                    Vector3 point;
+
+                    if (plane == BubblePlane.Horizontal)
+                    {
+                        point = new Vector3(
+                            center.x + x,
+                            center.y,
+                            center.z + y);
+                    }
+                    else if (plane == BubblePlane.VerticalX)
+                    {
+                        point = new Vector3(
+                            center.x + x,
+                            center.y + y,
+                            center.z);
+                    }
+                    else
+                    {
+                        point = new Vector3(
+                            center.x,
+                            center.y + y,
+                            center.z + x);
+                    }
+
+                    lineRenderer.SetPosition(
+                        i,
+                        point);
+                }
+            }
+
+            private static Material CreateMaterial()
+            {
+                Shader shader = Shader.Find("Sprites/Default");
+
+                if (shader == null)
+                    shader = Shader.Find("Unlit/Color");
+
+                Material material = new Material(shader);
+                material.color = new Color(1f, 0.62f, 0.15f, 0.95f);
+
+                return material;
+            }
+
+            private enum BubblePlane
+            {
+                Horizontal,
+                VerticalX,
+                VerticalZ
+            }
+
+            private sealed class StructureProtectionBubbleDestroyer : MonoBehaviour
+            {
+                private Material _material;
+
+                public void Initialize(Material material)
+                {
+                    _material = material;
+                }
+
+                private void OnDestroy()
+                {
+                    if (_material != null)
+                        UnityEngine.Object.Destroy(_material);
+
+                    _material = null;
+                }
+            }
         }
 
         private sealed class ScheduledDoorClose
