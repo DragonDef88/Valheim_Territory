@@ -3,7 +3,6 @@ using ClanTerritory.Features.WardMenu.Models;
 using Jotunn.Managers;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
 namespace ClanTerritory.Features.WardMenu.UI
 {
@@ -110,20 +109,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
 
-            private void SetVisible(bool visible)
-        {
-            bool wasVisible = _visible;
-
-            _visible = visible;
-
-            if (_root != null)
-                _root.SetActive(visible);
-
-            GUIManager.BlockInput(visible);
-
-            if (wasVisible && !visible)
-                RestoreGameInput();
-        }
+            SetVisible(true);
         }
 
         public void Hide()
@@ -505,38 +491,8 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _root.SetActive(visible);
 
             GUIManager.BlockInput(visible);
-
-            if (!visible)
-                RestoreGameInput();
         }
 
-        private static void RestoreGameInput()
-        {
-            if (TextInput.IsVisible())
-                return;
-
-            if (Menu.IsVisible())
-                return;
-
-            if (Minimap.IsOpen())
-                return;
-
-            if (InventoryGui.IsVisible())
-                return;
-
-            if (Chat.instance != null && Chat.instance.HasFocus())
-                return;
-
-            if (Console.IsVisible())
-                return;
-
-            if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(null);
-
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-            ZInput.WorkaroundEnabled = true;
-        }
         private void SetActivePanel(GameObject activePanel)
         {
             if (_overviewPanel != null)
