@@ -288,7 +288,9 @@ namespace ClanTerritory.Features.Territory.Services
             if (privateArea == null)
                 return false;
 
-            FlashStructureProtectionShield(privateArea);
+            FlashStructureProtectionShield(
+                privateArea,
+                position);
 
             return true;
         }
@@ -447,10 +449,19 @@ namespace ClanTerritory.Features.Territory.Services
             ModLog.Debug("[TerritoryRules] Door auto-closed: " + zdo.m_uid);
         }
 
-        private static void FlashStructureProtectionShield(PrivateArea privateArea)
+        private static void FlashStructureProtectionShield(
+            PrivateArea privateArea,
+            Vector3 damagePosition)
         {
             if (privateArea == null)
                 return;
+
+            if (privateArea.m_flashEffect != null)
+            {
+                privateArea.m_flashEffect.Create(
+                    damagePosition,
+                    Quaternion.identity);
+            }
 
             if (PrivateAreaFlashShieldMethod != null)
             {
@@ -458,7 +469,7 @@ namespace ClanTerritory.Features.Territory.Services
                     privateArea,
                     new object[] { false });
 
-                ModLog.Debug("[TerritoryRules] Structure protection shield flashed.");
+                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback shown at protected piece.");
                 return;
             }
 
@@ -470,8 +481,11 @@ namespace ClanTerritory.Features.Territory.Services
                     ZNetView.Everybody,
                     "FlashShield");
 
-                ModLog.Debug("[TerritoryRules] Structure protection shield flashed through RPC fallback.");
+                ModLog.Info("[TerritoryRules] Structure damage blocked. Shield feedback shown through RPC fallback.");
+                return;
             }
+
+            ModLog.Info("[TerritoryRules] Structure damage blocked. Local shield feedback shown at protected piece.");
         }
 
         private static bool SetBoolRuleOnOwner(
