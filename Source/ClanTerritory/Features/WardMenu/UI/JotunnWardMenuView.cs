@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ClanTerritory.Features.WardMenu.Models;
 using Jotunn.Managers;
 using UnityEngine;
@@ -9,6 +10,10 @@ namespace ClanTerritory.Features.WardMenu.UI
     internal sealed class JotunnWardMenuView : IWardMenuView
     {
         private const float HideDistance = 5f;
+        private const int MaxVisiblePermittedPlayers = 4;
+
+        private readonly List<GameObject> _permittedPlayerRowObjects =
+            new List<GameObject>();
 
         private GameObject _root;
         private GameObject _panel;
@@ -39,6 +44,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _decreaseRadiusAction;
         private Action _increaseRadiusAction;
         private Action _renameTerritoryAction;
+        private Action<long> _removePermittedPlayerAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -64,6 +70,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseRadiusAction,
             Action increaseRadiusAction,
             Action renameTerritoryAction,
+            Action<long> removePermittedPlayerAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -78,6 +85,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 decreaseRadiusAction,
                 increaseRadiusAction,
                 renameTerritoryAction,
+                removePermittedPlayerAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -176,6 +184,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             GUIManager.OnCustomGUIAvailable -= BuildGui;
 
             SetVisible(false);
+            ClearPermittedPlayerRows();
 
             if (_root != null)
                 UnityEngine.Object.Destroy(_root);
@@ -228,6 +237,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseRadiusAction,
             Action increaseRadiusAction,
             Action renameTerritoryAction,
+            Action<long> removePermittedPlayerAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -238,6 +248,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseRadiusAction = decreaseRadiusAction;
             _increaseRadiusAction = increaseRadiusAction;
             _renameTerritoryAction = renameTerritoryAction;
+            _removePermittedPlayerAction = removePermittedPlayerAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -251,6 +262,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseRadiusAction = null;
             _increaseRadiusAction = null;
             _renameTerritoryAction = null;
+            _removePermittedPlayerAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -277,8 +289,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Ward Access\n\n" +
                 "Protection: " + protectionText + "\n" +
                 "Territory radius: " + radiusText + " m\n" +
-                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n\n" +
-                BuildPermittedPlayersText(model);
+                "Permitted players: " + model.Ward.PermittedPlayers.Count;
 
             _territoryText.text =
                 "Territory Settings\n\n" +
@@ -291,6 +302,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
+
+            BuildPermittedPlayerRows(model);
 
             SetButtonText(
                 _toggleProtectionButton,
@@ -408,10 +421,10 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _wardText = CreateLabel(
                 "",
-                new Vector2(0f, 35f),
-                20,
+                new Vector2(0f, 76f),
+                19,
                 650f,
-                170f,
+                112f,
                 TextAnchor.UpperLeft,
                 gui.AveriaSerif,
                 gui.ValheimBeige);
@@ -421,20 +434,20 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleProtectionButton = CreateButton(
                 _wardPanel.transform,
                 "Toggle Protection",
-                new Vector2(0f, -105f),
+                new Vector2(0f, -115f),
                 240f,
                 38f);
 
             _decreaseRadiusButton = CreateButton(
                 _wardPanel.transform,
                 "-5",
-                new Vector2(-130f, -150f),
+                new Vector2(-130f, -160f),
                 110f,
                 38f);
 
             _radiusValueText = CreateLabel(
                 "",
-                new Vector2(0f, -150f),
+                new Vector2(0f, -160f),
                 22,
                 120f,
                 38f,
@@ -447,7 +460,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusButton = CreateButton(
                 _wardPanel.transform,
                 "+5",
-                new Vector2(130f, -150f),
+                new Vector2(130f, -160f),
                 110f,
                 38f);
 
@@ -592,21 +605,92 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _territoryPanel.SetActive(activePanel == _territoryPanel);
         }
 
-        private static string BuildPermittedPlayersText(WardMenuModel model)
+        private void BuildPermittedPlayerRows(WardMenuModel model)
         {
-            if (model.Ward.PermittedPlayers.Count <= 0)
-                return "No permitted players.";
+            ClearPermittedPlayerRows();
 
-            string text = "";
+            if (_wardPanel == null)
+                return;
 
-            for (int i = 0; i < model.Ward.PermittedPlayers.Count; i++)
+            if (model == null || model.Ward.PermittedPlayers.Count <= 0)
+                return;
+
+            GUIManager gui = GUIManager.Instance;
+
+            int visibleCount = Mathf.Min(
+                model.Ward.PermittedPlayers.Count,
+                MaxVisiblePermittedPlayers);
+
+            const float startY = 8f;
+            const float rowSpacing = 27f;
+
+            for (int i = 0; i < visibleCount; i++)
             {
                 WardMenuPlayerModel player = model.Ward.PermittedPlayers[i];
+                float y = startY - i * rowSpacing;
 
-                text += "- " + player.PlayerName + " (" + player.PlayerId + ")\n";
+                Text playerText = CreateLabel(
+                    player.PlayerName + " (" + player.PlayerId + ")",
+                    new Vector2(-115f, y),
+                    16,
+                    390f,
+                    24f,
+                    TextAnchor.MiddleLeft,
+                    gui.AveriaSerif,
+                    gui.ValheimBeige);
+
+                playerText.transform.SetParent(_wardPanel.transform, false);
+                _permittedPlayerRowObjects.Add(playerText.gameObject);
+
+                Button removeButton = CreateButton(
+                    _wardPanel.transform,
+                    "Remove",
+                    new Vector2(235f, y),
+                    115f,
+                    28f);
+
+                long capturedPlayerId = player.PlayerId;
+
+                removeButton.onClick.AddListener(
+                    delegate
+                    {
+                        RequestRemovePermittedPlayer(capturedPlayerId);
+                    });
+
+                _permittedPlayerRowObjects.Add(removeButton.gameObject);
             }
 
-            return text;
+            if (model.Ward.PermittedPlayers.Count > MaxVisiblePermittedPlayers)
+            {
+                int remainingCount = model.Ward.PermittedPlayers.Count - MaxVisiblePermittedPlayers;
+                float y = startY - visibleCount * rowSpacing;
+
+                Text overflowText = CreateLabel(
+                    "... and " + remainingCount + " more",
+                    new Vector2(-115f, y),
+                    16,
+                    390f,
+                    24f,
+                    TextAnchor.MiddleLeft,
+                    gui.AveriaSerif,
+                    gui.ValheimBeige);
+
+                overflowText.transform.SetParent(_wardPanel.transform, false);
+                _permittedPlayerRowObjects.Add(overflowText.gameObject);
+            }
+        }
+
+        private void ClearPermittedPlayerRows()
+        {
+            for (int i = 0; i < _permittedPlayerRowObjects.Count; i++)
+            {
+                GameObject rowObject = _permittedPlayerRowObjects[i];
+
+                if (rowObject != null)
+                    UnityEngine.Object.Destroy(rowObject);
+            }
+
+            _permittedPlayerRowObjects.Clear();
         }
 
         private static string FormatRadius(float radius)
@@ -670,6 +754,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_renameTerritoryAction != null)
                 _renameTerritoryAction();
+        }
+
+        private void RequestRemovePermittedPlayer(long playerId)
+        {
+            if (_removePermittedPlayerAction != null)
+                _removePermittedPlayerAction(playerId);
         }
 
         private void RequestCloseByInput()

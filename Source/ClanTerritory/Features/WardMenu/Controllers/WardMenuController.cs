@@ -69,6 +69,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestDecreaseRadius,
                 RequestIncreaseRadius,
                 RequestRenameTerritoryDialog,
+                RequestRemovePermittedPlayer,
                 CloseByInput,
                 CloseByDistance);
 
@@ -157,7 +158,14 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestRemovePermittedPlayer(long playerId)
         {
-            _wardActions.RemovePermittedPlayer(_currentWardId, playerId);
+            bool actionStarted = _wardActions.RemovePermittedPlayer(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer,
+                playerId);
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("RemovePermittedPlayer");
         }
 
         public void RequestRenameTerritoryDialog()
