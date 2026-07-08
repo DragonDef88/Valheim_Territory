@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.WardMenu.Actions;
 using ClanTerritory.Features.WardMenu.Models;
@@ -10,10 +10,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
     internal sealed class WardMenuController : TextReceiver
     {
         private const int TerritoryNameCharacterLimit = 50;
+
         private readonly IWardMenuView _view;
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
         private readonly Action<string> _closeAction;
+
         private float _currentWardRadius;
         private WardId _currentWardId;
         private PrivateArea _currentPrivateArea;
@@ -53,19 +55,20 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentPlayer = player;
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
+            _currentTab = WardMenuTab.Overview;
 
             _view.Show(
-                        model,
-                        ShowOverview,
-                        ShowWard,
-                        ShowTerritory,
-                        RequestToggleProtection,
-                        RequestDecreaseRadius,
-                        RequestIncreaseRadius,
-                        RequestRenameTerritoryDialog,
-                        CloseByInput,
-                        CloseByDistance);
-            _currentTab = WardMenuTab.Overview;
+                model,
+                ShowOverview,
+                ShowWard,
+                ShowTerritory,
+                RequestToggleProtection,
+                RequestDecreaseRadius,
+                RequestIncreaseRadius,
+                RequestRenameTerritoryDialog,
+                CloseByInput,
+                CloseByDistance);
+
             ShowOverview();
 
             ModLog.Debug("[WardMenuController] Shown: " + _currentWardId);
@@ -79,18 +82,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
 
-            _view.Show(
-                       model,
-                       ShowOverview,
-                       ShowWard,
-                       ShowTerritory,
-                       RequestToggleProtection,
-                       RequestDecreaseRadius,
-                       RequestIncreaseRadius,
-                       RequestRenameTerritoryDialog,
-                       CloseByInput,
-                       CloseByDistance);
-
+            _view.Refresh(model);
             ShowCurrentTab();
 
             ModLog.Debug("[WardMenuController] Refreshed: " + model.Ward.WardId);
@@ -110,6 +102,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         {
             RequestSetRadius(_currentWardRadius + 5f);
         }
+
         public void Hide()
         {
             _view.Hide();
@@ -168,7 +161,9 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ModLog.Debug("[WardMenuController] Rename ignored. TextInput is null: " + _currentWardId);
                 return;
             }
+
             _view.Hide();
+
             TextInput.instance.RequestText(
                 this,
                 "Territory name",

@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using ClanTerritory.Features.WardMenu.Models;
 using Jotunn.Managers;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ClanTerritory.Features.WardMenu.UI
@@ -70,15 +69,17 @@ namespace ClanTerritory.Features.WardMenu.UI
             if (model == null)
                 return;
 
-            _showOverviewAction = showOverviewAction;
-            _showWardAction = showWardAction;
-            _showTerritoryAction = showTerritoryAction;
-            _toggleProtectionAction = toggleProtectionAction;
-            _decreaseRadiusAction = decreaseRadiusAction;
-            _increaseRadiusAction = increaseRadiusAction;
-            _renameTerritoryAction = renameTerritoryAction;
-            _closeByInputAction = closeByInputAction;
-            _closeByDistanceAction = closeByDistanceAction;
+            SetActions(
+                showOverviewAction,
+                showWardAction,
+                showTerritoryAction,
+                toggleProtectionAction,
+                decreaseRadiusAction,
+                increaseRadiusAction,
+                renameTerritoryAction,
+                closeByInputAction,
+                closeByDistanceAction);
+
             _useReleasedAfterOpen = false;
 
             EnsureCreated();
@@ -86,31 +87,21 @@ namespace ClanTerritory.Features.WardMenu.UI
             if (_root == null)
                 return;
 
-            _titleText.text = "Clan Territory";
-            _subtitleText.text = "Ward & Territory Management";
-
-            _overviewText.text =
-                "Overview\n\n" +
-                "Territory:\n" + model.Territory.Name + "\n\n" +
-                "Ward ID:\n" + model.Ward.WardId + "\n\n" +
-                "Owner:\n" + model.Ward.OwnerName + "\n\n" +
-                "Radius:\n" + model.Ward.Radius + "\n\n" +
-                "Ward Enabled:\n" + (model.Ward.Enabled ? "Yes" : "No") + "\n\n" +
-                "Territory Runtime:\n" + (model.Territory.RuntimeActive ? "Active" : "Inactive");
-
-            _wardText.text =
-                "Ward Access\n\n" +
-                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n\n" +
-                BuildPermittedPlayersText(model);
-
-            _territoryText.text =
-                "Territory Settings\n\n" +
-                "Name:\n" + model.Territory.Name + "\n\n" +
-                "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
-                "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
-                "Rules:\n" + model.Territory.RulesSummary;
-
+            ApplyModel(model);
             SetVisible(true);
+        }
+
+        public void Refresh(WardMenuModel model)
+        {
+            if (model == null)
+                return;
+
+            EnsureCreated();
+
+            if (_root == null)
+                return;
+
+            ApplyModel(model);
         }
 
         public void Hide()
@@ -183,6 +174,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             GUIManager.OnCustomGUIAvailable -= BuildGui;
 
+            SetVisible(false);
+
             if (_root != null)
                 UnityEngine.Object.Destroy(_root);
 
@@ -207,19 +200,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusButton = null;
             _renameTerritoryButton = null;
 
-            _showOverviewAction = null;
-            _showWardAction = null;
-            _showTerritoryAction = null;
-            _toggleProtectionAction = null;
-            _decreaseRadiusAction = null;
-            _increaseRadiusAction = null;
-            _renameTerritoryAction = null;
-            _closeByInputAction = null;
-            _closeByDistanceAction = null;
-
-            _visible = false;
-            GUIManager.BlockInput(false);
-            GameplayInputRestorer.Request();
+            ClearActions();
         }
 
         public void ShowOverviewPanel()
@@ -235,6 +216,68 @@ namespace ClanTerritory.Features.WardMenu.UI
         public void ShowTerritoryPanel()
         {
             SetActivePanel(_territoryPanel);
+        }
+
+        private void SetActions(
+            Action showOverviewAction,
+            Action showWardAction,
+            Action showTerritoryAction,
+            Action toggleProtectionAction,
+            Action decreaseRadiusAction,
+            Action increaseRadiusAction,
+            Action renameTerritoryAction,
+            Action closeByInputAction,
+            Action closeByDistanceAction)
+        {
+            _showOverviewAction = showOverviewAction;
+            _showWardAction = showWardAction;
+            _showTerritoryAction = showTerritoryAction;
+            _toggleProtectionAction = toggleProtectionAction;
+            _decreaseRadiusAction = decreaseRadiusAction;
+            _increaseRadiusAction = increaseRadiusAction;
+            _renameTerritoryAction = renameTerritoryAction;
+            _closeByInputAction = closeByInputAction;
+            _closeByDistanceAction = closeByDistanceAction;
+        }
+
+        private void ClearActions()
+        {
+            _showOverviewAction = null;
+            _showWardAction = null;
+            _showTerritoryAction = null;
+            _toggleProtectionAction = null;
+            _decreaseRadiusAction = null;
+            _increaseRadiusAction = null;
+            _renameTerritoryAction = null;
+            _closeByInputAction = null;
+            _closeByDistanceAction = null;
+        }
+
+        private void ApplyModel(WardMenuModel model)
+        {
+            _titleText.text = "Clan Territory";
+            _subtitleText.text = "Ward & Territory Management";
+
+            _overviewText.text =
+                "Overview\n\n" +
+                "Territory:\n" + model.Territory.Name + "\n\n" +
+                "Ward ID:\n" + model.Ward.WardId + "\n\n" +
+                "Owner:\n" + model.Ward.OwnerName + "\n\n" +
+                "Radius:\n" + model.Ward.Radius + "\n\n" +
+                "Ward Enabled:\n" + (model.Ward.Enabled ? "Yes" : "No") + "\n\n" +
+                "Territory Runtime:\n" + (model.Territory.RuntimeActive ? "Active" : "Inactive");
+
+            _wardText.text =
+                "Ward Access\n\n" +
+                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n\n" +
+                BuildPermittedPlayersText(model);
+
+            _territoryText.text =
+                "Territory Settings\n\n" +
+                "Name:\n" + model.Territory.Name + "\n\n" +
+                "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
+                "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
+                "Rules:\n" + model.Territory.RulesSummary;
         }
 
         private void EnsureCreated()
@@ -494,10 +537,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             if (_root != null)
                 _root.SetActive(visible);
 
-            GUIManager.BlockInput(visible);
+            if (wasVisible == visible)
+                return;
 
-            if (wasVisible && !visible)
-                GameplayInputRestorer.Request();
+            GUIManager.BlockInput(visible);
         }
 
         private void SetActivePanel(GameObject activePanel)
@@ -581,88 +624,6 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_closeByDistanceAction != null)
                 _closeByDistanceAction();
-        }
-
-        private sealed class GameplayInputRestorer : MonoBehaviour
-        {
-            private const int RestoreFrames = 8;
-
-            private int _remainingFrames;
-
-            public static void Request()
-            {
-                if (Player.m_localPlayer == null)
-                    return;
-
-                GameObject host = GameObject.Find("ClanTerritory_GameplayInputRestorer");
-
-                if (host == null)
-                {
-                    host = new GameObject("ClanTerritory_GameplayInputRestorer");
-                    UnityEngine.Object.DontDestroyOnLoad(host);
-                }
-
-                GameplayInputRestorer restorer = host.GetComponent<GameplayInputRestorer>();
-
-                if (restorer == null)
-                    restorer = host.AddComponent<GameplayInputRestorer>();
-
-                restorer._remainingFrames = RestoreFrames;
-            }
-
-            private void Update()
-            {
-                if (_remainingFrames <= 0)
-                {
-                    enabled = false;
-                    return;
-                }
-
-                _remainingFrames--;
-
-                if (!CanRestoreGameplayInput())
-                    return;
-
-                if (EventSystem.current != null)
-                    EventSystem.current.SetSelectedGameObject(null);
-
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-                ZInput.WorkaroundEnabled = true;
-            }
-
-            private static bool CanRestoreGameplayInput()
-            {
-                if (Player.m_localPlayer == null)
-                    return false;
-
-                if (TextInput.IsVisible())
-                    return false;
-
-                if (Menu.IsVisible())
-                    return false;
-
-                if (Minimap.IsOpen())
-                    return false;
-
-                if (InventoryGui.IsVisible())
-                    return false;
-
-                if (Chat.instance != null && Chat.instance.HasFocus())
-                    return false;
-
-                if (Console.IsVisible())
-                    return false;
-
-                if (ZNet.instance != null &&
-                    (ZNet.instance.InPasswordDialog() ||
-                     ZNet.instance.InConnectingScreen()))
-                {
-                    return false;
-                }
-
-                return true;
-            }
         }
     }
 }

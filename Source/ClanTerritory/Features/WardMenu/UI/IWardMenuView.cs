@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ClanTerritory.Features.WardMenu.Models;
 
 namespace ClanTerritory.Features.WardMenu.UI
@@ -18,6 +18,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action renameTerritoryAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
+
+        void Refresh(WardMenuModel model);
 
         void Hide();
 
