@@ -3,6 +3,7 @@ using ClanTerritory.Features.WardMenu.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace ClanTerritory.Features.WardMenu.UI
 {
@@ -12,6 +13,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private Button _toggleProtectionButton;
         private Action _toggleProtectionAction;
+        private GameObject _previousSelectedObject;
 
         private Button _renameTerritoryButton;
         private Action _renameTerritoryAction;
@@ -112,6 +114,22 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_root == null)
                 return;
+            _previousSelectedObject = EventSystem.current != null
+               ? EventSystem.current.currentSelectedGameObject
+               : null;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            ZInput.WorkaroundEnabled = false;
+
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(_previousSelectedObject);
+
+            _previousSelectedObject = null;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            ZInput.WorkaroundEnabled = true;
 
             _root.SetActive(false);
             _hiddenFrames = 9999;
