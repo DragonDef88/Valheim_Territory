@@ -33,6 +33,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _territoryButton;
         private Button _closeButton;
         private Button _toggleProtectionButton;
+        private Button _toggleSelfPermissionButton;
         private Button _decreaseRadiusButton;
         private Button _increaseRadiusButton;
         private Button _renameTerritoryButton;
@@ -45,6 +46,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _increaseRadiusAction;
         private Action _renameTerritoryAction;
         private Action<long> _removePermittedPlayerAction;
+        private Action _toggleSelfPermissionAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -71,6 +73,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action increaseRadiusAction,
             Action renameTerritoryAction,
             Action<long> removePermittedPlayerAction,
+            Action toggleSelfPermissionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -86,6 +89,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 increaseRadiusAction,
                 renameTerritoryAction,
                 removePermittedPlayerAction,
+                toggleSelfPermissionAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -207,6 +211,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _territoryButton = null;
             _closeButton = null;
             _toggleProtectionButton = null;
+            _toggleSelfPermissionButton = null;
             _decreaseRadiusButton = null;
             _increaseRadiusButton = null;
             _renameTerritoryButton = null;
@@ -238,6 +243,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action increaseRadiusAction,
             Action renameTerritoryAction,
             Action<long> removePermittedPlayerAction,
+            Action toggleSelfPermissionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -249,6 +255,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusAction = increaseRadiusAction;
             _renameTerritoryAction = renameTerritoryAction;
             _removePermittedPlayerAction = removePermittedPlayerAction;
+            _toggleSelfPermissionAction = toggleSelfPermissionAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -263,6 +270,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseRadiusAction = null;
             _renameTerritoryAction = null;
             _removePermittedPlayerAction = null;
+            _toggleSelfPermissionAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -271,6 +279,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             string radiusText = FormatRadius(model.Ward.Radius);
             string protectionText = FormatProtection(model.Ward.Enabled);
+            bool ownerMode = model.Ward.IsCurrentPlayerCreator;
+            bool selfPermissionMode = !ownerMode && !model.Ward.Enabled;
 
             _titleText.text = "Clan Territory";
             _subtitleText.text =
@@ -283,19 +293,22 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Owner:\n" + model.Ward.OwnerName + "\n\n" +
                 "Territory radius:\n" + radiusText + " m\n\n" +
                 "Protection:\n" + protectionText + "\n\n" +
+                "Your access:\n" + FormatCurrentAccess(model) + "\n\n" +
                 "Territory Runtime:\n" + (model.Territory.RuntimeActive ? "Active" : "Inactive");
 
             _wardText.text =
                 "Ward Access\n\n" +
                 "Protection: " + protectionText + "\n" +
                 "Territory radius: " + radiusText + " m\n" +
-                "Permitted players: " + model.Ward.PermittedPlayers.Count;
+                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n" +
+                "Your access: " + FormatCurrentAccess(model);
 
             _territoryText.text =
                 "Territory Settings\n\n" +
                 "Name:\n" + model.Territory.Name + "\n\n" +
                 "Territory radius:\n" + radiusText + " m\n\n" +
                 "Protection:\n" + protectionText + "\n\n" +
+                "Your access:\n" + FormatCurrentAccess(model) + "\n\n" +
                 "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
@@ -303,11 +316,15 @@ namespace ClanTerritory.Features.WardMenu.UI
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
 
-            BuildPermittedPlayerRows(model);
-
             SetButtonText(
                 _toggleProtectionButton,
                 model.Ward.Enabled ? "Disable Protection" : "Enable Protection");
+
+            SetButtonText(
+                _toggleSelfPermissionButton,
+                model.Ward.IsCurrentPlayerPermitted
+                    ? "Remove Me"
+                    : "Add Me");
 
             SetButtonText(
                 _decreaseRadiusButton,
@@ -316,6 +333,34 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonText(
                 _increaseRadiusButton,
                 "+5");
+
+            SetButtonActive(
+                _toggleProtectionButton,
+                ownerMode);
+
+            SetButtonActive(
+                _decreaseRadiusButton,
+                ownerMode);
+
+            SetButtonActive(
+                _increaseRadiusButton,
+                ownerMode);
+
+            SetTextActive(
+                _radiusValueText,
+                ownerMode);
+
+            SetButtonActive(
+                _renameTerritoryButton,
+                ownerMode);
+
+            SetButtonActive(
+                _toggleSelfPermissionButton,
+                selfPermissionMode);
+
+            BuildPermittedPlayerRows(
+                model,
+                ownerMode);
         }
 
         private void EnsureCreated()
@@ -438,6 +483,13 @@ namespace ClanTerritory.Features.WardMenu.UI
                 240f,
                 38f);
 
+            _toggleSelfPermissionButton = CreateButton(
+                _wardPanel.transform,
+                "Add Me",
+                new Vector2(0f, -115f),
+                240f,
+                38f);
+
             _decreaseRadiusButton = CreateButton(
                 _wardPanel.transform,
                 "-5",
@@ -494,6 +546,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _territoryButton.onClick.AddListener(RequestShowTerritory);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
+            _toggleSelfPermissionButton.onClick.AddListener(RequestToggleSelfPermission);
             _decreaseRadiusButton.onClick.AddListener(RequestDecreaseRadius);
             _increaseRadiusButton.onClick.AddListener(RequestIncreaseRadius);
             _renameTerritoryButton.onClick.AddListener(RequestRenameTerritory);
@@ -605,7 +658,9 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _territoryPanel.SetActive(activePanel == _territoryPanel);
         }
 
-        private void BuildPermittedPlayerRows(WardMenuModel model)
+        private void BuildPermittedPlayerRows(
+            WardMenuModel model,
+            bool allowRemove)
         {
             ClearPermittedPlayerRows();
 
@@ -631,16 +686,19 @@ namespace ClanTerritory.Features.WardMenu.UI
 
                 Text playerText = CreateLabel(
                     player.PlayerName + " (" + player.PlayerId + ")",
-                    new Vector2(-115f, y),
+                    new Vector2(allowRemove ? -115f : 0f, y),
                     16,
-                    390f,
+                    allowRemove ? 390f : 620f,
                     24f,
-                    TextAnchor.MiddleLeft,
+                    allowRemove ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter,
                     gui.AveriaSerif,
                     gui.ValheimBeige);
 
                 playerText.transform.SetParent(_wardPanel.transform, false);
                 _permittedPlayerRowObjects.Add(playerText.gameObject);
+
+                if (!allowRemove)
+                    continue;
 
                 Button removeButton = CreateButton(
                     _wardPanel.transform,
@@ -667,11 +725,11 @@ namespace ClanTerritory.Features.WardMenu.UI
 
                 Text overflowText = CreateLabel(
                     "... and " + remainingCount + " more",
-                    new Vector2(-115f, y),
+                    new Vector2(allowRemove ? -115f : 0f, y),
                     16,
-                    390f,
+                    allowRemove ? 390f : 620f,
                     24f,
-                    TextAnchor.MiddleLeft,
+                    allowRemove ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter,
                     gui.AveriaSerif,
                     gui.ValheimBeige);
 
@@ -703,6 +761,17 @@ namespace ClanTerritory.Features.WardMenu.UI
             return enabled ? "Enabled" : "Disabled";
         }
 
+        private static string FormatCurrentAccess(WardMenuModel model)
+        {
+            if (model.Ward.IsCurrentPlayerCreator)
+                return "Owner";
+
+            if (model.Ward.IsCurrentPlayerPermitted)
+                return "Permitted";
+
+            return "Guest";
+        }
+
         private static void SetButtonText(Button button, string text)
         {
             if (button == null)
@@ -712,6 +781,22 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (buttonText != null)
                 buttonText.text = text;
+        }
+
+        private static void SetButtonActive(
+            Button button,
+            bool active)
+        {
+            if (button != null)
+                button.gameObject.SetActive(active);
+        }
+
+        private static void SetTextActive(
+            Text text,
+            bool active)
+        {
+            if (text != null)
+                text.gameObject.SetActive(active);
         }
 
         private void RequestShowOverview()
@@ -760,6 +845,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_removePermittedPlayerAction != null)
                 _removePermittedPlayerAction(playerId);
+        }
+
+        private void RequestToggleSelfPermission()
+        {
+            if (_toggleSelfPermissionAction != null)
+                _toggleSelfPermissionAction();
         }
 
         private void RequestCloseByInput()

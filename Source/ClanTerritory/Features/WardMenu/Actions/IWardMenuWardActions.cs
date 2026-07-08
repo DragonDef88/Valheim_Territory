@@ -12,6 +12,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
         void SetRadius(
             WardId wardId,
             PrivateArea privateArea,
+            Player player,
             float radius);
 
         bool RemovePermittedPlayer(
@@ -19,5 +20,10 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player,
             long playerId);
+
+        bool ToggleSelfPermission(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
     }
 }

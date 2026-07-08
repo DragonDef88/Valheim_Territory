@@ -70,6 +70,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestIncreaseRadius,
                 RequestRenameTerritoryDialog,
                 RequestRemovePermittedPlayer,
+                RequestToggleSelfPermission,
                 CloseByInput,
                 CloseByDistance);
 
@@ -151,6 +152,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _wardActions.SetRadius(
                 _currentWardId,
                 _currentPrivateArea,
+                _currentPlayer,
                 radius);
 
             _currentWardRadius = radius;
@@ -168,8 +170,25 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 _refreshAction("RemovePermittedPlayer");
         }
 
+        public void RequestToggleSelfPermission()
+        {
+            bool actionStarted = _wardActions.ToggleSelfPermission(
+                _currentWardId,
+                _currentPrivateArea,
+                _currentPlayer);
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("ToggleSelfPermission");
+        }
+
         public void RequestRenameTerritoryDialog()
         {
+            if (!IsCurrentPlayerWardCreator())
+            {
+                ModLog.Debug("[WardMenuController] Rename ignored. Current player is not ward creator: " + _currentWardId);
+                return;
+            }
+
             if (TextInput.instance == null)
             {
                 ModLog.Debug("[WardMenuController] Rename ignored. TextInput is null: " + _currentWardId);
@@ -238,6 +257,19 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             }
 
             _view.ShowOverviewPanel();
+        }
+
+        private bool IsCurrentPlayerWardCreator()
+        {
+            if (_currentPrivateArea == null || _currentPlayer == null)
+                return false;
+
+            Piece piece = _currentPrivateArea.GetComponent<Piece>();
+
+            if (piece == null)
+                return false;
+
+            return piece.GetCreator() == _currentPlayer.GetPlayerID();
         }
 
         private void CloseByInput()

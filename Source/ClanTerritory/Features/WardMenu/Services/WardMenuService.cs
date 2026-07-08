@@ -112,7 +112,8 @@ namespace ClanTerritory.Features.WardMenu.Services
             WardMenuModel model = _modelBuilder.Build(
                 wardId,
                 runtimeWard,
-                privateArea);
+                privateArea,
+                player);
 
             _currentWardId = wardId;
             _currentRuntimeWard = runtimeWard;
@@ -130,6 +131,8 @@ namespace ClanTerritory.Features.WardMenu.Services
                 "[WardMenu] Opened ward territory menu: " + model.Ward.WardId +
                 ", owner: " + model.Ward.OwnerName +
                 ", enabled: " + model.Ward.Enabled +
+                ", creator: " + model.Ward.IsCurrentPlayerCreator +
+                ", currentPermitted: " + model.Ward.IsCurrentPlayerPermitted +
                 ", permitted: " + model.Ward.PermittedPlayers.Count +
                 ", territory: " + model.Territory.Name);
         }
@@ -247,7 +250,8 @@ namespace ClanTerritory.Features.WardMenu.Services
             WardMenuModel model = _modelBuilder.Build(
                 _currentWardId,
                 _currentRuntimeWard,
-                _currentPrivateArea);
+                _currentPrivateArea,
+                _currentPlayer);
 
             _controller.Refresh(model);
 
@@ -258,6 +262,12 @@ namespace ClanTerritory.Features.WardMenu.Services
                 model.Territory.Name +
                 ", enabled: " +
                 model.Ward.Enabled +
+                ", creator: " +
+                model.Ward.IsCurrentPlayerCreator +
+                ", currentPermitted: " +
+                model.Ward.IsCurrentPlayerPermitted +
+                ", permitted: " +
+                model.Ward.PermittedPlayers.Count +
                 ", radius: " +
                 model.Ward.Radius +
                 ", reason: " +

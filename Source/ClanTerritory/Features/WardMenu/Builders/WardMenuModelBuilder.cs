@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.TerritoryNaming.Services;
@@ -19,7 +19,8 @@ namespace ClanTerritory.Features.WardMenu.Builders
         public WardMenuModel Build(
             WardId wardId,
             RuntimeWard runtimeWard,
-            PrivateArea privateArea)
+            PrivateArea privateArea,
+            Player player)
         {
             ZNetView zNetView = privateArea.GetComponent<ZNetView>();
             ZDO zdo = zNetView != null && zNetView.IsValid()
@@ -42,11 +43,23 @@ namespace ClanTerritory.Features.WardMenu.Builders
             List<WardMenuPlayerModel> permittedPlayers =
                 BuildPermittedPlayers(zdo);
 
+            bool isCurrentPlayerCreator =
+                IsCurrentPlayerCreator(
+                    privateArea,
+                    player);
+
+            bool isCurrentPlayerPermitted =
+                IsCurrentPlayerPermitted(
+                    permittedPlayers,
+                    player);
+
             WardMenuWardSection wardSection = new WardMenuWardSection(
                 wardId,
                 ownerName,
                 privateArea.m_radius,
                 enabled,
+                isCurrentPlayerCreator,
+                isCurrentPlayerPermitted,
                 permittedPlayers);
 
             WardMenuTerritorySection territorySection = new WardMenuTerritorySection(
@@ -65,6 +78,8 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", owner: " + wardSection.OwnerName +
                 ", radius: " + wardSection.Radius +
                 ", enabled: " + wardSection.Enabled +
+                ", creator: " + wardSection.IsCurrentPlayerCreator +
+                ", currentPermitted: " + wardSection.IsCurrentPlayerPermitted +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
@@ -99,6 +114,41 @@ namespace ClanTerritory.Features.WardMenu.Builders
             }
 
             return players;
+        }
+
+        private static bool IsCurrentPlayerCreator(
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (privateArea == null || player == null)
+                return false;
+
+            Piece piece = privateArea.GetComponent<Piece>();
+
+            if (piece == null)
+                return false;
+
+            return piece.GetCreator() == player.GetPlayerID();
+        }
+
+        private static bool IsCurrentPlayerPermitted(
+            List<WardMenuPlayerModel> permittedPlayers,
+            Player player)
+        {
+            if (permittedPlayers == null || player == null)
+                return false;
+
+            long playerId = player.GetPlayerID();
+
+            for (int i = 0; i < permittedPlayers.Count; i++)
+            {
+                WardMenuPlayerModel permittedPlayer = permittedPlayers[i];
+
+                if (permittedPlayer.PlayerId == playerId)
+                    return true;
+            }
+
+            return false;
         }
     }
 }

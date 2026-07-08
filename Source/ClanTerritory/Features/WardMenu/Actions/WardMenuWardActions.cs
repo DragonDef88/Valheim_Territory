@@ -9,35 +9,19 @@ namespace ClanTerritory.Features.WardMenu.Actions
     internal sealed class WardMenuWardActions : IWardMenuWardActions
     {
         private const string ToggleEnabledRpc = "ToggleEnabled";
+        private const string TogglePermittedRpc = "TogglePermitted";
 
         public bool ToggleProtection(
             WardId wardId,
             PrivateArea privateArea,
             Player player)
         {
-            if (privateArea == null)
+            if (!ValidateCreatorAction(
+                    "ToggleProtection",
+                    wardId,
+                    privateArea,
+                    player))
             {
-                ModLog.Debug("[WardMenuActions] ToggleProtection ignored. PrivateArea is null: " + wardId);
-                return false;
-            }
-
-            if (player == null)
-            {
-                ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Player is null: " + wardId);
-                return false;
-            }
-
-            Piece piece = privateArea.GetComponent<Piece>();
-
-            if (piece == null)
-            {
-                ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Piece is null: " + wardId);
-                return false;
-            }
-
-            if (!piece.IsCreator())
-            {
-                ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Player is not ward creator: " + wardId);
                 return false;
             }
 
@@ -60,11 +44,15 @@ namespace ClanTerritory.Features.WardMenu.Actions
         public void SetRadius(
             WardId wardId,
             PrivateArea privateArea,
+            Player player,
             float radius)
         {
-            if (privateArea == null)
+            if (!ValidateCreatorAction(
+                    "SetRadius",
+                    wardId,
+                    privateArea,
+                    player))
             {
-                ModLog.Debug("[WardMenuActions] SetRadius ignored. PrivateArea is null: " + wardId);
                 return;
             }
 
@@ -78,7 +66,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
 
             radiusService.RequestSetRadius(
                   privateArea,
-                  Player.m_localPlayer,
+                  player,
                   radius);
 
             ModLog.Info("[WardMenuActions] SetRadius applied: " + wardId + ", radius: " + radius);
@@ -90,35 +78,18 @@ namespace ClanTerritory.Features.WardMenu.Actions
             Player player,
             long playerId)
         {
-            if (privateArea == null)
+            if (!ValidateCreatorAction(
+                    "RemovePermittedPlayer",
+                    wardId,
+                    privateArea,
+                    player))
             {
-                ModLog.Debug("[WardMenuActions] RemovePermittedPlayer ignored. PrivateArea is null: " + wardId);
-                return false;
-            }
-
-            if (player == null)
-            {
-                ModLog.Debug("[WardMenuActions] RemovePermittedPlayer ignored. Player is null: " + wardId);
                 return false;
             }
 
             if (playerId == 0L)
             {
                 ModLog.Debug("[WardMenuActions] RemovePermittedPlayer ignored. PlayerId is empty: " + wardId);
-                return false;
-            }
-
-            Piece piece = privateArea.GetComponent<Piece>();
-
-            if (piece == null)
-            {
-                ModLog.Debug("[WardMenuActions] RemovePermittedPlayer ignored. Piece is null: " + wardId);
-                return false;
-            }
-
-            if (!piece.IsCreator())
-            {
-                ModLog.Debug("[WardMenuActions] RemovePermittedPlayer ignored. Player is not ward creator: " + wardId);
                 return false;
             }
 
@@ -163,6 +134,89 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 permittedPlayers);
 
             ModLog.Info("[WardMenuActions] RemovePermittedPlayer applied: " + wardId + ", playerId: " + playerId);
+            return true;
+        }
+
+        public bool ToggleSelfPermission(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (privateArea == null)
+            {
+                ModLog.Debug("[WardMenuActions] ToggleSelfPermission ignored. PrivateArea is null: " + wardId);
+                return false;
+            }
+
+            if (player == null)
+            {
+                ModLog.Debug("[WardMenuActions] ToggleSelfPermission ignored. Player is null: " + wardId);
+                return false;
+            }
+
+            Piece piece = privateArea.GetComponent<Piece>();
+
+            if (piece != null && piece.GetCreator() == player.GetPlayerID())
+            {
+                ModLog.Debug("[WardMenuActions] ToggleSelfPermission ignored. Player is ward creator: " + wardId);
+                return false;
+            }
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+            {
+                ModLog.Debug("[WardMenuActions] ToggleSelfPermission ignored. ZNetView is invalid: " + wardId);
+                return false;
+            }
+
+            if (zNetView.GetZDO().GetBool(ZDOVars.s_enabled))
+            {
+                ModLog.Debug("[WardMenuActions] ToggleSelfPermission ignored. Ward is enabled: " + wardId);
+                return false;
+            }
+
+            zNetView.InvokeRPC(
+                TogglePermittedRpc,
+                player.GetPlayerID(),
+                player.GetPlayerName());
+
+            ModLog.Info("[WardMenuActions] ToggleSelfPermission invoked through Valheim RPC: " + wardId);
+            return true;
+        }
+
+        private static bool ValidateCreatorAction(
+            string actionName,
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (privateArea == null)
+            {
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. PrivateArea is null: " + wardId);
+                return false;
+            }
+
+            if (player == null)
+            {
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is null: " + wardId);
+                return false;
+            }
+
+            Piece piece = privateArea.GetComponent<Piece>();
+
+            if (piece == null)
+            {
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Piece is null: " + wardId);
+                return false;
+            }
+
+            if (piece.GetCreator() != player.GetPlayerID())
+            {
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is not ward creator: " + wardId);
+                return false;
+            }
+
             return true;
         }
 

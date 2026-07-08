@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 
 namespace ClanTerritory.Features.WardMenu.Models
@@ -30,6 +30,10 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool Enabled { get; private set; }
 
+        public bool IsCurrentPlayerCreator { get; private set; }
+
+        public bool IsCurrentPlayerPermitted { get; private set; }
+
         public IReadOnlyList<WardMenuPlayerModel> PermittedPlayers
         {
             get { return _permittedPlayers; }
@@ -40,12 +44,16 @@ namespace ClanTerritory.Features.WardMenu.Models
             string ownerName,
             float radius,
             bool enabled,
+            bool isCurrentPlayerCreator,
+            bool isCurrentPlayerPermitted,
             List<WardMenuPlayerModel> permittedPlayers)
         {
             WardId = wardId;
             OwnerName = ownerName;
             Radius = radius;
             Enabled = enabled;
+            IsCurrentPlayerCreator = isCurrentPlayerCreator;
+            IsCurrentPlayerPermitted = isCurrentPlayerPermitted;
             _permittedPlayers = permittedPlayers ?? new List<WardMenuPlayerModel>();
         }
     }

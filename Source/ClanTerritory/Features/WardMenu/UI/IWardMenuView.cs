@@ -17,6 +17,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action increaseRadiusAction,
             Action renameTerritoryAction,
             Action<long> removePermittedPlayerAction,
+            Action toggleSelfPermissionAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 
