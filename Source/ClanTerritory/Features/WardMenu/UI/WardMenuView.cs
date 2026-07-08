@@ -141,6 +141,9 @@ namespace ClanTerritory.Features.WardMenu.UI
                 return;
             }
 
+            if (TextInput.IsVisible())
+                return;
+
             if ((Chat.instance == null || !Chat.instance.HasFocus()) &&
                  !Console.IsVisible() &&
                  !Menu.IsVisible() &&
