@@ -3,6 +3,7 @@ using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.TerritoryInteraction.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
+using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
 
@@ -22,6 +23,11 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             if (ServiceContainer.TryGet<ITerritoryNamingService>(out territoryNamingService))
                 territoryNamingService.RegisterRpc(__instance);
+
+            TerritoryWardRadiusService territoryWardRadiusService;
+
+            if (ServiceContainer.TryGet<TerritoryWardRadiusService>(out territoryWardRadiusService))
+                territoryWardRadiusService.ApplyConfiguredRadius(__instance);
 
             if (!Scanner.TryCreateWardModel(
                     __instance,

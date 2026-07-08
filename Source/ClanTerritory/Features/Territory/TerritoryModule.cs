@@ -21,12 +21,15 @@ namespace ClanTerritory.Features.Territory
         private TerritoryService _service;
         private TerritoryZdoService _zdoService;
         private WardMapIconService _mapIconService;
+        private TerritoryWardRadiusService _wardRadiusService;
 
         public void Initialize()
         {
             _registry = new TerritoryRegistry();
             _factory = new TerritoryFactory();
             _zdoService = new TerritoryZdoService();
+
+            _wardRadiusService = new TerritoryWardRadiusService();
 
             _mapIconService =
                 new WardMapIconService(
@@ -43,6 +46,7 @@ namespace ClanTerritory.Features.Territory
 
             ServiceContainer.Register<TerritoryRegistry>(_registry);
             ServiceContainer.Register<TerritoryZdoService>(_zdoService);
+            ServiceContainer.Register<TerritoryWardRadiusService>(_wardRadiusService);
             ServiceContainer.Register<WardMapIconService>(_mapIconService);
             ServiceContainer.Register<ITerritoryService>(_service);
 
