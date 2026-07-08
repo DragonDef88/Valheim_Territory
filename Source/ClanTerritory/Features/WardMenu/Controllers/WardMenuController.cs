@@ -48,14 +48,16 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentWardRadius = model.Ward.Radius;
 
             _view.Show(
-                model,
-                ShowOverview,
-                ShowWard,
-                ShowTerritory,
-                RequestToggleProtection,
-                RequestRenameTerritoryDialog,
-                CloseByInput,
-                CloseByDistance);
+                        model,
+                        ShowOverview,
+                        ShowWard,
+                        ShowTerritory,
+                        RequestToggleProtection,
+                        RequestDecreaseRadius,
+                        RequestIncreaseRadius,
+                        RequestRenameTerritoryDialog,
+                        CloseByInput,
+                        CloseByDistance);
 
             ShowOverview();
 
@@ -71,16 +73,16 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentWardRadius = model.Ward.Radius;
 
             _view.Show(
-                model,
-                ShowOverview,
-                ShowWard,
-                ShowTerritory,
-                RequestToggleProtection,
-                RequestDecreaseRadius,
-                RequestIncreaseRadius,
-                RequestRenameTerritoryDialog,
-                CloseByInput,
-                CloseByDistance);
+                       model,
+                       ShowOverview,
+                       ShowWard,
+                       ShowTerritory,
+                       RequestToggleProtection,
+                       RequestDecreaseRadius,
+                       RequestIncreaseRadius,
+                       RequestRenameTerritoryDialog,
+                       CloseByInput,
+                       CloseByDistance);
 
             ShowTerritory();
 
