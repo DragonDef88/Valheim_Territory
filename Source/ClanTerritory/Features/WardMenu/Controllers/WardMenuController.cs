@@ -15,7 +15,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
         private readonly Action<string> _closeAction;
-
+        private float _currentWardRadius;
         private WardId _currentWardId;
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
@@ -45,6 +45,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentPrivateArea = privateArea;
             _currentPlayer = player;
             _currentTerritoryName = model.Territory.Name;
+            _currentWardRadius = model.Ward.Radius;
 
             _view.Show(
                 model,
@@ -67,6 +68,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 return;
 
             _currentTerritoryName = model.Territory.Name;
+            _currentWardRadius = model.Ward.Radius;
 
             _view.Show(
                 model,
@@ -74,6 +76,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowWard,
                 ShowTerritory,
                 RequestToggleProtection,
+                RequestDecreaseRadius,
+                RequestIncreaseRadius,
                 RequestRenameTerritoryDialog,
                 CloseByInput,
                 CloseByDistance);
@@ -88,6 +92,15 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _view.Tick(privateArea, player);
         }
 
+        public void RequestDecreaseRadius()
+        {
+            RequestSetRadius(_currentWardRadius - 5f);
+        }
+
+        public void RequestIncreaseRadius()
+        {
+            RequestSetRadius(_currentWardRadius + 5f);
+        }
         public void Hide()
         {
             _view.Hide();

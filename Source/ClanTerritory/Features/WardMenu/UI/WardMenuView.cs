@@ -43,6 +43,10 @@ namespace ClanTerritory.Features.WardMenu.UI
         private int _hiddenFrames = 9999;
         private bool _useReleasedAfterOpen;
 
+        private Button _decreaseRadiusButton;
+        private Button _increaseRadiusButton;
+        private Action _decreaseRadiusAction;
+        private Action _increaseRadiusAction;
         public bool IsVisible
         {
             get { return _root != null && _root.activeSelf && _hiddenFrames <= 1; }
@@ -54,6 +58,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action toggleProtectionAction,
+            Action decreaseRadiusAction,
+            Action increaseRadiusAction,
             Action renameTerritoryAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
@@ -67,6 +73,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
             _toggleProtectionAction = toggleProtectionAction;
+            _decreaseRadiusAction = decreaseRadiusAction;
+            _increaseRadiusAction = increaseRadiusAction;
             _renameTerritoryAction = renameTerritoryAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
@@ -199,6 +207,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleProtectionAction = null;
             _renameTerritoryButton = null;
             _renameTerritoryAction = null;
+            _decreaseRadiusButton = null;
+            _increaseRadiusButton = null;
+            _decreaseRadiusAction = null;
+            _increaseRadiusAction = null;
         }
 
         public void ShowOverviewPanel()
@@ -325,6 +337,20 @@ namespace ClanTerritory.Features.WardMenu.UI
                 new Vector2(240f, 38f),
                 "Toggle Protection");
 
+            _decreaseRadiusButton = CreateButton(
+    "DecreaseRadiusButton",
+    _permissionsPanel.transform,
+    new Vector2(-130f, -150f),
+    new Vector2(110f, 38f),
+    "Radius -5");
+
+            _increaseRadiusButton = CreateButton(
+                "IncreaseRadiusButton",
+                _permissionsPanel.transform,
+                new Vector2(130f, -150f),
+                new Vector2(110f, 38f),
+                "Radius +5");
+
             _settingsText = CreateText(
                 "TerritoryText",
                 _settingsPanel.transform,
@@ -353,6 +379,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _settingsButton.onClick.AddListener(RequestShowTerritory);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
+            _decreaseRadiusButton.onClick.AddListener(RequestDecreaseRadius);
+            _increaseRadiusButton.onClick.AddListener(RequestIncreaseRadius);
             _renameTerritoryButton.onClick.AddListener(RequestRenameTerritory);
         }
 
@@ -364,6 +392,18 @@ namespace ClanTerritory.Features.WardMenu.UI
                 new Vector2(680f, 260f),
                 new Vector2(0f, -25f),
                 new Color(0.08f, 0.08f, 0.08f, 0.9f));
+        }
+
+        private void RequestDecreaseRadius()
+        {
+            if (_decreaseRadiusAction != null)
+                _decreaseRadiusAction();
+        }
+
+        private void RequestIncreaseRadius()
+        {
+            if (_increaseRadiusAction != null)
+                _increaseRadiusAction();
         }
 
         private GameObject CreatePanelObject(
