@@ -1,0 +1,4 @@
+namespace YamlDotNet.Serialization;
+
+internal delegate TComponent _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EWrapperFactory<TComponentBase, TComponent>(TComponentBase wrapped) where TComponent : TComponentBase;
+internal delegate TComponent _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EWrapperFactory<TArgument, TComponentBase, TComponent>(TComponentBase wrapped, TArgument argument) where TComponent : TComponentBase;

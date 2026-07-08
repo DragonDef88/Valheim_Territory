@@ -21,6 +21,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private GameObject _wardPanel;
         private GameObject _territoryPanel;
         private GameObject _terraformingPanel;
+        private GameObject _terraformingStoragePanel;
 
         private Text _titleText;
         private Text _subtitleText;
@@ -31,7 +32,6 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Text _radiusValueText;
         private Text _doorAutoCloseValueText;
         private Text _terraformingRadiusValueText;
-        private Text _terraformingTargetHeightValueText;
 
         private Button _overviewButton;
         private Button _wardButton;
@@ -49,15 +49,14 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _toggleStructureDamageProtectionButton;
         private Button _toggleTerraformingButton;
         private Button _toggleTerraformingRunningButton;
-        private Button _cycleTerraformingModeButton;
+        private Button _openTerraformingPreparationButton;
+        private Button _closeTerraformingPreparationButton;
         private Button _decreaseTerraformingRadiusButton;
         private Button _increaseTerraformingRadiusButton;
-        private Button _setTerraformingTargetHeightFromWardButton;
-        private Button _setTerraformingTargetHeightFromPlayerButton;
         private Button _storeTerraformingHoeButton;
         private Button _storeTerraformingPickaxeButton;
-        private Button _addTerraformingFuelButton;
-        private Button _addTerraformingStoneButton;
+        private readonly Button[] _terraformingFuelSlotButtons = new Button[5];
+        private readonly Button[] _terraformingStoneSlotButtons = new Button[5];
 
         private Action _showOverviewAction;
         private Action _showWardAction;
@@ -75,15 +74,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _toggleStructureDamageProtectionAction;
         private Action _toggleTerraformingAction;
         private Action _toggleTerraformingRunningAction;
-        private Action _cycleTerraformingModeAction;
         private Action _decreaseTerraformingRadiusAction;
         private Action _increaseTerraformingRadiusAction;
-        private Action _setTerraformingTargetHeightFromWardAction;
-        private Action _setTerraformingTargetHeightFromPlayerAction;
         private Action _storeTerraformingHoeAction;
         private Action _storeTerraformingPickaxeAction;
-        private Action _addTerraformingFuelAction;
-        private Action _addTerraformingStoneAction;
+        private Action<int> _addTerraformingFuelSlotAction;
+        private Action<int> _addTerraformingStoneSlotAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -118,15 +114,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
-            Action cycleTerraformingModeAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
-            Action setTerraformingTargetHeightFromWardAction,
-            Action setTerraformingTargetHeightFromPlayerAction,
             Action storeTerraformingHoeAction,
             Action storeTerraformingPickaxeAction,
-            Action addTerraformingFuelAction,
-            Action addTerraformingStoneAction,
+            Action<int> addTerraformingFuelSlotAction,
+            Action<int> addTerraformingStoneSlotAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -150,15 +143,12 @@ namespace ClanTerritory.Features.WardMenu.UI
                 toggleStructureDamageProtectionAction,
                 toggleTerraformingAction,
                 toggleTerraformingRunningAction,
-                cycleTerraformingModeAction,
                 decreaseTerraformingRadiusAction,
                 increaseTerraformingRadiusAction,
-                setTerraformingTargetHeightFromWardAction,
-                setTerraformingTargetHeightFromPlayerAction,
                 storeTerraformingHoeAction,
                 storeTerraformingPickaxeAction,
-                addTerraformingFuelAction,
-                addTerraformingStoneAction,
+                addTerraformingFuelSlotAction,
+                addTerraformingStoneSlotAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -268,6 +258,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardPanel = null;
             _territoryPanel = null;
             _terraformingPanel = null;
+            _terraformingStoragePanel = null;
 
             _titleText = null;
             _subtitleText = null;
@@ -278,7 +269,6 @@ namespace ClanTerritory.Features.WardMenu.UI
             _radiusValueText = null;
             _doorAutoCloseValueText = null;
             _terraformingRadiusValueText = null;
-            _terraformingTargetHeightValueText = null;
 
             _overviewButton = null;
             _wardButton = null;
@@ -296,15 +286,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionButton = null;
             _toggleTerraformingButton = null;
             _toggleTerraformingRunningButton = null;
-            _cycleTerraformingModeButton = null;
+            _openTerraformingPreparationButton = null;
+            _closeTerraformingPreparationButton = null;
             _decreaseTerraformingRadiusButton = null;
             _increaseTerraformingRadiusButton = null;
-            _setTerraformingTargetHeightFromWardButton = null;
-            _setTerraformingTargetHeightFromPlayerButton = null;
             _storeTerraformingHoeButton = null;
             _storeTerraformingPickaxeButton = null;
-            _addTerraformingFuelButton = null;
-            _addTerraformingStoneButton = null;
 
             ClearActions();
         }
@@ -346,15 +333,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
-            Action cycleTerraformingModeAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
-            Action setTerraformingTargetHeightFromWardAction,
-            Action setTerraformingTargetHeightFromPlayerAction,
             Action storeTerraformingHoeAction,
             Action storeTerraformingPickaxeAction,
-            Action addTerraformingFuelAction,
-            Action addTerraformingStoneAction,
+            Action<int> addTerraformingFuelSlotAction,
+            Action<int> addTerraformingStoneSlotAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -374,15 +358,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionAction = toggleStructureDamageProtectionAction;
             _toggleTerraformingAction = toggleTerraformingAction;
             _toggleTerraformingRunningAction = toggleTerraformingRunningAction;
-            _cycleTerraformingModeAction = cycleTerraformingModeAction;
             _decreaseTerraformingRadiusAction = decreaseTerraformingRadiusAction;
             _increaseTerraformingRadiusAction = increaseTerraformingRadiusAction;
-            _setTerraformingTargetHeightFromWardAction = setTerraformingTargetHeightFromWardAction;
-            _setTerraformingTargetHeightFromPlayerAction = setTerraformingTargetHeightFromPlayerAction;
             _storeTerraformingHoeAction = storeTerraformingHoeAction;
             _storeTerraformingPickaxeAction = storeTerraformingPickaxeAction;
-            _addTerraformingFuelAction = addTerraformingFuelAction;
-            _addTerraformingStoneAction = addTerraformingStoneAction;
+            _addTerraformingFuelSlotAction = addTerraformingFuelSlotAction;
+            _addTerraformingStoneSlotAction = addTerraformingStoneSlotAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -405,15 +386,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionAction = null;
             _toggleTerraformingAction = null;
             _toggleTerraformingRunningAction = null;
-            _cycleTerraformingModeAction = null;
             _decreaseTerraformingRadiusAction = null;
             _increaseTerraformingRadiusAction = null;
-            _setTerraformingTargetHeightFromWardAction = null;
-            _setTerraformingTargetHeightFromPlayerAction = null;
             _storeTerraformingHoeAction = null;
             _storeTerraformingPickaxeAction = null;
-            _addTerraformingFuelAction = null;
-            _addTerraformingStoneAction = null;
+            _addTerraformingFuelSlotAction = null;
+            _addTerraformingStoneSlotAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -457,16 +435,15 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Group access: " + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled");
 
             _terraformingText.text =
-                "Territory Terraforming\n\n" +
+                "Territory Leveling\n\n" +
                 "Status: " + model.Terraforming.Status + "\n" +
-                "Mode: " + model.Terraforming.Mode + "\n" +
+                "Target: ward height (" + FormatHeight(model.Terraforming.TargetHeight) + ")\n" +
                 "Work radius: " + FormatRadius(model.Terraforming.Radius) + " m\n" +
-                "Target height: " + FormatHeight(model.Terraforming.TargetHeight) + "\n" +
-                "Fuel: " + FormatAmount(model.Terraforming.FuelStored) + " / 250\n" +
-                "Stone: " + FormatAmount(model.Terraforming.StoneStored) + " / 500\n" +
-                "Hoe slot: " + FormatSlot(model.Terraforming.HoeStored, "Hoe") + "\n" +
-                "Pickaxe slot: " + FormatSlot(model.Terraforming.PickaxeStored, "Pickaxe") + "\n" +
-                "Scan: " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex;
+                "Tools: " + FormatSlot(model.Terraforming.HoeStored, "Hoe") + " / " + FormatSlot(model.Terraforming.PickaxeStored, "Pickaxe") + "\n" +
+                "Fuel: " + model.Terraforming.FuelStored + " / 2500\n" +
+                "Stone: " + model.Terraforming.StoneStored + " / 2500\n" +
+                "Scan: " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex + "\n\n" +
+                "Preparation opens a chest-style storage panel.";
 
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
@@ -476,9 +453,6 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_terraformingRadiusValueText != null)
                 _terraformingRadiusValueText.text = FormatRadius(model.Terraforming.Radius) + " m";
-
-            if (_terraformingTargetHeightValueText != null)
-                _terraformingTargetHeightValueText.text = FormatHeight(model.Terraforming.TargetHeight);
 
             SetButtonText(
                 _toggleProtectionButton,
@@ -506,17 +480,14 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonText(_increaseRadiusButton, "+5");
             SetButtonText(_decreaseDoorAutoCloseButton, "-1");
             SetButtonText(_increaseDoorAutoCloseButton, "+1");
-            SetButtonText(_toggleTerraformingButton, model.Terraforming.Enabled ? "Disable Terraforming" : "Enable Terraforming");
-            SetButtonText(_toggleTerraformingRunningButton, model.Terraforming.Running ? "Stop" : "Start");
-            SetButtonText(_cycleTerraformingModeButton, "Mode: " + model.Terraforming.Mode);
+            SetButtonText(_toggleTerraformingButton, model.Terraforming.Enabled ? "Disable Leveling" : "Enable Leveling");
+            SetButtonText(_toggleTerraformingRunningButton, model.Terraforming.Running ? "Stop Leveling" : "Start Leveling");
+            SetButtonText(_openTerraformingPreparationButton, "Prepare Leveling");
             SetButtonText(_decreaseTerraformingRadiusButton, "-2");
             SetButtonText(_increaseTerraformingRadiusButton, "+2");
-            SetButtonText(_setTerraformingTargetHeightFromWardButton, "Target: Ward");
-            SetButtonText(_setTerraformingTargetHeightFromPlayerButton, "Target: Player");
-            SetButtonText(_storeTerraformingHoeButton, model.Terraforming.HoeStored ? "Hoe: Set" : "Place Hoe");
-            SetButtonText(_storeTerraformingPickaxeButton, model.Terraforming.PickaxeStored ? "Pickaxe: Set" : "Place Pickaxe");
-            SetButtonText(_addTerraformingFuelButton, "+ Fuel");
-            SetButtonText(_addTerraformingStoneButton, "+ Stone");
+            SetButtonText(_storeTerraformingHoeButton, model.Terraforming.HoeStored ? "Hoe: Set" : "Hoe Slot");
+            SetButtonText(_storeTerraformingPickaxeButton, model.Terraforming.PickaxeStored ? "Pickaxe: Set" : "Pickaxe Slot");
+            UpdateTerraformingStorageSlots(model);
 
             SetButtonActive(_toggleProtectionButton, ownerMode);
             SetButtonActive(_decreaseRadiusButton, ownerMode);
@@ -530,17 +501,13 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonActive(_toggleStructureDamageProtectionButton, ownerMode);
             SetButtonActive(_toggleTerraformingButton, ownerMode);
             SetButtonActive(_toggleTerraformingRunningButton, ownerMode);
-            SetButtonActive(_cycleTerraformingModeButton, ownerMode);
+            SetButtonActive(_openTerraformingPreparationButton, ownerMode);
             SetButtonActive(_decreaseTerraformingRadiusButton, ownerMode);
             SetButtonActive(_increaseTerraformingRadiusButton, ownerMode);
-            SetButtonActive(_setTerraformingTargetHeightFromWardButton, ownerMode);
-            SetButtonActive(_setTerraformingTargetHeightFromPlayerButton, ownerMode);
             SetButtonActive(_storeTerraformingHoeButton, ownerMode);
             SetButtonActive(_storeTerraformingPickaxeButton, ownerMode);
-            SetButtonActive(_addTerraformingFuelButton, ownerMode);
-            SetButtonActive(_addTerraformingStoneButton, ownerMode);
+            SetStorageSlotButtonsActive(ownerMode);
             SetTextActive(_terraformingRadiusValueText, ownerMode);
-            SetTextActive(_terraformingTargetHeightValueText, ownerMode);
             SetButtonActive(_toggleSelfPermissionButton, selfPermissionMode);
 
             BuildPermittedPlayerRows(
@@ -624,6 +591,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardPanel = CreatePanelRoot("WardPanel");
             _territoryPanel = CreatePanelRoot("TerritoryPanel");
             _terraformingPanel = CreatePanelRoot("TerraformingPanel");
+            _terraformingStoragePanel = CreatePanelRoot("TerraformingPreparationChest");
 
             _overviewText = CreateLabel(
                 "",
@@ -700,25 +668,25 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _terraformingText = CreateLabel(
                 "",
-                new Vector2(0f, 40f),
+                new Vector2(0f, 52f),
                 18,
                 650f,
-                168f,
+                170f,
                 TextAnchor.UpperLeft,
                 gui.AveriaSerif,
                 gui.ValheimBeige);
 
             _terraformingText.transform.SetParent(_terraformingPanel.transform, false);
 
-            _toggleTerraformingButton = CreateButton(_terraformingPanel.transform, "Enable Terraforming", new Vector2(-190f, -62f), 220f, 30f);
-            _toggleTerraformingRunningButton = CreateButton(_terraformingPanel.transform, "Start", new Vector2(190f, -62f), 220f, 30f);
-            _cycleTerraformingModeButton = CreateButton(_terraformingPanel.transform, "Mode: Level", new Vector2(0f, -96f), 280f, 28f);
+            _toggleTerraformingButton = CreateButton(_terraformingPanel.transform, "Enable Leveling", new Vector2(-190f, -82f), 220f, 30f);
+            _toggleTerraformingRunningButton = CreateButton(_terraformingPanel.transform, "Start Leveling", new Vector2(190f, -82f), 220f, 30f);
+            _openTerraformingPreparationButton = CreateButton(_terraformingPanel.transform, "Prepare Leveling", new Vector2(0f, -120f), 280f, 30f);
 
-            _decreaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "-2", new Vector2(-150f, -128f), 76f, 28f);
+            _decreaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "-2", new Vector2(-150f, -158f), 76f, 28f);
 
             _terraformingRadiusValueText = CreateLabel(
                 "",
-                new Vector2(0f, -128f),
+                new Vector2(0f, -158f),
                 18,
                 110f,
                 28f,
@@ -728,26 +696,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _terraformingRadiusValueText.transform.SetParent(_terraformingPanel.transform, false);
 
-            _increaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "+2", new Vector2(150f, -128f), 76f, 28f);
-            _setTerraformingTargetHeightFromWardButton = CreateButton(_terraformingPanel.transform, "Target: Ward", new Vector2(-150f, -160f), 170f, 28f);
-            _setTerraformingTargetHeightFromPlayerButton = CreateButton(_terraformingPanel.transform, "Target: Player", new Vector2(150f, -160f), 170f, 28f);
+            _increaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "+2", new Vector2(150f, -158f), 76f, 28f);
 
-            _terraformingTargetHeightValueText = CreateLabel(
-                "",
-                new Vector2(0f, -190f),
-                18,
-                220f,
-                26f,
-                TextAnchor.MiddleCenter,
-                gui.AveriaSerifBold,
-                gui.ValheimOrange);
-
-            _terraformingTargetHeightValueText.transform.SetParent(_terraformingPanel.transform, false);
-
-            _storeTerraformingHoeButton = CreateButton(_terraformingPanel.transform, "Place Hoe", new Vector2(-240f, -220f), 145f, 28f);
-            _storeTerraformingPickaxeButton = CreateButton(_terraformingPanel.transform, "Place Pickaxe", new Vector2(-80f, -220f), 145f, 28f);
-            _addTerraformingFuelButton = CreateButton(_terraformingPanel.transform, "+ Fuel", new Vector2(80f, -220f), 145f, 28f);
-            _addTerraformingStoneButton = CreateButton(_terraformingPanel.transform, "+ Stone", new Vector2(240f, -220f), 145f, 28f);
+            BuildTerraformingPreparationChest(gui);
 
             _closeButton = CreateButton("Close", new Vector2(0f, -265f), 180f, 34f);
 
@@ -767,18 +718,111 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionButton.onClick.AddListener(RequestToggleStructureDamageProtection);
             _toggleTerraformingButton.onClick.AddListener(RequestToggleTerraforming);
             _toggleTerraformingRunningButton.onClick.AddListener(RequestToggleTerraformingRunning);
-            _cycleTerraformingModeButton.onClick.AddListener(RequestCycleTerraformingMode);
+            _openTerraformingPreparationButton.onClick.AddListener(RequestShowTerraformingPreparationChest);
             _decreaseTerraformingRadiusButton.onClick.AddListener(RequestDecreaseTerraformingRadius);
             _increaseTerraformingRadiusButton.onClick.AddListener(RequestIncreaseTerraformingRadius);
-            _setTerraformingTargetHeightFromWardButton.onClick.AddListener(RequestSetTerraformingTargetHeightFromWard);
-            _setTerraformingTargetHeightFromPlayerButton.onClick.AddListener(RequestSetTerraformingTargetHeightFromPlayer);
             _storeTerraformingHoeButton.onClick.AddListener(RequestStoreTerraformingHoe);
             _storeTerraformingPickaxeButton.onClick.AddListener(RequestStoreTerraformingPickaxe);
-            _addTerraformingFuelButton.onClick.AddListener(RequestAddTerraformingFuel);
-            _addTerraformingStoneButton.onClick.AddListener(RequestAddTerraformingStone);
 
             SetActivePanel(_overviewPanel);
             SetVisible(_visible);
+        }
+
+        private void BuildTerraformingPreparationChest(GUIManager gui)
+        {
+            if (_terraformingStoragePanel == null)
+                return;
+
+            Text title = CreateLabel(
+                "Leveling Preparation Chest",
+                new Vector2(0f, 105f),
+                20,
+                620f,
+                28f,
+                TextAnchor.MiddleCenter,
+                gui.AveriaSerifBold,
+                gui.ValheimOrange);
+
+            title.transform.SetParent(_terraformingStoragePanel.transform, false);
+
+            Text toolsLabel = CreateLabel(
+                "Tools",
+                new Vector2(-300f, 67f),
+                16,
+                120f,
+                24f,
+                TextAnchor.MiddleLeft,
+                gui.AveriaSerif,
+                gui.ValheimBeige);
+
+            toolsLabel.transform.SetParent(_terraformingStoragePanel.transform, false);
+
+            _storeTerraformingHoeButton = CreateButton(_terraformingStoragePanel.transform, "Hoe Slot", new Vector2(-75f, 67f), 155f, 34f);
+            _storeTerraformingPickaxeButton = CreateButton(_terraformingStoragePanel.transform, "Pickaxe Slot", new Vector2(105f, 67f), 155f, 34f);
+
+            Text fuelLabel = CreateLabel(
+                "Fuel slots, 500 each",
+                new Vector2(-245f, 23f),
+                15,
+                220f,
+                22f,
+                TextAnchor.MiddleLeft,
+                gui.AveriaSerif,
+                gui.ValheimBeige);
+
+            fuelLabel.transform.SetParent(_terraformingStoragePanel.transform, false);
+
+            for (int i = 0; i < _terraformingFuelSlotButtons.Length; i++)
+            {
+                int capturedIndex = i;
+                _terraformingFuelSlotButtons[i] = CreateButton(
+                    _terraformingStoragePanel.transform,
+                    "Fuel " + (i + 1),
+                    new Vector2(-240f + i * 120f, -15f),
+                    108f,
+                    34f);
+
+                _terraformingFuelSlotButtons[i].onClick.AddListener(
+                    delegate
+                    {
+                        RequestAddTerraformingFuelSlot(capturedIndex);
+                    });
+            }
+
+            Text stoneLabel = CreateLabel(
+                "Stone slots, 500 each",
+                new Vector2(-245f, -61f),
+                15,
+                220f,
+                22f,
+                TextAnchor.MiddleLeft,
+                gui.AveriaSerif,
+                gui.ValheimBeige);
+
+            stoneLabel.transform.SetParent(_terraformingStoragePanel.transform, false);
+
+            for (int i = 0; i < _terraformingStoneSlotButtons.Length; i++)
+            {
+                int capturedIndex = i;
+                _terraformingStoneSlotButtons[i] = CreateButton(
+                    _terraformingStoragePanel.transform,
+                    "Stone " + (i + 1),
+                    new Vector2(-240f + i * 120f, -99f),
+                    108f,
+                    34f);
+
+                _terraformingStoneSlotButtons[i].onClick.AddListener(
+                    delegate
+                    {
+                        RequestAddTerraformingStoneSlot(capturedIndex);
+                    });
+            }
+
+            _closeTerraformingPreparationButton = CreateButton(_terraformingStoragePanel.transform, "Back", new Vector2(0f, -145f), 140f, 30f);
+            _closeTerraformingPreparationButton.onClick.AddListener(RequestCloseTerraformingPreparationChest);
+            _storeTerraformingHoeButton.onClick.AddListener(RequestStoreTerraformingHoe);
+            _storeTerraformingPickaxeButton.onClick.AddListener(RequestStoreTerraformingPickaxe);
+            _terraformingStoragePanel.SetActive(false);
         }
 
         private GameObject CreatePanelRoot(string name)
@@ -871,6 +915,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_terraformingPanel != null)
                 _terraformingPanel.SetActive(activePanel == _terraformingPanel);
+
+            if (_terraformingStoragePanel != null)
+                _terraformingStoragePanel.SetActive(false);
         }
 
         private void BuildPermittedPlayerRows(WardMenuModel model, bool allowRemove)
@@ -955,6 +1002,47 @@ namespace ClanTerritory.Features.WardMenu.UI
             }
 
             _permittedPlayerRowObjects.Clear();
+        }
+
+        private void UpdateTerraformingStorageSlots(WardMenuModel model)
+        {
+            if (model == null || model.Terraforming == null)
+                return;
+
+            for (int i = 0; i < _terraformingFuelSlotButtons.Length; i++)
+            {
+                int value = GetSlotValue(model.Terraforming.FuelSlots, i);
+
+                SetButtonText(
+                    _terraformingFuelSlotButtons[i],
+                    "Fuel " + (i + 1) + "\n" + value + "/500");
+            }
+
+            for (int i = 0; i < _terraformingStoneSlotButtons.Length; i++)
+            {
+                int value = GetSlotValue(model.Terraforming.StoneSlots, i);
+
+                SetButtonText(
+                    _terraformingStoneSlotButtons[i],
+                    "Stone " + (i + 1) + "\n" + value + "/500");
+            }
+        }
+
+        private static int GetSlotValue(int[] slots, int index)
+        {
+            if (slots == null || index < 0 || index >= slots.Length)
+                return 0;
+
+            return slots[index];
+        }
+
+        private void SetStorageSlotButtonsActive(bool active)
+        {
+            for (int i = 0; i < _terraformingFuelSlotButtons.Length; i++)
+                SetButtonActive(_terraformingFuelSlotButtons[i], active);
+
+            for (int i = 0; i < _terraformingStoneSlotButtons.Length; i++)
+                SetButtonActive(_terraformingStoneSlotButtons[i], active);
         }
 
         private static string FormatRadius(float radius)
@@ -1048,6 +1136,18 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _showTerraformingAction();
         }
 
+        private void RequestShowTerraformingPreparationChest()
+        {
+            if (_terraformingStoragePanel != null)
+                _terraformingStoragePanel.SetActive(true);
+        }
+
+        private void RequestCloseTerraformingPreparationChest()
+        {
+            if (_terraformingStoragePanel != null)
+                _terraformingStoragePanel.SetActive(false);
+        }
+
         private void RequestToggleProtection()
         {
             if (_toggleProtectionAction != null)
@@ -1120,11 +1220,6 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _toggleTerraformingRunningAction();
         }
 
-        private void RequestCycleTerraformingMode()
-        {
-            if (_cycleTerraformingModeAction != null)
-                _cycleTerraformingModeAction();
-        }
 
         private void RequestDecreaseTerraformingRadius()
         {
@@ -1138,17 +1233,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _increaseTerraformingRadiusAction();
         }
 
-        private void RequestSetTerraformingTargetHeightFromWard()
-        {
-            if (_setTerraformingTargetHeightFromWardAction != null)
-                _setTerraformingTargetHeightFromWardAction();
-        }
 
-        private void RequestSetTerraformingTargetHeightFromPlayer()
-        {
-            if (_setTerraformingTargetHeightFromPlayerAction != null)
-                _setTerraformingTargetHeightFromPlayerAction();
-        }
 
         private void RequestStoreTerraformingHoe()
         {
@@ -1162,16 +1247,16 @@ namespace ClanTerritory.Features.WardMenu.UI
                 _storeTerraformingPickaxeAction();
         }
 
-        private void RequestAddTerraformingFuel()
+        private void RequestAddTerraformingFuelSlot(int slotIndex)
         {
-            if (_addTerraformingFuelAction != null)
-                _addTerraformingFuelAction();
+            if (_addTerraformingFuelSlotAction != null)
+                _addTerraformingFuelSlotAction(slotIndex);
         }
 
-        private void RequestAddTerraformingStone()
+        private void RequestAddTerraformingStoneSlot(int slotIndex)
         {
-            if (_addTerraformingStoneAction != null)
-                _addTerraformingStoneAction();
+            if (_addTerraformingStoneSlotAction != null)
+                _addTerraformingStoneSlotAction(slotIndex);
         }
 
         private void RequestCloseByInput()

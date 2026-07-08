@@ -95,7 +95,6 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", structureDamageProtection: " + territorySection.StructureDamageProtectionEnabled +
                 ", doorAutoCloseSeconds: " + territorySection.DoorAutoCloseSeconds +
                 ", terraformingEnabled: " + terraformingSection.Enabled +
-                ", terraformingMode: " + terraformingSection.Mode +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
@@ -113,11 +112,12 @@ namespace ClanTerritory.Features.WardMenu.Builders
             return new WardMenuTerraformingSection(
                 state.Enabled,
                 state.Running,
-                FormatMode(state.Mode),
                 state.Radius,
                 state.TargetHeight,
                 state.FuelStored,
                 state.StoneStored,
+                state.FuelSlots,
+                state.StoneSlots,
                 state.HoeStored,
                 state.PickaxeStored,
                 state.ScanProgress,
@@ -134,20 +134,6 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 return "Running";
 
             return "Ready";
-        }
-
-        private static string FormatMode(TerraformingMode mode)
-        {
-            if (mode == TerraformingMode.Raise)
-                return "Raise";
-
-            if (mode == TerraformingMode.Lower)
-                return "Lower";
-
-            if (mode == TerraformingMode.Smooth)
-                return "Smooth";
-
-            return "Level";
         }
 
         private static List<WardMenuPlayerModel> BuildPermittedPlayers(ZDO zdo)

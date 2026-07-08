@@ -14,11 +14,7 @@ namespace ClanTerritory.Features.Territory
 
         public const string TerraformingRunning = "ct_territory_terraforming_running";
 
-        public const string TerraformingMode = "ct_territory_terraforming_mode";
-
         public const string TerraformingRadius = "ct_territory_terraforming_radius";
-
-        public const string TerraformingTargetHeight = "ct_territory_terraforming_target_height";
 
         public const string TerraformingFuelStored = "ct_territory_terraforming_fuel_stored";
 
@@ -31,5 +27,9 @@ namespace ClanTerritory.Features.Territory
         public const string TerraformingScanProgress = "ct_territory_terraforming_scan_progress";
 
         public const string TerraformingScanIndex = "ct_territory_terraforming_scan_index";
+
+        public const string TerraformingFuelSlotPrefix = "ct_territory_terraforming_fuel_slot_";
+
+        public const string TerraformingStoneSlotPrefix = "ct_territory_terraforming_stone_slot_";
     }
 }

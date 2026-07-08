@@ -1,0 +1,22 @@
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
+
+namespace YamlDotNet.Serialization.ObjectGraphVisitors;
+
+internal sealed class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ECommentsObjectGraphVisitor : _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EChainedObjectGraphVisitor
+{
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ECommentsObjectGraphVisitor(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter> nextVisitor)
+		: base(nextVisitor)
+	{
+	}
+
+	public override bool EnterMapping(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIPropertyDescriptor key, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectDescriptor value, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter context, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer serializer)
+	{
+		_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlMemberAttribute customAttribute = key.GetCustomAttribute<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlMemberAttribute>();
+		if (customAttribute != null && customAttribute.Description != null)
+		{
+			context.Emit(new _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EComment(customAttribute.Description, isInline: false));
+		}
+		return base.EnterMapping(key, value, context, serializer);
+	}
+}

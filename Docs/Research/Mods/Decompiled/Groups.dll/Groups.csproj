@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Groups</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Groups.icons.groupMapPingIcon.png" />
+    <None Remove="Groups.icons.groupPlayerIcon.png" />
+    <None Remove="Groups.icons.groupLeaderIcon.png" />
+    <None Remove="Groups.translations.English.yml" />
+    <None Remove="ILRepack.List" />
+    <EmbeddedResource Include="Groups.icons.groupMapPingIcon.png" LogicalName="Groups.icons.groupMapPingIcon.png" />
+    <EmbeddedResource Include="Groups.icons.groupPlayerIcon.png" LogicalName="Groups.icons.groupPlayerIcon.png" />
+    <EmbeddedResource Include="Groups.icons.groupLeaderIcon.png" LogicalName="Groups.icons.groupLeaderIcon.png" />
+    <EmbeddedResource Include="Groups.translations.English.yml" LogicalName="Groups.translations.English.yml" />
+    <EmbeddedResource Include="ILRepack.List" LogicalName="ILRepack.List" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="assembly_valheim" />
+    <Reference Include="UnityEngine.UI" />
+    <Reference Include="BepInEx" />
+    <Reference Include="0Harmony" />
+    <Reference Include="Unity.TextMeshPro" />
+    <Reference Include="UnityEngine.TextRenderingModule" />
+    <Reference Include="assembly_guiutils" />
+    <Reference Include="Splatform" />
+    <Reference Include="System.Core">
+      <HintPath>../../../../usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.25/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule" />
+    <Reference Include="UnityEngine.ImageConversionModule" />
+    <Reference Include="gui_framework" />
+    <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="assembly_utils" />
+    <Reference Include="Mono.Cecil" />
+    <Reference Include="BepInEx.Preloader" />
+  </ItemGroup>
+</Project>

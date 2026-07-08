@@ -89,14 +89,6 @@ namespace ClanTerritory.Features.WardMenu.Actions
             return _territoryTerraformingService.RequestToggleRunning(wardId, privateArea, player);
         }
 
-        public bool CycleTerraformingMode(WardId wardId, PrivateArea privateArea, Player player)
-        {
-            if (!TryGetTerraformingService("CycleTerraformingMode", wardId))
-                return false;
-
-            return _territoryTerraformingService.RequestCycleMode(wardId, privateArea, player);
-        }
-
         public bool DecreaseTerraformingRadius(WardId wardId, PrivateArea privateArea, Player player)
         {
             if (!TryGetTerraformingService("DecreaseTerraformingRadius", wardId))
@@ -111,22 +103,6 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return false;
 
             return _territoryTerraformingService.RequestIncreaseRadius(wardId, privateArea, player);
-        }
-
-        public bool SetTerraformingTargetHeightFromWard(WardId wardId, PrivateArea privateArea, Player player)
-        {
-            if (!TryGetTerraformingService("SetTerraformingTargetHeightFromWard", wardId))
-                return false;
-
-            return _territoryTerraformingService.RequestSetTargetHeightFromWard(wardId, privateArea, player);
-        }
-
-        public bool SetTerraformingTargetHeightFromPlayer(WardId wardId, PrivateArea privateArea, Player player)
-        {
-            if (!TryGetTerraformingService("SetTerraformingTargetHeightFromPlayer", wardId))
-                return false;
-
-            return _territoryTerraformingService.RequestSetTargetHeightFromPlayer(wardId, privateArea, player);
         }
 
         public bool StoreTerraformingHoe(WardId wardId, PrivateArea privateArea, Player player)
@@ -145,20 +121,20 @@ namespace ClanTerritory.Features.WardMenu.Actions
             return _territoryTerraformingService.RequestStorePickaxe(wardId, privateArea, player);
         }
 
-        public bool AddTerraformingFuel(WardId wardId, PrivateArea privateArea, Player player)
+        public bool AddTerraformingFuelSlot(WardId wardId, PrivateArea privateArea, Player player, int slotIndex)
         {
-            if (!TryGetTerraformingService("AddTerraformingFuel", wardId))
+            if (!TryGetTerraformingService("AddTerraformingFuelSlot", wardId))
                 return false;
 
-            return _territoryTerraformingService.RequestAddFuel(wardId, privateArea, player);
+            return _territoryTerraformingService.RequestAddFuelSlot(wardId, privateArea, player, slotIndex);
         }
 
-        public bool AddTerraformingStone(WardId wardId, PrivateArea privateArea, Player player)
+        public bool AddTerraformingStoneSlot(WardId wardId, PrivateArea privateArea, Player player, int slotIndex)
         {
-            if (!TryGetTerraformingService("AddTerraformingStone", wardId))
+            if (!TryGetTerraformingService("AddTerraformingStoneSlot", wardId))
                 return false;
 
-            return _territoryTerraformingService.RequestAddStone(wardId, privateArea, player);
+            return _territoryTerraformingService.RequestAddStoneSlot(wardId, privateArea, player, slotIndex);
         }
 
         public void ToggleGuildAccess(WardId wardId)

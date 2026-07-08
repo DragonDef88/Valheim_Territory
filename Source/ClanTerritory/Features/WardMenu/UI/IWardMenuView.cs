@@ -25,15 +25,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
-            Action cycleTerraformingModeAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
-            Action setTerraformingTargetHeightFromWardAction,
-            Action setTerraformingTargetHeightFromPlayerAction,
             Action storeTerraformingHoeAction,
             Action storeTerraformingPickaxeAction,
-            Action addTerraformingFuelAction,
-            Action addTerraformingStoneAction,
+            Action<int> addTerraformingFuelSlotAction,
+            Action<int> addTerraformingStoneSlotAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 

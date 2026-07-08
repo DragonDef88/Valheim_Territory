@@ -1,0 +1,10 @@
+using System;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization.Utilities;
+
+namespace YamlDotNet.Serialization;
+
+public interface _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIValueDeserializer
+{
+	object? DeserializeValue(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIParser parser, Type expectedType, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ESerializerState state, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIValueDeserializer nestedObjectDeserializer);
+}

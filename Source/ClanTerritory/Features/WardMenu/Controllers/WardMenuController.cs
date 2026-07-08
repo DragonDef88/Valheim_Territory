@@ -78,15 +78,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestToggleStructureDamageProtection,
                 RequestToggleTerraforming,
                 RequestToggleTerraformingRunning,
-                RequestCycleTerraformingMode,
                 RequestDecreaseTerraformingRadius,
                 RequestIncreaseTerraformingRadius,
-                RequestSetTerraformingTargetHeightFromWard,
-                RequestSetTerraformingTargetHeightFromPlayer,
                 RequestStoreTerraformingHoe,
                 RequestStoreTerraformingPickaxe,
-                RequestAddTerraformingFuel,
-                RequestAddTerraformingStone,
+                RequestAddTerraformingFuelSlot,
+                RequestAddTerraformingStoneSlot,
                 CloseByInput,
                 CloseByDistance);
 
@@ -230,13 +227,6 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 "ToggleTerraformingRunning");
         }
 
-        public void RequestCycleTerraformingMode()
-        {
-            RefreshIfActionStarted(
-                _territoryActions.CycleTerraformingMode(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "CycleTerraformingMode");
-        }
-
         public void RequestDecreaseTerraformingRadius()
         {
             RefreshIfActionStarted(
@@ -249,20 +239,6 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             RefreshIfActionStarted(
                 _territoryActions.IncreaseTerraformingRadius(_currentWardId, _currentPrivateArea, _currentPlayer),
                 "IncreaseTerraformingRadius");
-        }
-
-        public void RequestSetTerraformingTargetHeightFromWard()
-        {
-            RefreshIfActionStarted(
-                _territoryActions.SetTerraformingTargetHeightFromWard(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "SetTerraformingTargetHeightFromWard");
-        }
-
-        public void RequestSetTerraformingTargetHeightFromPlayer()
-        {
-            RefreshIfActionStarted(
-                _territoryActions.SetTerraformingTargetHeightFromPlayer(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "SetTerraformingTargetHeightFromPlayer");
         }
 
         public void RequestStoreTerraformingHoe()
@@ -279,18 +255,18 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 "StoreTerraformingPickaxe");
         }
 
-        public void RequestAddTerraformingFuel()
+        public void RequestAddTerraformingFuelSlot(int slotIndex)
         {
             RefreshIfActionStarted(
-                _territoryActions.AddTerraformingFuel(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "AddTerraformingFuel");
+                _territoryActions.AddTerraformingFuelSlot(_currentWardId, _currentPrivateArea, _currentPlayer, slotIndex),
+                "AddTerraformingFuelSlot");
         }
 
-        public void RequestAddTerraformingStone()
+        public void RequestAddTerraformingStoneSlot(int slotIndex)
         {
             RefreshIfActionStarted(
-                _territoryActions.AddTerraformingStone(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "AddTerraformingStone");
+                _territoryActions.AddTerraformingStoneSlot(_currentWardId, _currentPrivateArea, _currentPlayer, slotIndex),
+                "AddTerraformingStoneSlot");
         }
 
         public void RequestRenameTerritoryDialog()

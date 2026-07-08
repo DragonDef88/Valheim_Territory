@@ -298,29 +298,40 @@ namespace ClanTerritory.Features.Territory
     }
 }
 
-
 namespace ClanTerritory.Features.Territory.Services
 {
     internal sealed class TerritoryTerraformingService
     {
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
-        private const string SetModeRpc = "CT_SetTerraformingMode";
         private const string SetRadiusRpc = "CT_SetTerraformingRadius";
-        private const string SetTargetHeightRpc = "CT_SetTerraformingTargetHeight";
         private const string SetHoeStoredRpc = "CT_SetTerraformingHoeStored";
         private const string SetPickaxeStoredRpc = "CT_SetTerraformingPickaxeStored";
-        private const string AddFuelRpc = "CT_AddTerraformingFuel";
-        private const string AddStoneRpc = "CT_AddTerraformingStone";
+        private const string AddFuelSlotRpc = "CT_AddTerraformingFuelSlot";
+        private const string AddStoneSlotRpc = "CT_AddTerraformingStoneSlot";
 
         private const float DefaultRadius = 12f;
         private const float MinimumRadius = 2f;
         private const float MaximumRadius = 80f;
         private const float RadiusStep = 2f;
-        private const float DefaultFuelAdd = 5f;
-        private const float DefaultStoneAdd = 10f;
-        private const float MaximumFuel = 250f;
-        private const float MaximumStone = 500f;
+        private const int SlotCapacity = 500;
+        private const int FuelSlotCount = 5;
+        private const int StoneSlotCount = 5;
+
+        private static readonly string[] FuelPrefabNames =
+        {
+            "Wood",
+            "Coal",
+            "Resin"
+        };
+
+        private static readonly string[] PickaxePrefabNames =
+        {
+            "PickaxeAntler",
+            "PickaxeBronze",
+            "PickaxeIron",
+            "PickaxeBlackMetal"
+        };
 
         public void RegisterRpc(PrivateArea privateArea)
         {
@@ -349,25 +360,11 @@ namespace ClanTerritory.Features.Territory.Services
                     RPC_SetRunning(privateArea, zNetView, playerId, running);
                 });
 
-            zNetView.Register<long, int>(
-                SetModeRpc,
-                delegate(long sender, long playerId, int mode)
-                {
-                    RPC_SetMode(privateArea, zNetView, playerId, mode);
-                });
-
             zNetView.Register<long, float>(
                 SetRadiusRpc,
                 delegate(long sender, long playerId, float radius)
                 {
                     RPC_SetRadius(privateArea, zNetView, playerId, radius);
-                });
-
-            zNetView.Register<long, float>(
-                SetTargetHeightRpc,
-                delegate(long sender, long playerId, float targetHeight)
-                {
-                    RPC_SetTargetHeight(privateArea, zNetView, playerId, targetHeight);
                 });
 
             zNetView.Register<long, bool>(
@@ -384,18 +381,18 @@ namespace ClanTerritory.Features.Territory.Services
                     RPC_SetPickaxeStored(privateArea, zNetView, playerId, stored);
                 });
 
-            zNetView.Register<long, float>(
-                AddFuelRpc,
-                delegate(long sender, long playerId, float amount)
+            zNetView.Register<long, int, int>(
+                AddFuelSlotRpc,
+                delegate(long sender, long playerId, int slotIndex, int amount)
                 {
-                    RPC_AddFuel(privateArea, zNetView, playerId, amount);
+                    RPC_AddFuelSlot(privateArea, zNetView, playerId, slotIndex, amount);
                 });
 
-            zNetView.Register<long, float>(
-                AddStoneRpc,
-                delegate(long sender, long playerId, float amount)
+            zNetView.Register<long, int, int>(
+                AddStoneSlotRpc,
+                delegate(long sender, long playerId, int slotIndex, int amount)
                 {
-                    RPC_AddStone(privateArea, zNetView, playerId, amount);
+                    RPC_AddStoneSlot(privateArea, zNetView, playerId, slotIndex, amount);
                 });
 
             EnsureDefaults(privateArea);
@@ -405,8 +402,8 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
-            // Worker will be added in the next terrain-operation step.
-            // This package intentionally establishes the persistent controls and menu first.
+            // The terrain worker will use the ward height as the fixed target height.
+            // This package establishes the preparation chest and storage rules first.
         }
 
         public TerraformingState GetState(PrivateArea privateArea)
@@ -418,14 +415,23 @@ namespace ClanTerritory.Features.Territory.Services
             if (zdo == null)
                 return TerraformingState.Disabled();
 
+            int[] fuelSlots = ReadSlots(
+                zdo,
+                TerritoryZdoKeys.TerraformingFuelSlotPrefix,
+                FuelSlotCount);
+
+            int[] stoneSlots = ReadSlots(
+                zdo,
+                TerritoryZdoKeys.TerraformingStoneSlotPrefix,
+                StoneSlotCount);
+
             return new TerraformingState(
                 zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false),
                 zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false),
-                NormalizeMode(zdo.GetInt(TerritoryZdoKeys.TerraformingMode, (int)TerraformingMode.Level)),
                 NormalizeRadius(zdo.GetFloat(TerritoryZdoKeys.TerraformingRadius, DefaultRadius)),
-                zdo.GetFloat(TerritoryZdoKeys.TerraformingTargetHeight, privateArea.transform.position.y),
-                Mathf.Clamp(zdo.GetFloat(TerritoryZdoKeys.TerraformingFuelStored, 0f), 0f, MaximumFuel),
-                Mathf.Clamp(zdo.GetFloat(TerritoryZdoKeys.TerraformingStoneStored, 0f), 0f, MaximumStone),
+                privateArea != null ? privateArea.transform.position.y : 0f,
+                fuelSlots,
+                stoneSlots,
                 zdo.GetBool(TerritoryZdoKeys.TerraformingHoeStored, false),
                 zdo.GetBool(TerritoryZdoKeys.TerraformingPickaxeStored, false),
                 Mathf.Max(0f, zdo.GetFloat(TerritoryZdoKeys.TerraformingScanProgress, 0f)),
@@ -460,21 +466,6 @@ namespace ClanTerritory.Features.Territory.Services
                 !state.Running);
         }
 
-        public bool RequestCycleMode(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player)
-        {
-            TerraformingState state = GetState(privateArea);
-            int nextMode = ((int)state.Mode + 1) % 4;
-
-            return RequestSetMode(
-                wardId,
-                privateArea,
-                player,
-                nextMode);
-        }
-
         public bool RequestDecreaseRadius(
             WardId wardId,
             PrivateArea privateArea,
@@ -503,41 +494,14 @@ namespace ClanTerritory.Features.Territory.Services
                 state.Radius + RadiusStep);
         }
 
-        public bool RequestSetTargetHeightFromWard(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player)
-        {
-            if (privateArea == null)
-                return false;
-
-            return RequestSetTargetHeight(
-                wardId,
-                privateArea,
-                player,
-                privateArea.transform.position.y);
-        }
-
-        public bool RequestSetTargetHeightFromPlayer(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player)
-        {
-            if (player == null)
-                return false;
-
-            return RequestSetTargetHeight(
-                wardId,
-                privateArea,
-                player,
-                player.transform.position.y);
-        }
-
         public bool RequestStoreHoe(
             WardId wardId,
             PrivateArea privateArea,
             Player player)
         {
+            if (!TryConsumeTool(player, "Hoe"))
+                return false;
+
             return RequestSetHoeStored(
                 wardId,
                 privateArea,
@@ -550,6 +514,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
+            if (!TryConsumeAnyTool(player, PickaxePrefabNames))
+                return false;
+
             return RequestSetPickaxeStored(
                 wardId,
                 privateArea,
@@ -557,28 +524,118 @@ namespace ClanTerritory.Features.Territory.Services
                 true);
         }
 
-        public bool RequestAddFuel(
+        public bool RequestAddFuelSlot(
             WardId wardId,
             PrivateArea privateArea,
-            Player player)
+            Player player,
+            int slotIndex)
         {
-            return RequestAddFuel(
-                wardId,
-                privateArea,
+            if (!ValidateCreatorAction("AddTerraformingFuelSlot", wardId, privateArea, player))
+                return false;
+
+            if (!IsValidFuelSlot(slotIndex))
+                return false;
+
+            ZDO zdo = GetZdo(privateArea);
+
+            if (zdo == null)
+                return false;
+
+            int stored = GetSlot(
+                zdo,
+                TerritoryZdoKeys.TerraformingFuelSlotPrefix,
+                slotIndex);
+
+            int capacity = SlotCapacity - stored;
+
+            if (capacity <= 0)
+            {
+                player.Message(MessageHud.MessageType.Center, "Fuel slot is full");
+                return false;
+            }
+
+            int moved = TakeItemsFromPlayer(
                 player,
-                DefaultFuelAdd);
+                FuelPrefabNames,
+                capacity);
+
+            if (moved <= 0)
+            {
+                player.Message(MessageHud.MessageType.Center, "No fuel in inventory");
+                return false;
+            }
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+                return false;
+
+            zNetView.InvokeRPC(
+                AddFuelSlotRpc,
+                player.GetPlayerID(),
+                slotIndex,
+                moved);
+
+            player.Message(MessageHud.MessageType.Center, "Fuel stored: " + moved);
+            ModLog.Info("[TerritoryTerraforming] Add fuel slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
+            return true;
         }
 
-        public bool RequestAddStone(
+        public bool RequestAddStoneSlot(
             WardId wardId,
             PrivateArea privateArea,
-            Player player)
+            Player player,
+            int slotIndex)
         {
-            return RequestAddStone(
-                wardId,
-                privateArea,
+            if (!ValidateCreatorAction("AddTerraformingStoneSlot", wardId, privateArea, player))
+                return false;
+
+            if (!IsValidStoneSlot(slotIndex))
+                return false;
+
+            ZDO zdo = GetZdo(privateArea);
+
+            if (zdo == null)
+                return false;
+
+            int stored = GetSlot(
+                zdo,
+                TerritoryZdoKeys.TerraformingStoneSlotPrefix,
+                slotIndex);
+
+            int capacity = SlotCapacity - stored;
+
+            if (capacity <= 0)
+            {
+                player.Message(MessageHud.MessageType.Center, "Stone slot is full");
+                return false;
+            }
+
+            int moved = TakeItemsFromPlayer(
                 player,
-                DefaultStoneAdd);
+                new[] { "Stone" },
+                capacity);
+
+            if (moved <= 0)
+            {
+                player.Message(MessageHud.MessageType.Center, "No stone in inventory");
+                return false;
+            }
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+                return false;
+
+            zNetView.InvokeRPC(
+                AddStoneSlotRpc,
+                player.GetPlayerID(),
+                slotIndex,
+                moved);
+
+            player.Message(MessageHud.MessageType.Center, "Stone stored: " + moved);
+            ModLog.Info("[TerritoryTerraforming] Add stone slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
+            return true;
         }
 
         private bool RequestSetEnabled(
@@ -611,21 +668,6 @@ namespace ClanTerritory.Features.Territory.Services
                 running);
         }
 
-        private bool RequestSetMode(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            int mode)
-        {
-            return InvokeOwnerRpc(
-                wardId,
-                privateArea,
-                player,
-                "SetTerraformingMode",
-                SetModeRpc,
-                NormalizeMode(mode));
-        }
-
         private bool RequestSetRadius(
             WardId wardId,
             PrivateArea privateArea,
@@ -639,21 +681,6 @@ namespace ClanTerritory.Features.Territory.Services
                 "SetTerraformingRadius",
                 SetRadiusRpc,
                 NormalizeRadius(radius));
-        }
-
-        private bool RequestSetTargetHeight(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            float targetHeight)
-        {
-            return InvokeOwnerRpc(
-                wardId,
-                privateArea,
-                player,
-                "SetTerraformingTargetHeight",
-                SetTargetHeightRpc,
-                targetHeight);
         }
 
         private bool RequestSetHoeStored(
@@ -684,36 +711,6 @@ namespace ClanTerritory.Features.Territory.Services
                 "SetTerraformingPickaxeStored",
                 SetPickaxeStoredRpc,
                 stored);
-        }
-
-        private bool RequestAddFuel(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            float amount)
-        {
-            return InvokeOwnerRpc(
-                wardId,
-                privateArea,
-                player,
-                "AddTerraformingFuel",
-                AddFuelRpc,
-                amount);
-        }
-
-        private bool RequestAddStone(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player,
-            float amount)
-        {
-            return InvokeOwnerRpc(
-                wardId,
-                privateArea,
-                player,
-                "AddTerraformingStone",
-                AddStoneRpc,
-                amount);
         }
 
         private bool InvokeOwnerRpc(
@@ -836,21 +833,6 @@ namespace ClanTerritory.Features.Territory.Services
             ModLog.Info("[TerritoryTerraforming] Running saved: " + running);
         }
 
-        private void RPC_SetMode(
-            PrivateArea privateArea,
-            ZNetView zNetView,
-            long playerId,
-            int mode)
-        {
-            if (!TryGetOwnerZdo("SetTerraformingMode", privateArea, zNetView, playerId, out ZDO zdo))
-                return;
-
-            zdo.Set(TerritoryZdoKeys.TerraformingMode, NormalizeMode(mode));
-            zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
-            zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
-            ModLog.Info("[TerritoryTerraforming] Mode saved: " + NormalizeMode(mode));
-        }
-
         private void RPC_SetRadius(
             PrivateArea privateArea,
             ZNetView zNetView,
@@ -864,21 +846,6 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
             zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
             ModLog.Info("[TerritoryTerraforming] Radius saved: " + NormalizeRadius(radius));
-        }
-
-        private void RPC_SetTargetHeight(
-            PrivateArea privateArea,
-            ZNetView zNetView,
-            long playerId,
-            float targetHeight)
-        {
-            if (!TryGetOwnerZdo("SetTerraformingTargetHeight", privateArea, zNetView, playerId, out ZDO zdo))
-                return;
-
-            zdo.Set(TerritoryZdoKeys.TerraformingTargetHeight, targetHeight);
-            zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
-            zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
-            ModLog.Info("[TerritoryTerraforming] Target height saved: " + targetHeight);
         }
 
         private void RPC_SetHoeStored(
@@ -907,36 +874,62 @@ namespace ClanTerritory.Features.Territory.Services
             ModLog.Info("[TerritoryTerraforming] Pickaxe slot saved: " + stored);
         }
 
-        private void RPC_AddFuel(
+        private void RPC_AddFuelSlot(
             PrivateArea privateArea,
             ZNetView zNetView,
             long playerId,
-            float amount)
+            int slotIndex,
+            int amount)
         {
-            if (!TryGetOwnerZdo("AddTerraformingFuel", privateArea, zNetView, playerId, out ZDO zdo))
+            if (!TryGetOwnerZdo("AddTerraformingFuelSlot", privateArea, zNetView, playerId, out ZDO zdo))
                 return;
 
-            float current = zdo.GetFloat(TerritoryZdoKeys.TerraformingFuelStored, 0f);
-            float next = Mathf.Clamp(current + Mathf.Max(0f, amount), 0f, MaximumFuel);
+            if (!IsValidFuelSlot(slotIndex))
+                return;
 
-            zdo.Set(TerritoryZdoKeys.TerraformingFuelStored, next);
-            ModLog.Info("[TerritoryTerraforming] Fuel stored: " + next);
+            int stored = GetSlot(zdo, TerritoryZdoKeys.TerraformingFuelSlotPrefix, slotIndex);
+            int moved = Mathf.Clamp(amount, 0, SlotCapacity - stored);
+
+            if (moved <= 0)
+                return;
+
+            SetSlot(
+                zdo,
+                TerritoryZdoKeys.TerraformingFuelSlotPrefix,
+                slotIndex,
+                stored + moved);
+
+            SyncLegacyTotals(zdo);
+            ModLog.Info("[TerritoryTerraforming] Fuel slot " + slotIndex + " stored: " + (stored + moved));
         }
 
-        private void RPC_AddStone(
+        private void RPC_AddStoneSlot(
             PrivateArea privateArea,
             ZNetView zNetView,
             long playerId,
-            float amount)
+            int slotIndex,
+            int amount)
         {
-            if (!TryGetOwnerZdo("AddTerraformingStone", privateArea, zNetView, playerId, out ZDO zdo))
+            if (!TryGetOwnerZdo("AddTerraformingStoneSlot", privateArea, zNetView, playerId, out ZDO zdo))
                 return;
 
-            float current = zdo.GetFloat(TerritoryZdoKeys.TerraformingStoneStored, 0f);
-            float next = Mathf.Clamp(current + Mathf.Max(0f, amount), 0f, MaximumStone);
+            if (!IsValidStoneSlot(slotIndex))
+                return;
 
-            zdo.Set(TerritoryZdoKeys.TerraformingStoneStored, next);
-            ModLog.Info("[TerritoryTerraforming] Stone stored: " + next);
+            int stored = GetSlot(zdo, TerritoryZdoKeys.TerraformingStoneSlotPrefix, slotIndex);
+            int moved = Mathf.Clamp(amount, 0, SlotCapacity - stored);
+
+            if (moved <= 0)
+                return;
+
+            SetSlot(
+                zdo,
+                TerritoryZdoKeys.TerraformingStoneSlotPrefix,
+                slotIndex,
+                stored + moved);
+
+            SyncLegacyTotals(zdo);
+            ModLog.Info("[TerritoryTerraforming] Stone slot " + slotIndex + " stored: " + (stored + moved));
         }
 
         private static void EnsureDefaults(PrivateArea privateArea)
@@ -949,8 +942,57 @@ namespace ClanTerritory.Features.Territory.Services
             if (zdo.GetFloat(TerritoryZdoKeys.TerraformingRadius, 0f) <= 0f)
                 zdo.Set(TerritoryZdoKeys.TerraformingRadius, DefaultRadius);
 
-            if (zdo.GetFloat(TerritoryZdoKeys.TerraformingTargetHeight, -99999f) < -99990f)
-                zdo.Set(TerritoryZdoKeys.TerraformingTargetHeight, privateArea.transform.position.y);
+            SyncLegacyTotals(zdo);
+        }
+
+        private static int[] ReadSlots(
+            ZDO zdo,
+            string prefix,
+            int count)
+        {
+            int[] slots = new int[count];
+
+            for (int i = 0; i < count; i++)
+                slots[i] = Mathf.Clamp(zdo.GetInt(prefix + i, 0), 0, SlotCapacity);
+
+            return slots;
+        }
+
+        private static int GetSlot(
+            ZDO zdo,
+            string prefix,
+            int index)
+        {
+            return Mathf.Clamp(zdo.GetInt(prefix + index, 0), 0, SlotCapacity);
+        }
+
+        private static void SetSlot(
+            ZDO zdo,
+            string prefix,
+            int index,
+            int value)
+        {
+            zdo.Set(
+                prefix + index,
+                Mathf.Clamp(value, 0, SlotCapacity));
+        }
+
+        private static void SyncLegacyTotals(ZDO zdo)
+        {
+            if (zdo == null)
+                return;
+
+            int fuelTotal = 0;
+            int stoneTotal = 0;
+
+            for (int i = 0; i < FuelSlotCount; i++)
+                fuelTotal += GetSlot(zdo, TerritoryZdoKeys.TerraformingFuelSlotPrefix, i);
+
+            for (int i = 0; i < StoneSlotCount; i++)
+                stoneTotal += GetSlot(zdo, TerritoryZdoKeys.TerraformingStoneSlotPrefix, i);
+
+            zdo.Set(TerritoryZdoKeys.TerraformingFuelStored, (float)fuelTotal);
+            zdo.Set(TerritoryZdoKeys.TerraformingStoneStored, (float)stoneTotal);
         }
 
         private static bool ValidateCreatorAction(
@@ -1026,6 +1068,157 @@ namespace ClanTerritory.Features.Territory.Services
             return true;
         }
 
+        private static bool TryConsumeTool(Player player, string prefabName)
+        {
+            if (player == null)
+                return false;
+
+            Inventory inventory = player.GetInventory();
+
+            if (inventory == null)
+                return false;
+
+            ItemDrop.ItemData item = FindItemByPrefabName(
+                inventory,
+                prefabName);
+
+            if (item == null)
+            {
+                player.Message(MessageHud.MessageType.Center, "Required tool missing: " + prefabName);
+                return false;
+            }
+
+            player.UnequipItem(item, true);
+            inventory.RemoveOneItem(item);
+            player.Message(MessageHud.MessageType.Center, "Stored tool: " + prefabName);
+            return true;
+        }
+
+        private static bool TryConsumeAnyTool(Player player, string[] prefabNames)
+        {
+            if (player == null || prefabNames == null)
+                return false;
+
+            Inventory inventory = player.GetInventory();
+
+            if (inventory == null)
+                return false;
+
+            for (int i = 0; i < prefabNames.Length; i++)
+            {
+                ItemDrop.ItemData item = FindItemByPrefabName(
+                    inventory,
+                    prefabNames[i]);
+
+                if (item == null)
+                    continue;
+
+                player.UnequipItem(item, true);
+                inventory.RemoveOneItem(item);
+                player.Message(MessageHud.MessageType.Center, "Stored tool: " + prefabNames[i]);
+                return true;
+            }
+
+            player.Message(MessageHud.MessageType.Center, "Required pickaxe missing");
+            return false;
+        }
+
+        private static int TakeItemsFromPlayer(
+            Player player,
+            string[] prefabNames,
+            int maxAmount)
+        {
+            if (player == null || prefabNames == null || maxAmount <= 0)
+                return 0;
+
+            Inventory inventory = player.GetInventory();
+
+            if (inventory == null)
+                return 0;
+
+            int remaining = maxAmount;
+            int moved = 0;
+            System.Collections.Generic.List<ItemDrop.ItemData> items =
+                new System.Collections.Generic.List<ItemDrop.ItemData>(inventory.GetAllItems());
+
+            for (int i = 0; i < items.Count && remaining > 0; i++)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (item == null)
+                    continue;
+
+                if (player.IsItemEquiped(item))
+                    continue;
+
+                if (!MatchesAnyPrefabName(item, prefabNames))
+                    continue;
+
+                int amount = Mathf.Min(item.m_stack, remaining);
+
+                if (amount <= 0)
+                    continue;
+
+                inventory.RemoveItem(item, amount);
+                remaining -= amount;
+                moved += amount;
+            }
+
+            return moved;
+        }
+
+        private static ItemDrop.ItemData FindItemByPrefabName(
+            Inventory inventory,
+            string prefabName)
+        {
+            if (inventory == null || string.IsNullOrEmpty(prefabName))
+                return null;
+
+            System.Collections.Generic.List<ItemDrop.ItemData> items =
+                inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (MatchesPrefabName(item, prefabName))
+                    return item;
+            }
+
+            return null;
+        }
+
+        private static bool MatchesAnyPrefabName(
+            ItemDrop.ItemData item,
+            string[] prefabNames)
+        {
+            if (prefabNames == null)
+                return false;
+
+            for (int i = 0; i < prefabNames.Length; i++)
+            {
+                if (MatchesPrefabName(item, prefabNames[i]))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool MatchesPrefabName(
+            ItemDrop.ItemData item,
+            string prefabName)
+        {
+            if (item == null || string.IsNullOrEmpty(prefabName))
+                return false;
+
+            if (item.m_dropPrefab != null && item.m_dropPrefab.name == prefabName)
+                return true;
+
+            return item.m_shared != null &&
+                   (item.m_shared.m_name == prefabName ||
+                    item.m_shared.m_name == "$item_" + prefabName.ToLowerInvariant());
+        }
+
         private static ZDO GetZdo(PrivateArea privateArea)
         {
             if (privateArea == null)
@@ -1044,24 +1237,15 @@ namespace ClanTerritory.Features.Territory.Services
             return Mathf.Clamp(radius, MinimumRadius, MaximumRadius);
         }
 
-        private static int NormalizeMode(int mode)
+        private static bool IsValidFuelSlot(int slotIndex)
         {
-            if (mode < 0)
-                return 0;
-
-            if (mode > 3)
-                return 3;
-
-            return mode;
+            return slotIndex >= 0 && slotIndex < FuelSlotCount;
         }
-    }
 
-    internal enum TerraformingMode
-    {
-        Level = 0,
-        Raise = 1,
-        Lower = 2,
-        Smooth = 3
+        private static bool IsValidStoneSlot(int slotIndex)
+        {
+            return slotIndex >= 0 && slotIndex < StoneSlotCount;
+        }
     }
 
     internal sealed class TerraformingState
@@ -1070,15 +1254,17 @@ namespace ClanTerritory.Features.Territory.Services
 
         public bool Running { get; private set; }
 
-        public TerraformingMode Mode { get; private set; }
-
         public float Radius { get; private set; }
 
         public float TargetHeight { get; private set; }
 
-        public float FuelStored { get; private set; }
+        public int[] FuelSlots { get; private set; }
 
-        public float StoneStored { get; private set; }
+        public int[] StoneSlots { get; private set; }
+
+        public int FuelStored { get; private set; }
+
+        public int StoneStored { get; private set; }
 
         public bool HoeStored { get; private set; }
 
@@ -1091,11 +1277,10 @@ namespace ClanTerritory.Features.Territory.Services
         public TerraformingState(
             bool enabled,
             bool running,
-            int mode,
             float radius,
             float targetHeight,
-            float fuelStored,
-            float stoneStored,
+            int[] fuelSlots,
+            int[] stoneSlots,
             bool hoeStored,
             bool pickaxeStored,
             float scanProgress,
@@ -1103,11 +1288,12 @@ namespace ClanTerritory.Features.Territory.Services
         {
             Enabled = enabled;
             Running = running;
-            Mode = (TerraformingMode)mode;
             Radius = radius;
             TargetHeight = targetHeight;
-            FuelStored = fuelStored;
-            StoneStored = stoneStored;
+            FuelSlots = fuelSlots ?? new int[5];
+            StoneSlots = stoneSlots ?? new int[5];
+            FuelStored = Sum(FuelSlots);
+            StoneStored = Sum(StoneSlots);
             HoeStored = hoeStored;
             PickaxeStored = pickaxeStored;
             ScanProgress = scanProgress;
@@ -1119,15 +1305,27 @@ namespace ClanTerritory.Features.Territory.Services
             return new TerraformingState(
                 false,
                 false,
-                (int)TerraformingMode.Level,
                 12f,
                 0f,
-                0f,
-                0f,
+                new int[5],
+                new int[5],
                 false,
                 false,
                 0f,
                 0);
+        }
+
+        private static int Sum(int[] values)
+        {
+            if (values == null)
+                return 0;
+
+            int total = 0;
+
+            for (int i = 0; i < values.Length; i++)
+                total += values[i];
+
+            return total;
         }
     }
 }

@@ -1,0 +1,249 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Guilds</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Guilds.AchievementConfig.yml" />
+    <None Remove="Guilds.translations.English.yml" />
+    <None Remove="Guilds.translations.French.yml" />
+    <None Remove="Guilds.translations.Portuguese_Brazilian.yml" />
+    <None Remove="Guilds.assets.guildsbundle" />
+    <None Remove="Guilds.Icons.Badges.1.png" />
+    <None Remove="Guilds.Icons.Badges.10.png" />
+    <None Remove="Guilds.Icons.Badges.11.png" />
+    <None Remove="Guilds.Icons.Badges.12.png" />
+    <None Remove="Guilds.Icons.Badges.13.png" />
+    <None Remove="Guilds.Icons.Badges.14.png" />
+    <None Remove="Guilds.Icons.Badges.15.png" />
+    <None Remove="Guilds.Icons.Badges.16.png" />
+    <None Remove="Guilds.Icons.Badges.17.png" />
+    <None Remove="Guilds.Icons.Badges.18.png" />
+    <None Remove="Guilds.Icons.Badges.19.png" />
+    <None Remove="Guilds.Icons.Badges.2.png" />
+    <None Remove="Guilds.Icons.Badges.20.png" />
+    <None Remove="Guilds.Icons.Badges.21.png" />
+    <None Remove="Guilds.Icons.Badges.22.png" />
+    <None Remove="Guilds.Icons.Badges.23.png" />
+    <None Remove="Guilds.Icons.Badges.24.png" />
+    <None Remove="Guilds.Icons.Badges.25.png" />
+    <None Remove="Guilds.Icons.Badges.26.png" />
+    <None Remove="Guilds.Icons.Badges.27.png" />
+    <None Remove="Guilds.Icons.Badges.28.png" />
+    <None Remove="Guilds.Icons.Badges.29.png" />
+    <None Remove="Guilds.Icons.Badges.3.png" />
+    <None Remove="Guilds.Icons.Badges.30.png" />
+    <None Remove="Guilds.Icons.Badges.31.png" />
+    <None Remove="Guilds.Icons.Badges.32.png" />
+    <None Remove="Guilds.Icons.Badges.33.png" />
+    <None Remove="Guilds.Icons.Badges.34.png" />
+    <None Remove="Guilds.Icons.Badges.35.png" />
+    <None Remove="Guilds.Icons.Badges.36.png" />
+    <None Remove="Guilds.Icons.Badges.37.png" />
+    <None Remove="Guilds.Icons.Badges.38.png" />
+    <None Remove="Guilds.Icons.Badges.39.png" />
+    <None Remove="Guilds.Icons.Badges.4.png" />
+    <None Remove="Guilds.Icons.Badges.40.png" />
+    <None Remove="Guilds.Icons.Badges.41.png" />
+    <None Remove="Guilds.Icons.Badges.42.png" />
+    <None Remove="Guilds.Icons.Badges.43.png" />
+    <None Remove="Guilds.Icons.Badges.44.png" />
+    <None Remove="Guilds.Icons.Badges.45.png" />
+    <None Remove="Guilds.Icons.Badges.46.png" />
+    <None Remove="Guilds.Icons.Badges.47.png" />
+    <None Remove="Guilds.Icons.Badges.48.png" />
+    <None Remove="Guilds.Icons.Badges.49.png" />
+    <None Remove="Guilds.Icons.Badges.5.png" />
+    <None Remove="Guilds.Icons.Badges.50.png" />
+    <None Remove="Guilds.Icons.Badges.51.png" />
+    <None Remove="Guilds.Icons.Badges.52.png" />
+    <None Remove="Guilds.Icons.Badges.53.png" />
+    <None Remove="Guilds.Icons.Badges.54.png" />
+    <None Remove="Guilds.Icons.Badges.55.png" />
+    <None Remove="Guilds.Icons.Badges.56.png" />
+    <None Remove="Guilds.Icons.Badges.57.png" />
+    <None Remove="Guilds.Icons.Badges.58.png" />
+    <None Remove="Guilds.Icons.Badges.59.png" />
+    <None Remove="Guilds.Icons.Badges.6.png" />
+    <None Remove="Guilds.Icons.Badges.60.png" />
+    <None Remove="Guilds.Icons.Badges.61.png" />
+    <None Remove="Guilds.Icons.Badges.62.png" />
+    <None Remove="Guilds.Icons.Badges.63.png" />
+    <None Remove="Guilds.Icons.Badges.64.png" />
+    <None Remove="Guilds.Icons.Badges.65.png" />
+    <None Remove="Guilds.Icons.Badges.66.png" />
+    <None Remove="Guilds.Icons.Badges.67.png" />
+    <None Remove="Guilds.Icons.Badges.68.png" />
+    <None Remove="Guilds.Icons.Badges.69.png" />
+    <None Remove="Guilds.Icons.Badges.7.png" />
+    <None Remove="Guilds.Icons.Badges.70.png" />
+    <None Remove="Guilds.Icons.Badges.71.png" />
+    <None Remove="Guilds.Icons.Badges.72.png" />
+    <None Remove="Guilds.Icons.Badges.73.png" />
+    <None Remove="Guilds.Icons.Badges.74.png" />
+    <None Remove="Guilds.Icons.Badges.75.png" />
+    <None Remove="Guilds.Icons.Badges.76.png" />
+    <None Remove="Guilds.Icons.Badges.77.png" />
+    <None Remove="Guilds.Icons.Badges.78.png" />
+    <None Remove="Guilds.Icons.Badges.79.png" />
+    <None Remove="Guilds.Icons.Badges.8.png" />
+    <None Remove="Guilds.Icons.Badges.80.png" />
+    <None Remove="Guilds.Icons.Badges.81.png" />
+    <None Remove="Guilds.Icons.Badges.82.png" />
+    <None Remove="Guilds.Icons.Badges.83.png" />
+    <None Remove="Guilds.Icons.Badges.84.png" />
+    <None Remove="Guilds.Icons.Badges.85.png" />
+    <None Remove="Guilds.Icons.Badges.86.png" />
+    <None Remove="Guilds.Icons.Badges.87.png" />
+    <None Remove="Guilds.Icons.Badges.88.png" />
+    <None Remove="Guilds.Icons.Badges.89.png" />
+    <None Remove="Guilds.Icons.Badges.9.png" />
+    <None Remove="Guilds.Icons.Badges.90.png" />
+    <None Remove="Guilds.Icons.Badges.91.png" />
+    <None Remove="Guilds.Icons.Badges.92.png" />
+    <None Remove="Guilds.Icons.guildMapPingIcon.png" />
+    <None Remove="Guilds.Icons.guildPlayerIcon.png" />
+    <None Remove="Guilds.Icons.Achievements.HaldorFound.png" />
+    <None Remove="Guilds.Icons.Achievements.HildirFound.png" />
+    <None Remove="Guilds.Icons.Achievements.SpendCoinsTrader.png" />
+    <None Remove="Guilds.Icons.Achievements.TakeOn.png" />
+    <None Remove="Guilds.Icons.Achievements.TakeOnSim.png" />
+    <None Remove="ILRepack.List" />
+    <EmbeddedResource Include="Guilds.AchievementConfig.yml" LogicalName="Guilds.AchievementConfig.yml" />
+    <EmbeddedResource Include="Guilds.translations.English.yml" LogicalName="Guilds.translations.English.yml" />
+    <EmbeddedResource Include="Guilds.translations.French.yml" LogicalName="Guilds.translations.French.yml" />
+    <EmbeddedResource Include="Guilds.translations.Portuguese_Brazilian.yml" LogicalName="Guilds.translations.Portuguese_Brazilian.yml" />
+    <EmbeddedResource Include="Guilds.assets.guildsbundle" LogicalName="Guilds.assets.guildsbundle" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.1.png" LogicalName="Guilds.Icons.Badges.1.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.10.png" LogicalName="Guilds.Icons.Badges.10.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.11.png" LogicalName="Guilds.Icons.Badges.11.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.12.png" LogicalName="Guilds.Icons.Badges.12.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.13.png" LogicalName="Guilds.Icons.Badges.13.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.14.png" LogicalName="Guilds.Icons.Badges.14.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.15.png" LogicalName="Guilds.Icons.Badges.15.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.16.png" LogicalName="Guilds.Icons.Badges.16.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.17.png" LogicalName="Guilds.Icons.Badges.17.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.18.png" LogicalName="Guilds.Icons.Badges.18.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.19.png" LogicalName="Guilds.Icons.Badges.19.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.2.png" LogicalName="Guilds.Icons.Badges.2.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.20.png" LogicalName="Guilds.Icons.Badges.20.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.21.png" LogicalName="Guilds.Icons.Badges.21.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.22.png" LogicalName="Guilds.Icons.Badges.22.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.23.png" LogicalName="Guilds.Icons.Badges.23.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.24.png" LogicalName="Guilds.Icons.Badges.24.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.25.png" LogicalName="Guilds.Icons.Badges.25.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.26.png" LogicalName="Guilds.Icons.Badges.26.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.27.png" LogicalName="Guilds.Icons.Badges.27.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.28.png" LogicalName="Guilds.Icons.Badges.28.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.29.png" LogicalName="Guilds.Icons.Badges.29.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.3.png" LogicalName="Guilds.Icons.Badges.3.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.30.png" LogicalName="Guilds.Icons.Badges.30.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.31.png" LogicalName="Guilds.Icons.Badges.31.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.32.png" LogicalName="Guilds.Icons.Badges.32.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.33.png" LogicalName="Guilds.Icons.Badges.33.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.34.png" LogicalName="Guilds.Icons.Badges.34.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.35.png" LogicalName="Guilds.Icons.Badges.35.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.36.png" LogicalName="Guilds.Icons.Badges.36.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.37.png" LogicalName="Guilds.Icons.Badges.37.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.38.png" LogicalName="Guilds.Icons.Badges.38.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.39.png" LogicalName="Guilds.Icons.Badges.39.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.4.png" LogicalName="Guilds.Icons.Badges.4.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.40.png" LogicalName="Guilds.Icons.Badges.40.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.41.png" LogicalName="Guilds.Icons.Badges.41.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.42.png" LogicalName="Guilds.Icons.Badges.42.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.43.png" LogicalName="Guilds.Icons.Badges.43.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.44.png" LogicalName="Guilds.Icons.Badges.44.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.45.png" LogicalName="Guilds.Icons.Badges.45.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.46.png" LogicalName="Guilds.Icons.Badges.46.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.47.png" LogicalName="Guilds.Icons.Badges.47.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.48.png" LogicalName="Guilds.Icons.Badges.48.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.49.png" LogicalName="Guilds.Icons.Badges.49.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.5.png" LogicalName="Guilds.Icons.Badges.5.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.50.png" LogicalName="Guilds.Icons.Badges.50.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.51.png" LogicalName="Guilds.Icons.Badges.51.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.52.png" LogicalName="Guilds.Icons.Badges.52.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.53.png" LogicalName="Guilds.Icons.Badges.53.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.54.png" LogicalName="Guilds.Icons.Badges.54.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.55.png" LogicalName="Guilds.Icons.Badges.55.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.56.png" LogicalName="Guilds.Icons.Badges.56.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.57.png" LogicalName="Guilds.Icons.Badges.57.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.58.png" LogicalName="Guilds.Icons.Badges.58.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.59.png" LogicalName="Guilds.Icons.Badges.59.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.6.png" LogicalName="Guilds.Icons.Badges.6.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.60.png" LogicalName="Guilds.Icons.Badges.60.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.61.png" LogicalName="Guilds.Icons.Badges.61.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.62.png" LogicalName="Guilds.Icons.Badges.62.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.63.png" LogicalName="Guilds.Icons.Badges.63.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.64.png" LogicalName="Guilds.Icons.Badges.64.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.65.png" LogicalName="Guilds.Icons.Badges.65.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.66.png" LogicalName="Guilds.Icons.Badges.66.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.67.png" LogicalName="Guilds.Icons.Badges.67.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.68.png" LogicalName="Guilds.Icons.Badges.68.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.69.png" LogicalName="Guilds.Icons.Badges.69.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.7.png" LogicalName="Guilds.Icons.Badges.7.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.70.png" LogicalName="Guilds.Icons.Badges.70.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.71.png" LogicalName="Guilds.Icons.Badges.71.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.72.png" LogicalName="Guilds.Icons.Badges.72.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.73.png" LogicalName="Guilds.Icons.Badges.73.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.74.png" LogicalName="Guilds.Icons.Badges.74.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.75.png" LogicalName="Guilds.Icons.Badges.75.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.76.png" LogicalName="Guilds.Icons.Badges.76.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.77.png" LogicalName="Guilds.Icons.Badges.77.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.78.png" LogicalName="Guilds.Icons.Badges.78.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.79.png" LogicalName="Guilds.Icons.Badges.79.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.8.png" LogicalName="Guilds.Icons.Badges.8.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.80.png" LogicalName="Guilds.Icons.Badges.80.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.81.png" LogicalName="Guilds.Icons.Badges.81.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.82.png" LogicalName="Guilds.Icons.Badges.82.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.83.png" LogicalName="Guilds.Icons.Badges.83.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.84.png" LogicalName="Guilds.Icons.Badges.84.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.85.png" LogicalName="Guilds.Icons.Badges.85.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.86.png" LogicalName="Guilds.Icons.Badges.86.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.87.png" LogicalName="Guilds.Icons.Badges.87.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.88.png" LogicalName="Guilds.Icons.Badges.88.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.89.png" LogicalName="Guilds.Icons.Badges.89.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.9.png" LogicalName="Guilds.Icons.Badges.9.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.90.png" LogicalName="Guilds.Icons.Badges.90.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.91.png" LogicalName="Guilds.Icons.Badges.91.png" />
+    <EmbeddedResource Include="Guilds.Icons.Badges.92.png" LogicalName="Guilds.Icons.Badges.92.png" />
+    <EmbeddedResource Include="Guilds.Icons.guildMapPingIcon.png" LogicalName="Guilds.Icons.guildMapPingIcon.png" />
+    <EmbeddedResource Include="Guilds.Icons.guildPlayerIcon.png" LogicalName="Guilds.Icons.guildPlayerIcon.png" />
+    <EmbeddedResource Include="Guilds.Icons.Achievements.HaldorFound.png" LogicalName="Guilds.Icons.Achievements.HaldorFound.png" />
+    <EmbeddedResource Include="Guilds.Icons.Achievements.HildirFound.png" LogicalName="Guilds.Icons.Achievements.HildirFound.png" />
+    <EmbeddedResource Include="Guilds.Icons.Achievements.SpendCoinsTrader.png" LogicalName="Guilds.Icons.Achievements.SpendCoinsTrader.png" />
+    <EmbeddedResource Include="Guilds.Icons.Achievements.TakeOn.png" LogicalName="Guilds.Icons.Achievements.TakeOn.png" />
+    <EmbeddedResource Include="Guilds.Icons.Achievements.TakeOnSim.png" LogicalName="Guilds.Icons.Achievements.TakeOnSim.png" />
+    <EmbeddedResource Include="ILRepack.List" LogicalName="ILRepack.List" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="assembly_valheim" />
+    <Reference Include="System.Core">
+      <HintPath>../../../../usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.25/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Splatform" />
+    <Reference Include="0Harmony" />
+    <Reference Include="UnityEngine.UI" />
+    <Reference Include="Unity.TextMeshPro" />
+    <Reference Include="UnityEngine.AnimationModule" />
+    <Reference Include="UnityEngine.UIModule" />
+    <Reference Include="UnityEngine.AssetBundleModule" />
+    <Reference Include="assembly_guiutils" />
+    <Reference Include="UnityEngine.InputLegacyModule" />
+    <Reference Include="gui_framework" />
+    <Reference Include="UnityEngine.ImageConversionModule" />
+    <Reference Include="assembly_utils" />
+    <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="BepInEx" />
+    <Reference Include="Mono.Cecil" />
+    <Reference Include="BepInEx.Preloader" />
+  </ItemGroup>
+</Project>

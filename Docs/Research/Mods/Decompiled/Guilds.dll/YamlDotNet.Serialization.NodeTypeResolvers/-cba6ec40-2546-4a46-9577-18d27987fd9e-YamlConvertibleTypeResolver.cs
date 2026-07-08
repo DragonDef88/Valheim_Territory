@@ -1,0 +1,12 @@
+using System;
+using YamlDotNet.Core.Events;
+
+namespace YamlDotNet.Serialization.NodeTypeResolvers;
+
+internal sealed class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlConvertibleTypeResolver : _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EINodeTypeResolver
+{
+	public bool Resolve(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ENodeEvent? nodeEvent, ref Type currentType)
+	{
+		return typeof(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlConvertible).IsAssignableFrom(currentType);
+	}
+}

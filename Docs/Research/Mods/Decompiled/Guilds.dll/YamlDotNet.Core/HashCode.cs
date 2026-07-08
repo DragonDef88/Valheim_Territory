@@ -1,0 +1,29 @@
+namespace YamlDotNet.Core;
+
+internal static class HashCode
+{
+	public static int CombineHashCodes(int h1, int h2)
+	{
+		return ((h1 << 5) + h1) ^ h2;
+	}
+
+	public static int CombineHashCodes(int h1, object? o2)
+	{
+		return CombineHashCodes(h1, GetHashCode(o2));
+	}
+
+	public static int CombineHashCodes(object? first, params object?[] others)
+	{
+		int num = GetHashCode(first);
+		foreach (object o in others)
+		{
+			num = CombineHashCodes(num, o);
+		}
+		return num;
+	}
+
+	private static int GetHashCode(object? obj)
+	{
+		return obj?.GetHashCode() ?? 0;
+	}
+}

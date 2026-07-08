@@ -1,0 +1,27 @@
+using System;
+using YamlDotNet.Core;
+
+namespace YamlDotNet.Serialization.NodeDeserializers;
+
+internal sealed class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlSerializableNodeDeserializer : _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EINodeDeserializer
+{
+	private readonly _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectFactory objectFactory;
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlSerializableNodeDeserializer(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectFactory objectFactory)
+	{
+		this.objectFactory = objectFactory;
+	}
+
+	public bool Deserialize(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIParser parser, Type expectedType, Func<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIParser, Type, object?> nestedObjectDeserializer, out object? value, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectDeserializer rootDeserializer)
+	{
+		if (typeof(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable).IsAssignableFrom(expectedType))
+		{
+			_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable = (_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable)objectFactory.Create(expectedType);
+			_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable.ReadYaml(parser);
+			value = _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlSerializable;
+			return true;
+		}
+		value = null;
+		return false;
+	}
+}

@@ -1,0 +1,14 @@
+namespace YamlDotNet.Core.Tokens;
+
+public abstract class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EToken
+{
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EMark Start { get; }
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EMark End { get; }
+
+	protected _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EToken(in _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EMark start, in _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EMark end)
+	{
+		Start = start;
+		End = end;
+	}
+}

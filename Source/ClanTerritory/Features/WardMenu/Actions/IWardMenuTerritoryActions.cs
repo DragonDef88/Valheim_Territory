@@ -36,27 +36,12 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
-        bool CycleTerraformingMode(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player);
-
         bool DecreaseTerraformingRadius(
             WardId wardId,
             PrivateArea privateArea,
             Player player);
 
         bool IncreaseTerraformingRadius(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player);
-
-        bool SetTerraformingTargetHeightFromWard(
-            WardId wardId,
-            PrivateArea privateArea,
-            Player player);
-
-        bool SetTerraformingTargetHeightFromPlayer(
             WardId wardId,
             PrivateArea privateArea,
             Player player);
@@ -71,15 +56,17 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
-        bool AddTerraformingFuel(
+        bool AddTerraformingFuelSlot(
             WardId wardId,
             PrivateArea privateArea,
-            Player player);
+            Player player,
+            int slotIndex);
 
-        bool AddTerraformingStone(
+        bool AddTerraformingStoneSlot(
             WardId wardId,
             PrivateArea privateArea,
-            Player player);
+            Player player,
+            int slotIndex);
 
         void ToggleGuildAccess(WardId wardId);
 

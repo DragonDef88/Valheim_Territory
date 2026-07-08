@@ -107,15 +107,17 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool Running { get; private set; }
 
-        public string Mode { get; private set; }
-
         public float Radius { get; private set; }
 
         public float TargetHeight { get; private set; }
 
-        public float FuelStored { get; private set; }
+        public int FuelStored { get; private set; }
 
-        public float StoneStored { get; private set; }
+        public int StoneStored { get; private set; }
+
+        public int[] FuelSlots { get; private set; }
+
+        public int[] StoneSlots { get; private set; }
 
         public bool HoeStored { get; private set; }
 
@@ -130,11 +132,12 @@ namespace ClanTerritory.Features.WardMenu.Models
         public WardMenuTerraformingSection(
             bool enabled,
             bool running,
-            string mode,
             float radius,
             float targetHeight,
-            float fuelStored,
-            float stoneStored,
+            int fuelStored,
+            int stoneStored,
+            int[] fuelSlots,
+            int[] stoneSlots,
             bool hoeStored,
             bool pickaxeStored,
             float scanProgress,
@@ -143,11 +146,12 @@ namespace ClanTerritory.Features.WardMenu.Models
         {
             Enabled = enabled;
             Running = running;
-            Mode = mode;
             Radius = radius;
             TargetHeight = targetHeight;
             FuelStored = fuelStored;
             StoneStored = stoneStored;
+            FuelSlots = fuelSlots ?? new int[5];
+            StoneSlots = stoneSlots ?? new int[5];
             HoeStored = hoeStored;
             PickaxeStored = pickaxeStored;
             ScanProgress = scanProgress;
@@ -160,11 +164,12 @@ namespace ClanTerritory.Features.WardMenu.Models
             return new WardMenuTerraformingSection(
                 false,
                 false,
-                "Level",
                 12f,
                 0f,
-                0f,
-                0f,
+                0,
+                0,
+                new int[5],
+                new int[5],
                 false,
                 false,
                 0f,

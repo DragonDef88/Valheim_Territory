@@ -1,0 +1,14 @@
+namespace YamlDotNet.RepresentationModel;
+
+internal interface _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlVisitor
+{
+	void Visit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlStream stream);
+
+	void Visit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlDocument document);
+
+	void Visit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlScalarNode scalar);
+
+	void Visit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlSequenceNode sequence);
+
+	void Visit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EYamlMappingNode mapping);
+}

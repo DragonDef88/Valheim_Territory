@@ -1,0 +1,64 @@
+using System;
+using System.Collections.Generic;
+using YamlDotNet.Core;
+
+namespace YamlDotNet.Serialization.ObjectGraphVisitors;
+
+internal sealed class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorAssigningObjectGraphVisitor : _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EChainedObjectGraphVisitor
+{
+	private readonly _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEventEmitter eventEmitter;
+
+	private readonly _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIAliasProvider aliasProvider;
+
+	private readonly HashSet<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorName> emittedAliases = new HashSet<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorName>();
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorAssigningObjectGraphVisitor(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter> nextVisitor, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEventEmitter eventEmitter, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIAliasProvider aliasProvider)
+		: base(nextVisitor)
+	{
+		this.eventEmitter = eventEmitter;
+		this.aliasProvider = aliasProvider;
+	}
+
+	public override bool Enter(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIPropertyDescriptor? propertyDescriptor, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectDescriptor value, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter context, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer serializer)
+	{
+		if (value.Value != null)
+		{
+			_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorName alias = aliasProvider.GetAlias(value.Value);
+			if (!alias.IsEmpty && !emittedAliases.Add(alias))
+			{
+				_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAliasEventInfo _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAliasEventInfo = new _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAliasEventInfo(value, alias);
+				eventEmitter.Emit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAliasEventInfo, context);
+				return _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAliasEventInfo.NeedsExpansion;
+			}
+		}
+		return base.Enter(propertyDescriptor, value, context, serializer);
+	}
+
+	public override void VisitMappingStart(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectDescriptor mapping, Type keyType, Type valueType, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter context, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer serializer)
+	{
+		_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorName alias = aliasProvider.GetAlias(mapping.NonNullValue());
+		eventEmitter.Emit(new _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EMappingStartEventInfo(mapping)
+		{
+			Anchor = alias
+		}, context);
+	}
+
+	public override void VisitSequenceStart(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectDescriptor sequence, Type elementType, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter context, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer serializer)
+	{
+		_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EAnchorName alias = aliasProvider.GetAlias(sequence.NonNullValue());
+		eventEmitter.Emit(new _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ESequenceStartEventInfo(sequence)
+		{
+			Anchor = alias
+		}, context);
+	}
+
+	public override void VisitScalar(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectDescriptor scalar, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter context, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer serializer)
+	{
+		_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EScalarEventInfo _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EScalarEventInfo = new _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EScalarEventInfo(scalar);
+		if (scalar.Value != null)
+		{
+			_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EScalarEventInfo.Anchor = aliasProvider.GetAlias(scalar.Value);
+		}
+		eventEmitter.Emit(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EScalarEventInfo, context);
+	}
+}

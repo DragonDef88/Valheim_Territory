@@ -1,0 +1,33 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using YamlDotNet.Core;
+
+namespace YamlDotNet.Serialization;
+
+internal sealed class _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EEmissionPhaseObjectGraphVisitorArgs
+{
+	private readonly IEnumerable<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ENothing>> preProcessingPhaseVisitors;
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter> InnerVisitor { get; private set; }
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEventEmitter EventEmitter { get; private set; }
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer NestedObjectSerializer { get; private set; }
+
+	public IEnumerable<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlTypeConverter> TypeConverters { get; private set; }
+
+	public _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EEmissionPhaseObjectGraphVisitorArgs(_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEmitter> innerVisitor, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIEventEmitter eventEmitter, IEnumerable<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ENothing>> preProcessingPhaseVisitors, IEnumerable<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIYamlTypeConverter> typeConverters, _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EObjectSerializer nestedObjectSerializer)
+	{
+		InnerVisitor = innerVisitor ?? throw new ArgumentNullException("innerVisitor");
+		EventEmitter = eventEmitter ?? throw new ArgumentNullException("eventEmitter");
+		this.preProcessingPhaseVisitors = preProcessingPhaseVisitors ?? throw new ArgumentNullException("preProcessingPhaseVisitors");
+		TypeConverters = typeConverters ?? throw new ArgumentNullException("typeConverters");
+		NestedObjectSerializer = nestedObjectSerializer ?? throw new ArgumentNullException("nestedObjectSerializer");
+	}
+
+	public T GetPreProcessingPhaseObjectGraphVisitor<T>() where T : _003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003EIObjectGraphVisitor<_003Ccba6ec40_002D2546_002D4a46_002D9577_002D18d27987fd9e_003ENothing>
+	{
+		return preProcessingPhaseVisitors.OfType<T>().Single();
+	}
+}
