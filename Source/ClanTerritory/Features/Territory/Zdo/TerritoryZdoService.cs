@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using ClanTerritory.Config;
 using ClanTerritory.Features.WardDetection.Models;
 using HarmonyLib;
 using UnityEngine;
@@ -10,7 +11,7 @@ namespace ClanTerritory.Features.Territory.Zdo
         private const string WardPieceName = "guard_stone";
 
         private static readonly int WardPrefabHash =
-    WardPieceName.GetStableHashCode();
+            WardPieceName.GetStableHashCode();
 
         public List<WardModel> GetAllWards()
         {
@@ -52,7 +53,7 @@ namespace ClanTerritory.Features.Territory.Zdo
                 float distance =
                     global::Utils.DistanceXZ(position, ward.Position);
 
-                if (distance < radius + radius)
+                if (distance < radius + ward.Radius)
                     return true;
             }
 
@@ -79,11 +80,16 @@ namespace ClanTerritory.Features.Territory.Zdo
             string ownerName =
                 zdo.GetString(ZDOVars.s_creatorName, "Unknown");
 
+            float radius = zdo.GetFloat(
+                TerritoryZdoKeys.Radius,
+                ConfigValues.TerritoryRadius);
+
             ward = new WardModel(
                 zdo.m_uid.ToString(),
                 ownerId,
                 string.IsNullOrWhiteSpace(ownerName) ? "Unknown" : ownerName,
                 zdo.GetPosition(),
+                radius,
                 zdo.GetBool(ZDOVars.s_enabled, false));
 
             return true;

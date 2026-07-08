@@ -1,4 +1,6 @@
-﻿using ClanTerritory.Features.WardDetection.Models;
+using ClanTerritory.Config;
+using ClanTerritory.Features.Territory;
+using ClanTerritory.Features.WardDetection.Models;
 using UnityEngine;
 
 namespace ClanTerritory.Features.Territory.WorldDiscovery.Scanners
@@ -29,22 +31,34 @@ namespace ClanTerritory.Features.Territory.WorldDiscovery.Scanners
             if (piece == null)
                 return false;
 
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return false;
+
             long ownerId = piece.GetCreator();
 
             if (ownerId == 0L)
                 return false;
 
-            string ownerName = zNetView.GetZDO().GetString(
+            string ownerName = zdo.GetString(
                 ZDOVars.s_creatorName,
                 "Unknown");
 
-            string wardId = zNetView.GetZDO().m_uid.ToString();
+            string wardId = zdo.m_uid.ToString();
+
+            float radius = zdo.GetFloat(
+                TerritoryZdoKeys.Radius,
+                area.m_radius > 0f
+                    ? area.m_radius
+                    : ConfigValues.TerritoryRadius);
 
             model = new WardModel(
                 wardId,
                 ownerId,
                 string.IsNullOrWhiteSpace(ownerName) ? "Unknown" : ownerName,
                 area.transform.position,
+                radius,
                 area.isActiveAndEnabled);
 
             return true;

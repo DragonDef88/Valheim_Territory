@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ClanTerritory.Config;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
@@ -82,6 +83,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 false,
                 doorLockEnabled,
                 structureDamageProtectionEnabled,
+                ConfigValues.DoorAutoCloseSeconds,
                 BuildRulesSummary(
                     doorLockEnabled,
                     structureDamageProtectionEnabled));
@@ -99,6 +101,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", currentPermitted: " + wardSection.IsCurrentPlayerPermitted +
                 ", doorsLocked: " + territorySection.DoorLockEnabled +
                 ", structureDamageProtection: " + territorySection.StructureDamageProtectionEnabled +
+                ", doorAutoCloseSeconds: " + territorySection.DoorAutoCloseSeconds +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);

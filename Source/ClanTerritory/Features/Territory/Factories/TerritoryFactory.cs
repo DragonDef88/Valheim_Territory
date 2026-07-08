@@ -1,4 +1,3 @@
-﻿using ClanTerritory.Config;
 using ClanTerritory.Domain.Entities;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Domain.ValueObjects;
@@ -24,7 +23,7 @@ namespace ClanTerritory.Features.Territory.Factories
                 ward.Position.z
             );
 
-            TerritoryRadius radius = new TerritoryRadius(ConfigValues.TerritoryRadius);
+            TerritoryRadius radius = new TerritoryRadius(ward.Radius);
 
             return new Domain.Entities.Territory(
                 territoryId,

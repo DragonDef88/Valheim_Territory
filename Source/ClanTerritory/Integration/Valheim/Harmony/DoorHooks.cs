@@ -68,6 +68,18 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             return false;
         }
 
+        [HarmonyPostfix]
+        [HarmonyPatch("RPC_UseDoor")]
+        private static void RPCUseDoorPostfix(Door __instance)
+        {
+            TerritoryRuleService ruleService;
+
+            if (!ServiceContainer.TryGet<TerritoryRuleService>(out ruleService))
+                return;
+
+            ruleService.ScheduleDoorAutoClose(__instance);
+        }
+
         private static bool IsDoorLocked(
             Door door,
             Player player)

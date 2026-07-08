@@ -295,6 +295,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             string radiusText = FormatRadius(model.Ward.Radius);
             string protectionText = FormatProtection(model.Ward.Enabled);
+            string doorText = FormatDoorLock(model);
             bool ownerMode = model.Ward.IsCurrentPlayerCreator;
             bool selfPermissionMode = !ownerMode && !model.Ward.Enabled;
 
@@ -310,7 +311,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Territory radius:\n" + radiusText + " m\n\n" +
                 "Protection:\n" + protectionText + "\n\n" +
                 "Your access:\n" + FormatCurrentAccess(model) + "\n\n" +
-                "Doors:\n" + (model.Territory.DoorLockEnabled ? "Locked" : "Unlocked") + "\n\n" +
+                "Doors:\n" + doorText + "\n\n" +
                 "Structures:\n" + (model.Territory.StructureDamageProtectionEnabled ? "Protected" : "Vulnerable");
 
             _wardText.text =
@@ -323,7 +324,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _territoryText.text =
                 "Territory Settings\n\n" +
                 "Name:\n" + model.Territory.Name + "\n\n" +
-                "Doors: " + (model.Territory.DoorLockEnabled ? "Locked" : "Unlocked") + "\n" +
+                "Doors: " + doorText + "\n" +
                 "Structures: " + (model.Territory.StructureDamageProtectionEnabled ? "Protected" : "Vulnerable") + "\n\n" +
                 "Guild access: " + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n" +
                 "Group access: " + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled");
@@ -702,6 +703,14 @@ namespace ClanTerritory.Features.WardMenu.UI
         private static string FormatProtection(bool enabled)
         {
             return enabled ? "Enabled" : "Disabled";
+        }
+
+        private static string FormatDoorLock(WardMenuModel model)
+        {
+            if (!model.Territory.DoorLockEnabled)
+                return "Unlocked";
+
+            return "Locked, auto-close " + model.Territory.DoorAutoCloseSeconds + "s";
         }
 
         private static string FormatCurrentAccess(WardMenuModel model)

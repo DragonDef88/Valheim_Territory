@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Domain.ValueObjects;
 
 namespace ClanTerritory.Domain.Entities
@@ -22,6 +22,11 @@ namespace ClanTerritory.Domain.Entities
             WardId = wardId;
             Owner = owner;
             Position = position;
+            Radius = radius;
+        }
+
+        public void SetRadius(TerritoryRadius radius)
+        {
             Radius = radius;
         }
 

@@ -72,6 +72,8 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool StructureDamageProtectionEnabled { get; private set; }
 
+        public int DoorAutoCloseSeconds { get; private set; }
+
         public string RulesSummary { get; private set; }
 
         public WardMenuTerritorySection(
@@ -81,6 +83,7 @@ namespace ClanTerritory.Features.WardMenu.Models
             bool groupAccessEnabled,
             bool doorLockEnabled,
             bool structureDamageProtectionEnabled,
+            int doorAutoCloseSeconds,
             string rulesSummary)
         {
             Name = name;
@@ -89,6 +92,7 @@ namespace ClanTerritory.Features.WardMenu.Models
             GroupAccessEnabled = groupAccessEnabled;
             DoorLockEnabled = doorLockEnabled;
             StructureDamageProtectionEnabled = structureDamageProtectionEnabled;
+            DoorAutoCloseSeconds = doorAutoCloseSeconds;
             RulesSummary = rulesSummary;
         }
     }

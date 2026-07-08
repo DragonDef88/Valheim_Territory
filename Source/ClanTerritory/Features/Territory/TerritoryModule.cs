@@ -2,6 +2,7 @@ using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Map.Services;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Features.Territory.Factories;
 using ClanTerritory.Features.Territory.Placement;
 using ClanTerritory.Features.Territory.Registry;
@@ -9,6 +10,7 @@ using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Utils;
+using UnityEngine;
 
 namespace ClanTerritory.Features.Territory
 {
@@ -23,6 +25,8 @@ namespace ClanTerritory.Features.Territory
         private WardMapIconService _mapIconService;
         private TerritoryWardRadiusService _wardRadiusService;
         private TerritoryRuleService _ruleService;
+        private GameObject _runnerObject;
+        private TerritoryRuleRunner _runner;
 
         public void Initialize()
         {
@@ -69,7 +73,14 @@ namespace ClanTerritory.Features.Territory
             {
                 eventBus.Subscribe<WardRegisteredEvent>(_service);
                 eventBus.Subscribe<WardDestroyedEvent>(_service);
+                eventBus.Subscribe<TerritoryRadiusChangedEvent>(_service);
             }
+
+            _runnerObject = new GameObject("ClanTerritory_TerritoryRuleRunner");
+            Object.DontDestroyOnLoad(_runnerObject);
+
+            _runner = _runnerObject.AddComponent<TerritoryRuleRunner>();
+            _runner.Initialize(_ruleService);
 
             ModLog.Info("Territory module initialized.");
         }
@@ -82,9 +93,30 @@ namespace ClanTerritory.Features.Territory
             if (_registry != null)
                 _registry.Clear();
 
+            if (_runnerObject != null)
+                Object.Destroy(_runnerObject);
+
+            _runner = null;
+            _runnerObject = null;
             _ruleService = null;
 
             ModLog.Info("Territory module shutdown.");
+        }
+
+        private sealed class TerritoryRuleRunner : MonoBehaviour
+        {
+            private TerritoryRuleService _service;
+
+            public void Initialize(TerritoryRuleService service)
+            {
+                _service = service;
+            }
+
+            private void Update()
+            {
+                if (_service != null)
+                    _service.Update();
+            }
         }
     }
 }

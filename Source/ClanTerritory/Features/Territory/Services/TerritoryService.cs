@@ -1,8 +1,10 @@
-﻿using ClanTerritory.Core;
+using ClanTerritory.Core;
+using ClanTerritory.Domain.ValueObjects;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Map.Services;
 using ClanTerritory.Features.Persistence.Services;
 using ClanTerritory.Features.Runtime;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Features.Territory.Factories;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.WardDetection;
@@ -16,7 +18,8 @@ namespace ClanTerritory.Features.Territory.Services
     internal sealed class TerritoryService :
         ITerritoryService,
         IEventHandler<WardRegisteredEvent>,
-        IEventHandler<WardDestroyedEvent>
+        IEventHandler<WardDestroyedEvent>,
+        IEventHandler<TerritoryRadiusChangedEvent>
     {
         private readonly TerritoryRegistry _registry;
         private readonly TerritoryFactory _factory;
@@ -64,6 +67,34 @@ namespace ClanTerritory.Features.Territory.Services
             RemoveTerritoryFromWard(eventData.WardId);
         }
 
+        public void Handle(TerritoryRadiusChangedEvent eventData)
+        {
+            if (eventData == null)
+                return;
+
+            TerritoryEntity territory = _registry.FindByWard(eventData.WardId);
+
+            if (territory == null)
+            {
+                ModLog.Warning(
+                    "Territory radius sync skipped. Runtime territory was not found for ward: " +
+                    eventData.WardId);
+
+                return;
+            }
+
+            territory.SetRadius(
+                new TerritoryRadius(eventData.Radius));
+
+            ModLog.Info(
+                "Territory radius synced from ward: " +
+                territory.Id +
+                ", radius: " +
+                territory.Radius.Value);
+
+            SaveNow();
+        }
+
         public void CreateTerritoryFromWard(WardModel ward)
         {
             if (ward == null)
@@ -88,6 +119,20 @@ namespace ClanTerritory.Features.Territory.Services
                 SaveNow();
 
                 return;
+            }
+
+            TerritoryEntity existing = _registry.FindByWard(
+                territory.WardId);
+
+            if (existing != null)
+            {
+                existing.SetRadius(territory.Radius);
+
+                ModLog.Info(
+                    "Territory cache updated from ward: " +
+                    existing.Id +
+                    ", radius: " +
+                    existing.Radius.Value);
             }
 
             _mapIconService.AddOrUpdate(ward);

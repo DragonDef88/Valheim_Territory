@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+using BepInEx.Configuration;
 
 namespace ClanTerritory.Config
 {
@@ -6,6 +6,7 @@ namespace ClanTerritory.Config
     {
         public static ConfigEntry<float> TerritoryRadius;
         public static ConfigEntry<bool> AllowOverlap;
+        public static ConfigEntry<int> DoorAutoCloseSeconds;
         public static ConfigEntry<bool> DebugMode;
 
         public static void Initialize(ConfigFile config)
@@ -23,6 +24,14 @@ namespace ClanTerritory.Config
                 "AllowOverlap",
                 false,
                 "Allow territories to overlap.");
+
+            DoorAutoCloseSeconds = config.Bind(
+                "Territory",
+                "DoorAutoCloseSeconds",
+                5,
+                new ConfigDescription(
+                    "Seconds before locked territory doors close automatically after being opened. Used only when territory door lock is enabled.",
+                    new AcceptableValueRange<int>(3, 10)));
 
             DebugMode = config.Bind(
                 "Debug",
