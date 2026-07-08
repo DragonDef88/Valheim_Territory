@@ -255,29 +255,49 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void ApplyModel(WardMenuModel model)
         {
+            string radiusText = FormatRadius(model.Ward.Radius);
+            string protectionText = FormatProtection(model.Ward.Enabled);
+
             _titleText.text = "Clan Territory";
-            _subtitleText.text = "Ward & Territory Management";
+            _subtitleText.text =
+                "Territory radius: " + radiusText + " m   |   Protection: " + protectionText;
 
             _overviewText.text =
                 "Overview\n\n" +
                 "Territory:\n" + model.Territory.Name + "\n\n" +
                 "Ward ID:\n" + model.Ward.WardId + "\n\n" +
                 "Owner:\n" + model.Ward.OwnerName + "\n\n" +
-                "Radius:\n" + model.Ward.Radius + "\n\n" +
-                "Ward Enabled:\n" + (model.Ward.Enabled ? "Yes" : "No") + "\n\n" +
+                "Territory radius:\n" + radiusText + " m\n\n" +
+                "Protection:\n" + protectionText + "\n\n" +
                 "Territory Runtime:\n" + (model.Territory.RuntimeActive ? "Active" : "Inactive");
 
             _wardText.text =
                 "Ward Access\n\n" +
+                "Protection: " + protectionText + "\n" +
+                "Territory radius: " + radiusText + " m\n" +
                 "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n\n" +
                 BuildPermittedPlayersText(model);
 
             _territoryText.text =
                 "Territory Settings\n\n" +
                 "Name:\n" + model.Territory.Name + "\n\n" +
+                "Territory radius:\n" + radiusText + " m\n\n" +
+                "Protection:\n" + protectionText + "\n\n" +
                 "Guild access:\n" + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Group access:\n" + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled") + "\n\n" +
                 "Rules:\n" + model.Territory.RulesSummary;
+
+            SetButtonText(
+                _toggleProtectionButton,
+                model.Ward.Enabled ? "Disable Protection" : "Enable Protection");
+
+            SetButtonText(
+                _decreaseRadiusButton,
+                "Radius -5");
+
+            SetButtonText(
+                _increaseRadiusButton,
+                "Radius +5");
         }
 
         private void EnsureCreated()
@@ -338,7 +358,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 gui.ValheimOrange);
 
             _subtitleText = CreateLabel(
-                "Ward & Territory Management",
+                "",
                 new Vector2(0f, 185f),
                 18,
                 700f,
@@ -570,6 +590,27 @@ namespace ClanTerritory.Features.WardMenu.UI
             }
 
             return text;
+        }
+
+        private static string FormatRadius(float radius)
+        {
+            return Mathf.RoundToInt(radius).ToString();
+        }
+
+        private static string FormatProtection(bool enabled)
+        {
+            return enabled ? "Enabled" : "Disabled";
+        }
+
+        private static void SetButtonText(Button button, string text)
+        {
+            if (button == null)
+                return;
+
+            Text buttonText = button.GetComponentInChildren<Text>();
+
+            if (buttonText != null)
+                buttonText.text = text;
         }
 
         private void RequestShowOverview()
