@@ -15,6 +15,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private readonly IWardMenuWardActions _wardActions;
         private readonly IWardMenuTerritoryActions _territoryActions;
         private readonly Action<string> _closeAction;
+        private readonly Action<string> _refreshAction;
 
         private float _currentWardRadius;
         private WardId _currentWardId;
@@ -34,12 +35,14 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             IWardMenuView view,
             IWardMenuWardActions wardActions,
             IWardMenuTerritoryActions territoryActions,
-            Action<string> closeAction)
+            Action<string> closeAction,
+            Action<string> refreshAction)
         {
             _view = view;
             _wardActions = wardActions;
             _territoryActions = territoryActions;
             _closeAction = closeAction;
+            _refreshAction = refreshAction;
         }
 
         public void Show(
@@ -133,10 +136,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestToggleProtection()
         {
-            _wardActions.ToggleProtection(
+            bool actionStarted = _wardActions.ToggleProtection(
                 _currentWardId,
                 _currentPrivateArea,
                 _currentPlayer);
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("ProtectionToggle");
         }
 
         public void RequestSetRadius(float radius)

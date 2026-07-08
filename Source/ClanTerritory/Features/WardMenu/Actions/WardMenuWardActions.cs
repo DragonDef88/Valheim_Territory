@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Core;
+using ClanTerritory.Core;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Utils;
@@ -9,7 +9,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
     {
         private const string ToggleEnabledRpc = "ToggleEnabled";
 
-        public void ToggleProtection(
+        public bool ToggleProtection(
             WardId wardId,
             PrivateArea privateArea,
             Player player)
@@ -17,13 +17,13 @@ namespace ClanTerritory.Features.WardMenu.Actions
             if (privateArea == null)
             {
                 ModLog.Debug("[WardMenuActions] ToggleProtection ignored. PrivateArea is null: " + wardId);
-                return;
+                return false;
             }
 
             if (player == null)
             {
                 ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Player is null: " + wardId);
-                return;
+                return false;
             }
 
             Piece piece = privateArea.GetComponent<Piece>();
@@ -31,13 +31,13 @@ namespace ClanTerritory.Features.WardMenu.Actions
             if (piece == null)
             {
                 ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Piece is null: " + wardId);
-                return;
+                return false;
             }
 
             if (!piece.IsCreator())
             {
                 ModLog.Debug("[WardMenuActions] ToggleProtection ignored. Player is not ward creator: " + wardId);
-                return;
+                return false;
             }
 
             ZNetView zNetView = privateArea.GetComponent<ZNetView>();
@@ -45,7 +45,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
             if (zNetView == null || !zNetView.IsValid())
             {
                 ModLog.Debug("[WardMenuActions] ToggleProtection ignored. ZNetView is invalid: " + wardId);
-                return;
+                return false;
             }
 
             long playerId = player.GetPlayerID();
@@ -53,6 +53,7 @@ namespace ClanTerritory.Features.WardMenu.Actions
             zNetView.InvokeRPC(ToggleEnabledRpc, playerId);
 
             ModLog.Info("[WardMenuActions] ToggleProtection invoked through Valheim RPC: " + wardId);
+            return true;
         }
 
         public void SetRadius(

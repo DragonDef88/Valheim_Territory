@@ -1,6 +1,7 @@
-﻿using ClanTerritory.Abstractions;
+using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Features.TerritoryInteraction;
 using ClanTerritory.Features.TerritoryNaming.Events;
 using ClanTerritory.Features.TerritoryNaming.Services;
@@ -9,7 +10,6 @@ using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Services;
 using ClanTerritory.Features.WardMenu.UI;
-using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Utils;
 using UnityEngine;
 
@@ -33,7 +33,7 @@ namespace ClanTerritory.Features.WardMenu
 
             _wardActions = new WardMenuWardActions();
             ITerritoryNamingService territoryNamingService =
-            ServiceContainer.Get<ITerritoryNamingService>();
+                ServiceContainer.Get<ITerritoryNamingService>();
 
             _territoryActions = new WardMenuTerritoryActions(
                 territoryNamingService);
@@ -45,7 +45,8 @@ namespace ClanTerritory.Features.WardMenu
                 view,
                 _wardActions,
                 _territoryActions,
-                CloseWithReason);
+                CloseWithReason,
+                RequestRefreshAfterAction);
 
             _wardMenuService = new WardMenuService(
                 _wardMenuController,
@@ -92,6 +93,12 @@ namespace ClanTerritory.Features.WardMenu
         {
             if (_wardMenuService != null)
                 _wardMenuService.CloseWithReason(reason);
+        }
+
+        private void RequestRefreshAfterAction(string reason)
+        {
+            if (_wardMenuService != null)
+                _wardMenuService.RequestRefreshAfterAction(reason);
         }
 
         private sealed class WardMenuRunner : MonoBehaviour

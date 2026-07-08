@@ -1,12 +1,12 @@
-﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Runtime.Registry;
+using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Features.TerritoryInteraction;
 using ClanTerritory.Features.TerritoryNaming.Events;
 using ClanTerritory.Features.WardMenu.Builders;
 using ClanTerritory.Features.WardMenu.Controllers;
 using ClanTerritory.Features.WardMenu.Models;
-using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Services
@@ -17,6 +17,8 @@ namespace ClanTerritory.Features.WardMenu.Services
         IEventHandler<TerritoryRenamedEvent>,
         IEventHandler<TerritoryRadiusChangedEvent>
     {
+        private const int ActionRefreshAttempts = 4;
+
         private readonly WardMenuController _controller;
         private readonly WardMenuModelBuilder _modelBuilder;
 
@@ -25,10 +27,25 @@ namespace ClanTerritory.Features.WardMenu.Services
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
         private bool _isOpen;
+        private int _pendingRefreshAttempts;
+        private string _pendingRefreshReason = "";
 
         public bool IsOpen
         {
             get { return _isOpen; }
+        }
+
+        public WardId CurrentWardId
+        {
+            get { return _currentWardId; }
+        }
+
+        public WardMenuService(
+            WardMenuController controller,
+            WardMenuModelBuilder modelBuilder)
+        {
+            _controller = controller;
+            _modelBuilder = modelBuilder;
         }
 
         public void Handle(TerritoryRadiusChangedEvent eventData)
@@ -42,19 +59,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             if (!eventData.WardId.Equals(_currentWardId))
                 return;
 
-            Refresh();
-        }
-        public WardId CurrentWardId
-        {
-            get { return _currentWardId; }
-        }
-
-        public WardMenuService(
-            WardMenuController controller,
-            WardMenuModelBuilder modelBuilder)
-        {
-            _controller = controller;
-            _modelBuilder = modelBuilder;
+            RefreshWithReason("RadiusChangedEvent");
         }
 
         public void Handle(TerritoryInteractionRequestedEvent eventData)
@@ -83,7 +88,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             if (!eventData.WardId.Equals(_currentWardId))
                 return;
 
-            Refresh();
+            RefreshWithReason("TerritoryRenamedEvent");
         }
 
         public void Open(
@@ -114,6 +119,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             _currentPrivateArea = privateArea;
             _currentPlayer = player;
             _isOpen = true;
+            ClearPendingRefresh();
 
             _controller.Show(
                 model,
@@ -138,6 +144,7 @@ namespace ClanTerritory.Features.WardMenu.Services
             if (!_isOpen)
                 return;
 
+            ClearPendingRefresh();
             _controller.Hide();
 
             ModLog.Info(
@@ -152,24 +159,24 @@ namespace ClanTerritory.Features.WardMenu.Services
 
         public void Refresh()
         {
+            RefreshWithReason("Manual");
+        }
+
+        public void RequestRefreshAfterAction(string reason)
+        {
             if (!_isOpen)
                 return;
 
-            if (_currentPrivateArea == null)
-                return;
+            _pendingRefreshAttempts = ActionRefreshAttempts;
+            _pendingRefreshReason = string.IsNullOrEmpty(reason)
+                ? "Action"
+                : reason;
 
-            WardMenuModel model = _modelBuilder.Build(
-                _currentWardId,
-                _currentRuntimeWard,
-                _currentPrivateArea);
-
-            _controller.Refresh(model);
-
-            ModLog.Info(
-                "[WardMenu] Refreshed ward territory menu: " +
-                model.Ward.WardId +
-                ", territory: " +
-                model.Territory.Name);
+            ModLog.Debug(
+                "[WardMenu] Scheduled ward territory menu refresh: " +
+                _currentWardId +
+                ", reason: " +
+                _pendingRefreshReason);
         }
 
         public void Update()
@@ -201,6 +208,8 @@ namespace ClanTerritory.Features.WardMenu.Services
                 return;
             }
 
+            RunPendingRefresh();
+
             _controller.Tick(_currentPrivateArea, _currentPlayer);
         }
 
@@ -210,6 +219,55 @@ namespace ClanTerritory.Features.WardMenu.Services
 
             if (_controller != null)
                 _controller.Destroy();
+        }
+
+        private void RunPendingRefresh()
+        {
+            if (_pendingRefreshAttempts <= 0)
+                return;
+
+            string reason = _pendingRefreshReason;
+
+            RefreshWithReason(reason);
+
+            _pendingRefreshAttempts--;
+
+            if (_pendingRefreshAttempts <= 0)
+                _pendingRefreshReason = "";
+        }
+
+        private void RefreshWithReason(string reason)
+        {
+            if (!_isOpen)
+                return;
+
+            if (_currentPrivateArea == null)
+                return;
+
+            WardMenuModel model = _modelBuilder.Build(
+                _currentWardId,
+                _currentRuntimeWard,
+                _currentPrivateArea);
+
+            _controller.Refresh(model);
+
+            ModLog.Info(
+                "[WardMenu] Refreshed ward territory menu: " +
+                model.Ward.WardId +
+                ", territory: " +
+                model.Territory.Name +
+                ", enabled: " +
+                model.Ward.Enabled +
+                ", radius: " +
+                model.Ward.Radius +
+                ", reason: " +
+                reason);
+        }
+
+        private void ClearPendingRefresh()
+        {
+            _pendingRefreshAttempts = 0;
+            _pendingRefreshReason = "";
         }
     }
 }
