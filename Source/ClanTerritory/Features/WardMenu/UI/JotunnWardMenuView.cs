@@ -526,26 +526,26 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _territoryText.transform.SetParent(_territoryPanel.transform, false);
 
-            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, "Lock Doors", new Vector2(0f, -66f), 280f, 32f);
-            _decreaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "-1", new Vector2(-104f, -104f), 76f, 30f);
+            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, "Lock Doors", new Vector2(0f, -62f), 280f, 30f);
+            _decreaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "-1", new Vector2(-104f, -96f), 76f, 28f);
 
             _doorAutoCloseValueText = CreateLabel(
                 "",
-                new Vector2(0f, -104f),
+                new Vector2(0f, -96f),
                 20,
                 94f,
-                30f,
+                28f,
                 TextAnchor.MiddleCenter,
                 gui.AveriaSerifBold,
                 gui.ValheimOrange);
 
             _doorAutoCloseValueText.transform.SetParent(_territoryPanel.transform, false);
 
-            _increaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "+1", new Vector2(104f, -104f), 76f, 30f);
-            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, "Enable Structure Protection", new Vector2(0f, -142f), 280f, 32f);
-            _renameTerritoryButton = CreateButton(_territoryPanel.transform, "Rename Territory", new Vector2(0f, -180f), 280f, 32f);
+            _increaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "+1", new Vector2(104f, -96f), 76f, 28f);
+            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, "Enable Structure Protection", new Vector2(0f, -132f), 280f, 30f);
+            _renameTerritoryButton = CreateButton(_territoryPanel.transform, "Rename Territory", new Vector2(0f, -168f), 280f, 30f);
 
-            _closeButton = CreateButton("Close", new Vector2(0f, -224f), 180f, 42f);
+            _closeButton = CreateButton("Close", new Vector2(0f, -242f), 180f, 34f);
 
             _overviewButton.onClick.AddListener(RequestShowOverview);
             _wardButton.onClick.AddListener(RequestShowWard);
