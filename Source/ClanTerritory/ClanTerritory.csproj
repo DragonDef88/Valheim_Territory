@@ -34,6 +34,9 @@
     <Reference Include="0Harmony">
       <HintPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
+	<Reference Include="Jotunn">
+      <HintPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\plugins\Jotunn\Jotunn.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
