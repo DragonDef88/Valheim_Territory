@@ -200,6 +200,12 @@ namespace ClanTerritory.Features.Territory
                 ModLog.Info("[TerritoryPresence] Entered territory: " + _currentTerritoryName + ", ward: " + _currentWardId);
             }
 
+            private void ClearCurrentTerritory()
+            {
+                _currentWardId = "";
+                _currentTerritoryName = "";
+            }
+
             private static PrivateArea FindCurrentTerritoryArea(Vector3 position)
             {
                 List<PrivateArea> areas = GetPrivateAreas();
