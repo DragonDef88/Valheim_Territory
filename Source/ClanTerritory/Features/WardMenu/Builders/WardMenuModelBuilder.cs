@@ -41,8 +41,12 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ModLog.Debug("[WardMenu] Building ward territory model without ZDO: " + wardId);
 
             string ownerName = zdo != null
-                ? BuildOwnerName(zdo)
+                ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
                 : "Unknown";
+
+            string creatorGuildName = zdo != null
+                ? BuildCreatorGuildName(zdo)
+                : "";
 
             bool enabled = zdo != null && zdo.GetBool(ZDOVars.s_enabled);
 
@@ -62,6 +66,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
             WardMenuWardSection wardSection = new WardMenuWardSection(
                 wardId,
                 ownerName,
+                creatorGuildName,
                 privateArea.m_radius,
                 enabled,
                 isCurrentPlayerCreator,
@@ -171,23 +176,16 @@ namespace ClanTerritory.Features.WardMenu.Builders
                    "\nStructures: " + (structureDamageProtectionEnabled ? "Protected" : "Vulnerable");
         }
 
-        private static string BuildOwnerName(ZDO zdo)
+        private static string BuildCreatorGuildName(ZDO zdo)
         {
             if (zdo == null)
-                return "Unknown";
-
-            string ownerName = zdo.GetString(
-                ZDOVars.s_creatorName,
-                "Unknown");
+                return "";
 
             string guildName = zdo.GetString(
                 ClanTerritory.Features.Territory.TerritoryZdoKeys.WardGuildName,
                 "");
 
-            if (string.IsNullOrEmpty(guildName))
-                return ownerName;
-
-            return guildName;
+            return guildName ?? "";
         }
 
         private static bool HasCreatorOrGuildAccess(PrivateArea privateArea, Player player)

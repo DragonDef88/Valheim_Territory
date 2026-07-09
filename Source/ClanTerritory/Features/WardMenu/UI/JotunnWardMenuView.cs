@@ -410,6 +410,18 @@ namespace ClanTerritory.Features.WardMenu.UI
             _closeByDistanceAction = null;
         }
 
+        private static string BuildMenuTitle(WardMenuModel model)
+        {
+            if (model == null ||
+                model.Ward == null ||
+                string.IsNullOrEmpty(model.Ward.CreatorGuildName))
+            {
+                return "Territory";
+            }
+
+            return model.Ward.CreatorGuildName + " Territory";
+        }
+
         private void ApplyModel(WardMenuModel model)
         {
             string radiusText = FormatRadius(model.Ward.Radius);
@@ -418,7 +430,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             bool ownerMode = model.Ward.IsCurrentPlayerCreator;
             bool selfPermissionMode = !ownerMode && !model.Ward.Enabled;
 
-            _titleText.text = "Clan Territory";
+            _titleText.text = BuildMenuTitle(model);
             _subtitleText.text =
                 "Territory radius: " + radiusText + " m   |   Protection: " + protectionText;
 
@@ -577,7 +589,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _panel.name = "ClanTerritory_JotunnWardPanel";
 
             _titleText = CreateLabel(
-                "Clan Territory",
+                "Territory",
                 new Vector2(0f, 240f),
                 30,
                 700f,

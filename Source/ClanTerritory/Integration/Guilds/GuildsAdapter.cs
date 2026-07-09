@@ -13,17 +13,15 @@ namespace ClanTerritory.Integration.Guilds
     {
         private const string GuildsAssemblyName = "Guilds";
         private const string GuildsApiTypeName = "Guilds.API";
-        private const string GuildsMapTypeName = "Guilds.Map";
-
         private readonly object _syncRoot = new object();
 
         private Assembly _assembly;
         private Type _apiType;
-        private Type _mapType;
         private MethodInfo _isLoadedMethod;
         private MethodInfo _getPlayerGuildMethod;
         private MethodInfo _getGuildLeaderMethod;
-        private FieldInfo _guildMapPlayerIconField;
+        private MethodInfo _getGuildByNameMethod;
+        private MethodInfo _getGuildIconMethod;
         private bool _resolved;
         private bool _candidateLogWritten;
 
@@ -93,22 +91,42 @@ namespace ClanTerritory.Integration.Guilds
             return !string.IsNullOrEmpty(color);
         }
 
-        public bool TryGetGuildMapSprite(out Sprite sprite)
+        public bool TryGetGuildIcon(string guildName, out Sprite sprite)
         {
             sprite = null;
 
+            if (string.IsNullOrEmpty(guildName))
+                return false;
+
             EnsureResolved();
 
-            if (_guildMapPlayerIconField == null)
+            if (_getGuildByNameMethod == null || _getGuildIconMethod == null)
                 return false;
 
             try
             {
-                sprite = _guildMapPlayerIconField.GetValue(null) as Sprite;
+                object guild = _getGuildByNameMethod.Invoke(
+                    null,
+                    new object[]
+                    {
+                        guildName
+                    });
+
+                if (guild == null)
+                    return false;
+
+                sprite = _getGuildIconMethod.Invoke(
+                    null,
+                    new[]
+                    {
+                        guild
+                    }) as Sprite;
+
                 return sprite != null;
             }
-            catch
+            catch (Exception exception)
             {
+                ModLog.Debug("[Guilds] GetGuildIcon failed: " + exception.GetType().Name);
                 return false;
             }
         }
@@ -238,7 +256,6 @@ namespace ClanTerritory.Integration.Guilds
                 if (_assembly != null)
                 {
                     _apiType = _assembly.GetType(GuildsApiTypeName);
-                    _mapType = _assembly.GetType(GuildsMapTypeName);
 
                     if (_apiType != null)
                     {
@@ -256,14 +273,18 @@ namespace ClanTerritory.Integration.Guilds
                             },
                             null);
 
-                        _getGuildLeaderMethod = FindGetGuildLeaderMethod(_apiType);
-                    }
+                        _getGuildByNameMethod = _apiType.GetMethod(
+                            "GetGuild",
+                            BindingFlags.Public | BindingFlags.Static,
+                            null,
+                            new[]
+                            {
+                                typeof(string)
+                            },
+                            null);
 
-                    if (_mapType != null)
-                    {
-                        _guildMapPlayerIconField = _mapType.GetField(
-                            "guildMapPlayerIcon",
-                            BindingFlags.NonPublic | BindingFlags.Static);
+                        _getGuildLeaderMethod = FindGetGuildLeaderMethod(_apiType);
+                        _getGuildIconMethod = FindGetGuildIconMethod(_apiType);
                     }
                 }
 
@@ -274,8 +295,10 @@ namespace ClanTerritory.Integration.Guilds
                     ModLog.Info(
                         "[Guilds] API connected. GetPlayerGuild(Player): " +
                         (_getPlayerGuildMethod != null) +
-                        ", guild map sprite: " +
-                        (_guildMapPlayerIconField != null));
+                        ", GetGuild(string): " +
+                        (_getGuildByNameMethod != null) +
+                        ", GetGuildIcon(Guild): " +
+                        (_getGuildIconMethod != null));
                 }
                 else
                 {
@@ -341,6 +364,33 @@ namespace ClanTerritory.Integration.Guilds
                 MethodInfo method = methods[i];
 
                 if (method.Name != "GetGuildLeader")
+                    continue;
+
+                ParameterInfo[] parameters = method.GetParameters();
+
+                if (parameters.Length == 1)
+                    return method;
+            }
+
+            return null;
+        }
+
+        private static MethodInfo FindGetGuildIconMethod(Type apiType)
+        {
+            if (apiType == null)
+                return null;
+
+            MethodInfo[] methods =
+                apiType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+            for (int i = 0; i < methods.Length; i++)
+            {
+                MethodInfo method = methods[i];
+
+                if (method.Name != "GetGuildIcon")
+                    continue;
+
+                if (!typeof(Sprite).IsAssignableFrom(method.ReturnType))
                     continue;
 
                 ParameterInfo[] parameters = method.GetParameters();
@@ -833,9 +883,20 @@ namespace ClanTerritory.Integration.Guilds
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        public static bool TryGetGuildMapSprite(out Sprite sprite)
+        public static bool TryGetWardGuildIcon(
+            string wardId,
+            out Sprite sprite)
         {
             sprite = null;
+
+            string guildName;
+
+            if (!TryGetWardGuildName(
+                    wardId,
+                    out guildName))
+            {
+                return false;
+            }
 
             IGuildService guildService;
 
@@ -846,7 +907,9 @@ namespace ClanTerritory.Integration.Guilds
                 return false;
             }
 
-            return guildService.TryGetGuildMapSprite(out sprite);
+            return guildService.TryGetGuildIcon(
+                guildName,
+                out sprite);
         }
 
         public static PrivateArea FindPrivateAreaByWardId(string wardId)

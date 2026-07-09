@@ -25,9 +25,6 @@ namespace ClanTerritory.Features.Map.Services
         private readonly Dictionary<string, Minimap.PinData> _pins =
             new Dictionary<string, Minimap.PinData>();
 
-        private readonly Dictionary<string, Sprite> _tintedSpritesByColor =
-            new Dictionary<string, Sprite>();
-
         private AssetBundle _assetBundle;
         private Sprite _neutralSprite;
         private Sprite _guildSprite;
@@ -111,7 +108,7 @@ namespace ClanTerritory.Features.Map.Services
 
             _pins[ward.Id] = pin;
 
-            ModLog.Info("[Map] Ward map pin added: " + ward.Id);
+            ModLog.Info("[Map] Ward map pin added: " + ward.Id + ", name: " + pinName);
         }
 
         public void Remove(string wardId)
@@ -165,19 +162,15 @@ namespace ClanTerritory.Features.Map.Services
         {
             if (HasGuild(ward))
             {
-                Sprite guildMapSprite;
+                Sprite guildIcon;
 
-                if (TerritoryGuildAccess.IsLocalPlayerInWardGuild(ward.Id) &&
-                    TerritoryGuildAccess.TryGetGuildMapSprite(out guildMapSprite) &&
-                    guildMapSprite != null)
+                if (TerritoryGuildAccess.TryGetWardGuildIcon(
+                        ward.Id,
+                        out guildIcon) &&
+                    guildIcon != null)
                 {
-                    return guildMapSprite;
+                    return guildIcon;
                 }
-
-                Sprite tintedSprite = TryCreateGuildTintedSprite(ward, fallback);
-
-                if (tintedSprite != null)
-                    return tintedSprite;
 
                 if (_guildSprite != null)
                     return _guildSprite;
@@ -197,89 +190,6 @@ namespace ClanTerritory.Features.Map.Services
                    TerritoryGuildAccess.TryGetWardGuildId(
                        ward.Id,
                        out guildId);
-        }
-
-        private Sprite TryCreateGuildTintedSprite(WardModel ward, Sprite fallback)
-        {
-            if (ward == null || fallback == null)
-                return null;
-
-            Color guildColor;
-
-            if (!TerritoryGuildAccess.TryGetWardGuildColor(
-                    ward.Id,
-                    out guildColor))
-            {
-                return null;
-            }
-
-            string key = ColorUtility.ToHtmlStringRGBA(guildColor);
-
-            Sprite cached;
-
-            if (_tintedSpritesByColor.TryGetValue(key, out cached) &&
-                cached != null)
-            {
-                return cached;
-            }
-
-            Sprite source = _guildSprite != null
-                ? _guildSprite
-                : fallback;
-
-            if (source == null || source.texture == null)
-                return null;
-
-            try
-            {
-                Texture2D sourceTexture = source.texture;
-                Rect rect = source.rect;
-                int width = Mathf.Max(1, Mathf.RoundToInt(rect.width));
-                int height = Mathf.Max(1, Mathf.RoundToInt(rect.height));
-
-                Color[] pixels = sourceTexture.GetPixels(
-                    Mathf.RoundToInt(rect.x),
-                    Mathf.RoundToInt(rect.y),
-                    width,
-                    height);
-
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    if (pixels[i].a <= 0f)
-                        continue;
-
-                    if (pixels[i].r > 0.45f &&
-                        pixels[i].g < 0.35f &&
-                        pixels[i].b < 0.35f)
-                    {
-                        pixels[i].r = guildColor.r;
-                        pixels[i].g = guildColor.g;
-                        pixels[i].b = guildColor.b;
-                    }
-                }
-
-                Texture2D texture = new Texture2D(
-                    width,
-                    height,
-                    TextureFormat.RGBA32,
-                    false);
-
-                texture.SetPixels(pixels);
-                texture.Apply();
-
-                Sprite sprite = Sprite.Create(
-                    texture,
-                    new Rect(0f, 0f, width, height),
-                    new Vector2(0.5f, 0.5f),
-                    source.pixelsPerUnit);
-
-                _tintedSpritesByColor[key] = sprite;
-                return sprite;
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         private static void UpdatePinIconElement(Minimap.PinData pin, Sprite sprite)

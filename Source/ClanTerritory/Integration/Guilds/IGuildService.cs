@@ -12,7 +12,7 @@ namespace ClanTerritory.Integration.Guilds
 
         bool TryGetPlayerGuildColor(long playerId, out string color);
 
-        bool TryGetGuildMapSprite(out Sprite sprite);
+        bool TryGetGuildIcon(string guildName, out Sprite sprite);
 
         bool ArePlayersInSameGuild(long firstPlayerId, long secondPlayerId);
 

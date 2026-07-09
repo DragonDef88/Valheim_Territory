@@ -30,6 +30,8 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public string OwnerName { get; private set; }
 
+        public string CreatorGuildName { get; private set; }
+
         public float Radius { get; private set; }
 
         public bool Enabled { get; private set; }
@@ -46,6 +48,7 @@ namespace ClanTerritory.Features.WardMenu.Models
         public WardMenuWardSection(
             WardId wardId,
             string ownerName,
+            string creatorGuildName,
             float radius,
             bool enabled,
             bool isCurrentPlayerCreator,
@@ -54,6 +57,7 @@ namespace ClanTerritory.Features.WardMenu.Models
         {
             WardId = wardId;
             OwnerName = ownerName;
+            CreatorGuildName = creatorGuildName ?? "";
             Radius = radius;
             Enabled = enabled;
             IsCurrentPlayerCreator = isCurrentPlayerCreator;
