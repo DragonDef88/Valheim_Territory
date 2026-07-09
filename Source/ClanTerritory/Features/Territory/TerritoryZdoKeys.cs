@@ -38,10 +38,14 @@ namespace ClanTerritory.Features.Territory
 
         public const string TerraformingChestMarker = "ct_territory_terraforming_chest_marker";
 
+        public const string TerraformingChestItems = "ct_territory_terraforming_chest_items";
+
         public const string TreasuryChestZdoUser = "ct_territory_treasury_chest_zdo_user";
 
         public const string TreasuryChestZdoId = "ct_territory_treasury_chest_zdo_id";
 
         public const string TreasuryChestMarker = "ct_territory_treasury_chest_marker";
+
+        public const string TreasuryChestItems = "ct_territory_treasury_chest_items";
     }
 }

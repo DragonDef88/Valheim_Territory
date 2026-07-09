@@ -320,6 +320,11 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Inventory),
                 "m_height");
 
+        private static readonly FieldInfo InventoryNameField =
+            AccessTools.Field(
+                typeof(Inventory),
+                "m_name");
+
         private static readonly MethodInfo InventoryChangedMethod =
             AccessTools.Method(
                 typeof(Inventory),
@@ -335,6 +340,9 @@ namespace ClanTerritory.Features.Territory.Services
 
         private static readonly Dictionary<Inventory, Container> TreasuryContainerByInventory =
             new Dictionary<Inventory, Container>();
+
+        private static readonly Dictionary<Inventory, VirtualContainerBinding> VirtualContainerBindings =
+            new Dictionary<Inventory, VirtualContainerBinding>();
 
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
@@ -366,6 +374,23 @@ namespace ClanTerritory.Features.Territory.Services
             "PickaxeIron",
             "PickaxeBlackMetal"
         };
+
+        private sealed class VirtualContainerBinding
+        {
+            public readonly Container Container;
+            public readonly ZDO WardZdo;
+            public readonly string ItemKey;
+
+            public VirtualContainerBinding(
+                Container container,
+                ZDO wardZdo,
+                string itemKey)
+            {
+                Container = container;
+                WardZdo = wardZdo;
+                ItemKey = itemKey;
+            }
+        }
 
         public void RegisterRpc(PrivateArea privateArea)
         {
@@ -508,7 +533,12 @@ namespace ClanTerritory.Features.Territory.Services
             if (!ValidateCreatorAction("OpenPreparationChest", wardId, privateArea, player))
                 return false;
 
-            Container container = GetOrCreatePreparationChest(
+            if (InventoryGui.instance == null)
+                return false;
+
+            InventoryGui.instance.Hide();
+
+            Container container = CreateVirtualPreparationChest(
                 wardId,
                 privateArea,
                 player);
@@ -516,17 +546,8 @@ namespace ClanTerritory.Features.Territory.Services
             if (container == null)
                 return false;
 
-            ConfigurePreparationChest(container);
-
-            if (InventoryGui.instance != null)
-            {
-                InventoryGui.instance.Hide();
-            }
-
-            return container.Interact(
-                player,
-                false,
-                false);
+            InventoryGui.instance.Show(container);
+            return true;
         }
 
         public bool RequestOpenTreasuryChest(
@@ -537,7 +558,12 @@ namespace ClanTerritory.Features.Territory.Services
             if (!ValidateCreatorAction("OpenTreasuryChest", wardId, privateArea, player))
                 return false;
 
-            Container container = GetOrCreateTreasuryChest(
+            if (InventoryGui.instance == null)
+                return false;
+
+            InventoryGui.instance.Hide();
+
+            Container container = CreateVirtualTreasuryChest(
                 wardId,
                 privateArea,
                 player);
@@ -545,15 +571,8 @@ namespace ClanTerritory.Features.Territory.Services
             if (container == null)
                 return false;
 
-            ConfigureTreasuryChest(container);
-
-            if (InventoryGui.instance != null)
-                InventoryGui.instance.Hide();
-
-            return container.Interact(
-                player,
-                false,
-                false);
+            InventoryGui.instance.Show(container);
+            return true;
         }
 
         public bool RequestDecreaseRadius(
@@ -726,6 +745,299 @@ namespace ClanTerritory.Features.Territory.Services
             player.Message(MessageHud.MessageType.Center, "Stone stored: " + moved);
             ModLog.Info("[TerritoryTerraforming] Add stone slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
             return true;
+        }
+
+        private Container CreateVirtualPreparationChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            return CreateVirtualContainer(
+                wardId,
+                privateArea,
+                player,
+                PreparationChestPrefabName,
+                "ClanTerritory_VirtualPreparationChest",
+                "Territory Leveling Chest",
+                TerritoryZdoKeys.TerraformingChestItems,
+                ConfigurePreparationChest);
+        }
+
+        private Container CreateVirtualTreasuryChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            return CreateVirtualContainer(
+                wardId,
+                privateArea,
+                player,
+                TreasuryChestPrefabName,
+                "ClanTerritory_VirtualTreasuryChest",
+                "Territory Treasury",
+                TerritoryZdoKeys.TreasuryChestItems,
+                ConfigureTreasuryChest);
+        }
+
+        private Container CreateVirtualContainer(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            string prefabName,
+            string objectName,
+            string inventoryName,
+            string itemKey,
+            System.Action<Container> configureAction)
+        {
+            if (GetZdo(privateArea) == null)
+            {
+                ModLog.Debug("[TerritoryContainers] Virtual container ignored. Ward ZDO is null: " + wardId);
+                return null;
+            }
+
+            if (ZNetScene.instance == null)
+            {
+                ModLog.Debug("[TerritoryContainers] Virtual container ignored. ZNetScene is null: " + wardId);
+                return null;
+            }
+
+            GameObject prefab = ZNetScene.instance.GetPrefab(prefabName);
+
+            if (prefab == null)
+            {
+                ModLog.Debug("[TerritoryContainers] Virtual container prefab not found: " + prefabName);
+                return null;
+            }
+
+            GameObject chestObject = Object.Instantiate(
+                prefab,
+                CalculateVirtualContainerPosition(privateArea, player),
+                Quaternion.identity);
+
+            if (chestObject == null)
+                return null;
+
+            chestObject.name = objectName;
+            HideVirtualContainerObject(chestObject);
+
+            Container container = chestObject.GetComponent<Container>();
+
+            if (container == null)
+            {
+                ModLog.Debug("[TerritoryContainers] Virtual container ignored. Container component is missing: " + prefabName);
+                DestroyVirtualContainerObject(chestObject);
+                return null;
+            }
+
+            container.m_name = inventoryName;
+            container.m_privacy = Container.PrivacySetting.Public;
+            container.m_checkGuardStone = false;
+            container.m_autoDestroyEmpty = false;
+            container.m_openEffects = new EffectList();
+            container.m_closeEffects = new EffectList();
+
+            if (container.m_open != null)
+                container.m_open.SetActive(false);
+
+            if (container.m_closed != null)
+                container.m_closed.SetActive(false);
+
+            if (configureAction != null)
+                configureAction(container);
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+            {
+                DestroyVirtualContainerObject(chestObject);
+                return null;
+            }
+
+            SetInventoryName(
+                inventory,
+                inventoryName);
+
+            LoadVirtualInventory(
+                privateArea,
+                inventory,
+                itemKey);
+
+            RegisterVirtualContainer(
+                container,
+                privateArea,
+                itemKey);
+
+            ModLog.Info("[TerritoryContainers] Virtual container opened without world chest: " + prefabName + ", ward: " + wardId);
+            return container;
+        }
+
+        private static Vector3 CalculateVirtualContainerPosition(
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (player != null)
+                return player.transform.position;
+
+            if (privateArea != null)
+                return privateArea.transform.position;
+
+            return Vector3.zero;
+        }
+
+        private static void HideVirtualContainerObject(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return;
+
+            Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer>(true);
+
+            for (int i = 0; i < renderers.Length; i++)
+                renderers[i].enabled = false;
+
+            Collider[] colliders = gameObject.GetComponentsInChildren<Collider>(true);
+
+            for (int i = 0; i < colliders.Length; i++)
+                colliders[i].enabled = false;
+        }
+
+        private static void RegisterVirtualContainer(
+            Container container,
+            PrivateArea privateArea,
+            string itemKey)
+        {
+            if (container == null)
+                return;
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+                return;
+
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo == null)
+                return;
+
+            VirtualContainerBindings[inventory] = new VirtualContainerBinding(
+                container,
+                wardZdo,
+                itemKey);
+
+            inventory.m_onChanged = (System.Action)System.Delegate.Combine(
+                inventory.m_onChanged,
+                new System.Action(
+                    delegate
+                    {
+                        PersistVirtualInventory(inventory);
+                    }));
+
+            PersistVirtualInventory(inventory);
+        }
+
+        private static void LoadVirtualInventory(
+            PrivateArea privateArea,
+            Inventory inventory,
+            string itemKey)
+        {
+            if (inventory == null)
+                return;
+
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo == null)
+                return;
+
+            string serializedItems = wardZdo.GetString(itemKey, "");
+
+            if (string.IsNullOrEmpty(serializedItems))
+                return;
+
+            try
+            {
+                ZPackage package = new ZPackage(serializedItems);
+                inventory.Load(package);
+            }
+            catch (System.Exception exception)
+            {
+                ModLog.Debug("[TerritoryContainers] Failed to load virtual container inventory: " + exception.Message);
+            }
+        }
+
+        private static void PersistVirtualInventory(Inventory inventory)
+        {
+            if (inventory == null)
+                return;
+
+            VirtualContainerBinding binding;
+
+            if (!VirtualContainerBindings.TryGetValue(inventory, out binding))
+                return;
+
+            if (binding == null || binding.WardZdo == null)
+                return;
+
+            ZPackage package = new ZPackage();
+            inventory.Save(package);
+            binding.WardZdo.Set(binding.ItemKey, package.GetBase64());
+        }
+
+        private static void SetInventoryName(
+            Inventory inventory,
+            string name)
+        {
+            if (inventory == null || InventoryNameField == null)
+                return;
+
+            InventoryNameField.SetValue(
+                inventory,
+                name);
+        }
+
+        public static bool IsVirtualTerritoryContainer(Container container)
+        {
+            if (container == null)
+                return false;
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+                return false;
+
+            return VirtualContainerBindings.ContainsKey(inventory);
+        }
+
+        public static void CloseVirtualTerritoryContainer(Container container)
+        {
+            if (container == null)
+                return;
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory != null)
+            {
+                PersistVirtualInventory(inventory);
+                VirtualContainerBindings.Remove(inventory);
+                PreparationContainerByInventory.Remove(inventory);
+                TreasuryContainerByInventory.Remove(inventory);
+            }
+
+            DestroyVirtualContainerObject(container.gameObject);
+        }
+
+        private static void DestroyVirtualContainerObject(GameObject gameObject)
+        {
+            if (gameObject == null)
+                return;
+
+            ZNetView zNetView = gameObject.GetComponent<ZNetView>();
+
+            if (zNetView != null && zNetView.IsValid() && ZNetScene.instance != null)
+            {
+                ZNetScene.instance.Destroy(gameObject);
+                return;
+            }
+
+            Object.Destroy(gameObject);
         }
 
         private Container GetOrCreateTreasuryChest(

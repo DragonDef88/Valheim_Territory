@@ -190,4 +190,44 @@ namespace ClanTerritory.Integration.Valheim.Harmony
         }
     }
 
+
+    [HarmonyPatch(typeof(InventoryGui))]
+    internal static class InventoryGuiHideVirtualTerritoryContainerHook
+    {
+        private static readonly FieldInfo CurrentContainerField =
+            AccessTools.Field(
+                typeof(InventoryGui),
+                "m_currentContainer");
+
+        private static Container _closingContainer;
+
+        [HarmonyPrefix]
+        [HarmonyPatch("Hide")]
+        private static void HidePrefix(InventoryGui __instance)
+        {
+            _closingContainer = null;
+
+            if (__instance == null || CurrentContainerField == null)
+                return;
+
+            Container container = CurrentContainerField.GetValue(__instance) as Container;
+
+            if (!TerritoryTerraformingService.IsVirtualTerritoryContainer(container))
+                return;
+
+            _closingContainer = container;
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch("Hide")]
+        private static void HidePostfix()
+        {
+            if (_closingContainer == null)
+                return;
+
+            TerritoryTerraformingService.CloseVirtualTerritoryContainer(_closingContainer);
+            _closingContainer = null;
+        }
+    }
+
 }
