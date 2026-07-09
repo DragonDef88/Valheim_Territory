@@ -5948,6 +5948,19 @@ namespace ClanTerritory.Features.BiomeDominion
         }
     }
 
+    internal sealed class BiomeDominionMenuState
+    {
+        public string BiomeName;
+        public bool Claimed;
+        public string OwnerGuildName;
+        public bool Vassal;
+        public bool CanClaim;
+        public bool CanManage;
+        public bool DoorLockEnabled;
+        public bool StructureDamageProtectionEnabled;
+        public int DoorAutoCloseSeconds;
+    }
+
     internal sealed class BiomeDominionModule :
         IInitializable,
         IDisposableModule
@@ -6182,6 +6195,243 @@ namespace ClanTerritory.Features.BiomeDominion
             _scheduledDoorClosures[zdo.m_uid] = new ScheduledDoorClose(door, dueTime);
 
             ModLog.Debug("[BiomeDominion] Biome door auto-close scheduled: " + zdo.m_uid + ", biome: " + record.BiomeName + ", seconds: " + seconds);
+        }
+
+        public BiomeDominionMenuState BuildMenuState(PrivateArea privateArea, Player player)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            BiomeDominionMenuState state = new BiomeDominionMenuState();
+            state.BiomeName = privateArea != null
+                ? GetBiomeName(privateArea.transform.position)
+                : Heightmap.Biome.None.ToString();
+            state.OwnerGuildName = "";
+            state.DoorAutoCloseSeconds = ClanTerritory.Config.ConfigValues.DoorAutoCloseSeconds;
+
+            BiomeDominionRecord record;
+
+            if (!string.IsNullOrEmpty(state.BiomeName) &&
+                _recordsByBiome.TryGetValue(state.BiomeName, out record))
+            {
+                state.Claimed = true;
+                state.OwnerGuildName = record.DisplayName;
+                state.DoorLockEnabled = record.DoorLockEnabled;
+                state.StructureDamageProtectionEnabled = record.StructureDamageProtectionEnabled;
+                state.DoorAutoCloseSeconds = NormalizeDoorAutoCloseSeconds(record.DoorAutoCloseSeconds);
+                state.CanManage = CanManageDominion(player, record);
+
+                if (privateArea != null)
+                    state.Vassal = TryGetVassalStatus(privateArea, out record);
+            }
+            else
+            {
+                state.CanClaim = CanClaimBiome(player);
+            }
+
+            return state;
+        }
+
+        public bool RequestClaimBiome(PrivateArea privateArea, Player player)
+        {
+            if (privateArea == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_biome"));
+                return false;
+            }
+
+            return RequestClaimBiomeAt(privateArea.transform.position, player);
+        }
+
+        public bool RequestReleaseBiome(PrivateArea privateArea, Player player)
+        {
+            BiomeDominionRecord record;
+
+            if (!TryGetManageableDominion(privateArea, player, out record))
+                return false;
+
+            _recordsByBiome.Remove(record.BiomeName);
+            Save();
+
+            ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.released", record.BiomeName));
+
+            ModLog.Info("[BiomeDominion] Biome released from ward menu: " + record.BiomeName + ", guild: " + record.DisplayName);
+            return true;
+        }
+
+        public bool RequestSetBiomeDoorLock(PrivateArea privateArea, Player player, bool enabled)
+        {
+            BiomeDominionRecord record;
+
+            if (!TryGetManageableDominion(privateArea, player, out record))
+                return false;
+
+            record.DoorLockEnabled = enabled;
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+            Save();
+
+            ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.rule_saved", record.BiomeName, "doorlock", FormatBool(enabled)));
+            return true;
+        }
+
+        public bool RequestSetBiomeStructureDamageProtection(PrivateArea privateArea, Player player, bool enabled)
+        {
+            BiomeDominionRecord record;
+
+            if (!TryGetManageableDominion(privateArea, player, out record))
+                return false;
+
+            record.StructureDamageProtectionEnabled = enabled;
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+            Save();
+
+            ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.rule_saved", record.BiomeName, "protection", FormatBool(enabled)));
+            return true;
+        }
+
+        public bool RequestSetBiomeDoorAutoCloseSeconds(PrivateArea privateArea, Player player, int seconds)
+        {
+            BiomeDominionRecord record;
+
+            if (!TryGetManageableDominion(privateArea, player, out record))
+                return false;
+
+            record.DoorAutoCloseSeconds = NormalizeDoorAutoCloseSeconds(seconds);
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+            Save();
+
+            ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.autoclose_saved", record.BiomeName, record.DoorAutoCloseSeconds));
+            return true;
+        }
+
+        private bool RequestClaimBiomeAt(Vector3 position, Player player)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.server_only"));
+                return false;
+            }
+
+            if (player == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_player"));
+                return false;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_guilds"));
+                return false;
+            }
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+            string guildName;
+            string guildColor;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) || string.IsNullOrEmpty(guildId))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_guild"));
+                return false;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) || string.IsNullOrEmpty(guildName))
+                guildName = guildId;
+
+            guildService.TryGetPlayerGuildColor(playerId, out guildColor);
+
+            if (!guildService.IsPlayerGuildLeader(playerId))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.leader_only"));
+                return false;
+            }
+
+            string biomeName = GetBiomeName(position);
+
+            if (string.IsNullOrEmpty(biomeName) || biomeName == Heightmap.Biome.None.ToString())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_biome"));
+                return false;
+            }
+
+            BiomeDominionRecord existing;
+
+            if (_recordsByBiome.TryGetValue(biomeName, out existing) &&
+                !string.Equals(existing.GuildId, guildId, StringComparison.OrdinalIgnoreCase))
+            {
+                ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.already_claimed", biomeName, existing.DisplayName));
+                return false;
+            }
+
+            BiomeDominionRecord record = new BiomeDominionRecord();
+            record.BiomeName = biomeName;
+            record.GuildId = guildId;
+            record.GuildName = guildName;
+            record.GuildColor = guildColor ?? "";
+            record.ClaimedByPlayerId = playerId;
+            record.ClaimedByPlayerName = player.GetPlayerName();
+            record.DoorLockEnabled = existing != null && existing.DoorLockEnabled;
+            record.StructureDamageProtectionEnabled = existing != null && existing.StructureDamageProtectionEnabled;
+            record.DoorAutoCloseSeconds = existing != null ? NormalizeDoorAutoCloseSeconds(existing.DoorAutoCloseSeconds) : ClanTerritory.Config.ConfigValues.DoorAutoCloseSeconds;
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            _recordsByBiome[biomeName] = record;
+            Save();
+
+            ShowPlayerMessage(player, CtLocalization.Format("ct.biome.command.claimed", biomeName, guildName));
+            ModLog.Info("[BiomeDominion] Biome claimed from ward menu: " + biomeName + ", guild: " + guildName + ", player: " + player.GetPlayerName());
+            return true;
+        }
+
+        private bool CanClaimBiome(Player player)
+        {
+            if (!IsServerOrSinglePlayer() || player == null)
+                return false;
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+                return false;
+
+            string guildId;
+
+            return guildService.TryGetPlayerGuildId(player.GetPlayerID(), out guildId) &&
+                   !string.IsNullOrEmpty(guildId) &&
+                   guildService.IsPlayerGuildLeader(player.GetPlayerID());
+        }
+
+        private bool TryGetManageableDominion(PrivateArea privateArea, Player player, out BiomeDominionRecord record)
+        {
+            record = null;
+
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.server_only"));
+                return false;
+            }
+
+            if (privateArea == null || player == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.no_player"));
+                return false;
+            }
+
+            string biomeName = GetBiomeName(privateArea.transform.position);
+
+            if (string.IsNullOrEmpty(biomeName) || !_recordsByBiome.TryGetValue(biomeName, out record))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.not_claimed"));
+                return false;
+            }
+
+            if (!CanManageDominion(player, record))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.biome.command.not_owner"));
+                return false;
+            }
+
+            return true;
         }
 
         private void RegisterCommands()
@@ -7006,6 +7256,20 @@ namespace ClanTerritory.Features.BiomeDominion
                 return "";
 
             return value.Replace("\\]", "]").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+
+        private static void ShowPlayerMessage(Player player, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (player == null)
+                player = Player.m_localPlayer;
+
+            if (player == null)
+                return;
+
+            player.Message(MessageHud.MessageType.Center, message);
         }
 
         private static void Reply(Terminal.ConsoleEventArgs args, string message)

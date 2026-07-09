@@ -21,6 +21,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private GameObject _overviewPanel;
         private GameObject _wardPanel;
         private GameObject _territoryPanel;
+        private GameObject _biomeDominionPanel;
         private GameObject _terraformingPanel;
         private GameObject _terraformingStoragePanel;
 
@@ -29,14 +30,17 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Text _overviewText;
         private Text _wardText;
         private Text _territoryText;
+        private Text _biomeDominionText;
         private Text _terraformingText;
         private Text _radiusValueText;
         private Text _doorAutoCloseValueText;
+        private Text _biomeDoorAutoCloseValueText;
         private Text _terraformingRadiusValueText;
 
         private Button _overviewButton;
         private Button _wardButton;
         private Button _territoryButton;
+        private Button _biomeDominionButton;
         private Button _terraformingButton;
         private Button _openTreasuryButton;
         private Button _closeButton;
@@ -49,6 +53,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _decreaseDoorAutoCloseButton;
         private Button _increaseDoorAutoCloseButton;
         private Button _toggleStructureDamageProtectionButton;
+        private Button _claimBiomeDominionButton;
+        private Button _releaseBiomeDominionButton;
+        private Button _toggleBiomeDoorLockButton;
+        private Button _decreaseBiomeDoorAutoCloseButton;
+        private Button _increaseBiomeDoorAutoCloseButton;
+        private Button _toggleBiomeStructureDamageProtectionButton;
         private Button _toggleTerraformingButton;
         private Button _toggleTerraformingRunningButton;
         private Button _openTerraformingPreparationButton;
@@ -63,6 +73,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _showOverviewAction;
         private Action _showWardAction;
         private Action _showTerritoryAction;
+        private Action _showBiomeDominionAction;
         private Action _showTerraformingAction;
         private Action _openTreasuryChestAction;
         private Action _toggleProtectionAction;
@@ -84,6 +95,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _storeTerraformingPickaxeAction;
         private Action<int> _addTerraformingFuelSlotAction;
         private Action<int> _addTerraformingStoneSlotAction;
+        private Action _claimBiomeDominionAction;
+        private Action _releaseBiomeDominionAction;
+        private Action _toggleBiomeDoorLockAction;
+        private Action _decreaseBiomeDoorAutoCloseAction;
+        private Action _increaseBiomeDoorAutoCloseAction;
+        private Action _toggleBiomeStructureDamageProtectionAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -105,6 +122,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showOverviewAction,
             Action showWardAction,
             Action showTerritoryAction,
+            Action showBiomeDominionAction,
             Action showTerraformingAction,
             Action openTreasuryChestAction,
             Action toggleProtectionAction,
@@ -126,6 +144,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action storeTerraformingPickaxeAction,
             Action<int> addTerraformingFuelSlotAction,
             Action<int> addTerraformingStoneSlotAction,
+            Action claimBiomeDominionAction,
+            Action releaseBiomeDominionAction,
+            Action toggleBiomeDoorLockAction,
+            Action decreaseBiomeDoorAutoCloseAction,
+            Action increaseBiomeDoorAutoCloseAction,
+            Action toggleBiomeStructureDamageProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -136,6 +160,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 showOverviewAction,
                 showWardAction,
                 showTerritoryAction,
+                showBiomeDominionAction,
                 showTerraformingAction,
                 openTreasuryChestAction,
                 toggleProtectionAction,
@@ -157,6 +182,12 @@ namespace ClanTerritory.Features.WardMenu.UI
                 storeTerraformingPickaxeAction,
                 addTerraformingFuelSlotAction,
                 addTerraformingStoneSlotAction,
+                claimBiomeDominionAction,
+                releaseBiomeDominionAction,
+                toggleBiomeDoorLockAction,
+                decreaseBiomeDoorAutoCloseAction,
+                increaseBiomeDoorAutoCloseAction,
+                toggleBiomeStructureDamageProtectionAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -265,6 +296,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewPanel = null;
             _wardPanel = null;
             _territoryPanel = null;
+            _biomeDominionPanel = null;
             _terraformingPanel = null;
             _terraformingStoragePanel = null;
 
@@ -273,14 +305,17 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewText = null;
             _wardText = null;
             _territoryText = null;
+            _biomeDominionText = null;
             _terraformingText = null;
             _radiusValueText = null;
             _doorAutoCloseValueText = null;
+            _biomeDoorAutoCloseValueText = null;
             _terraformingRadiusValueText = null;
 
             _overviewButton = null;
             _wardButton = null;
             _territoryButton = null;
+            _biomeDominionButton = null;
             _terraformingButton = null;
             _openTreasuryButton = null;
             _closeButton = null;
@@ -293,6 +328,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseDoorAutoCloseButton = null;
             _increaseDoorAutoCloseButton = null;
             _toggleStructureDamageProtectionButton = null;
+            _claimBiomeDominionButton = null;
+            _releaseBiomeDominionButton = null;
+            _toggleBiomeDoorLockButton = null;
+            _decreaseBiomeDoorAutoCloseButton = null;
+            _increaseBiomeDoorAutoCloseButton = null;
+            _toggleBiomeStructureDamageProtectionButton = null;
             _toggleTerraformingButton = null;
             _toggleTerraformingRunningButton = null;
             _openTerraformingPreparationButton = null;
@@ -320,6 +361,11 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetActivePanel(_territoryPanel);
         }
 
+        public void ShowBiomeDominionPanel()
+        {
+            SetActivePanel(_biomeDominionPanel);
+        }
+
         public void ShowTerraformingPanel()
         {
             SetActivePanel(_terraformingPanel);
@@ -329,6 +375,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showOverviewAction,
             Action showWardAction,
             Action showTerritoryAction,
+            Action showBiomeDominionAction,
             Action showTerraformingAction,
             Action openTreasuryChestAction,
             Action toggleProtectionAction,
@@ -350,12 +397,19 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action storeTerraformingPickaxeAction,
             Action<int> addTerraformingFuelSlotAction,
             Action<int> addTerraformingStoneSlotAction,
+            Action claimBiomeDominionAction,
+            Action releaseBiomeDominionAction,
+            Action toggleBiomeDoorLockAction,
+            Action decreaseBiomeDoorAutoCloseAction,
+            Action increaseBiomeDoorAutoCloseAction,
+            Action toggleBiomeStructureDamageProtectionAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
             _showOverviewAction = showOverviewAction;
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
+            _showBiomeDominionAction = showBiomeDominionAction;
             _showTerraformingAction = showTerraformingAction;
             _openTreasuryChestAction = openTreasuryChestAction;
             _toggleProtectionAction = toggleProtectionAction;
@@ -377,6 +431,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _storeTerraformingPickaxeAction = storeTerraformingPickaxeAction;
             _addTerraformingFuelSlotAction = addTerraformingFuelSlotAction;
             _addTerraformingStoneSlotAction = addTerraformingStoneSlotAction;
+            _claimBiomeDominionAction = claimBiomeDominionAction;
+            _releaseBiomeDominionAction = releaseBiomeDominionAction;
+            _toggleBiomeDoorLockAction = toggleBiomeDoorLockAction;
+            _decreaseBiomeDoorAutoCloseAction = decreaseBiomeDoorAutoCloseAction;
+            _increaseBiomeDoorAutoCloseAction = increaseBiomeDoorAutoCloseAction;
+            _toggleBiomeStructureDamageProtectionAction = toggleBiomeStructureDamageProtectionAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -386,6 +446,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showOverviewAction = null;
             _showWardAction = null;
             _showTerritoryAction = null;
+            _showBiomeDominionAction = null;
             _showTerraformingAction = null;
             _openTreasuryChestAction = null;
             _toggleProtectionAction = null;
@@ -407,6 +468,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _storeTerraformingPickaxeAction = null;
             _addTerraformingFuelSlotAction = null;
             _addTerraformingStoneSlotAction = null;
+            _claimBiomeDominionAction = null;
+            _releaseBiomeDominionAction = null;
+            _toggleBiomeDoorLockAction = null;
+            _decreaseBiomeDoorAutoCloseAction = null;
+            _increaseBiomeDoorAutoCloseAction = null;
+            _toggleBiomeStructureDamageProtectionAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -449,7 +516,8 @@ namespace ClanTerritory.Features.WardMenu.UI
                 CtLocalization.Get("ct.menu.field.protection") + ":\n" + protectionText + "\n\n" +
                 CtLocalization.Get("ct.menu.field.your_access") + ":\n" + FormatCurrentAccess(model) + "\n\n" +
                 CtLocalization.Get("ct.menu.field.doors") + ":\n" + doorText + "\n\n" +
-                CtLocalization.Get("ct.menu.field.structures") + ":\n" + FormatStructures(model.Territory.StructureDamageProtectionEnabled);
+                CtLocalization.Get("ct.menu.field.structures") + ":\n" + FormatStructures(model.Territory.StructureDamageProtectionEnabled) + "\n\n" +
+                CtLocalization.Get("ct.menu.field.biome") + ":\n" + FormatBiomeDominionOverview(model);
 
             _wardText.text =
                 CtLocalization.Get("ct.menu.ward.title") + "\n\n" +
@@ -465,6 +533,18 @@ namespace ClanTerritory.Features.WardMenu.UI
                 CtLocalization.Get("ct.menu.field.structures") + ": " + FormatStructures(model.Territory.StructureDamageProtectionEnabled) + "\n\n" +
                 CtLocalization.Get("ct.menu.field.guild_access") + ": " + FormatEnabled(model.Territory.GuildAccessEnabled) + "\n" +
                 CtLocalization.Get("ct.menu.field.group_access") + ": " + FormatEnabled(model.Territory.GroupAccessEnabled);
+
+            if (_biomeDominionText != null)
+            {
+                _biomeDominionText.text =
+                    CtLocalization.Get("ct.menu.biome.title") + "\n\n" +
+                    CtLocalization.Get("ct.menu.field.biome") + ": " + FormatBiomeName(model) + "\n" +
+                    CtLocalization.Get("ct.menu.field.status") + ": " + FormatBiomeDominionStatus(model) + "\n" +
+                    CtLocalization.Get("ct.menu.field.owner_guild") + ": " + FormatBiomeOwner(model) + "\n" +
+                    CtLocalization.Get("ct.menu.field.vassal_status") + ": " + FormatBiomeVassal(model) + "\n\n" +
+                    CtLocalization.Get("ct.menu.field.doors") + ": " + FormatBiomeDoorLock(model) + "\n" +
+                    CtLocalization.Get("ct.menu.field.structures") + ": " + FormatBiomeStructures(model);
+            }
 
             _terraformingText.text =
                 CtLocalization.Get("ct.menu.leveling.title") + "\n\n" +
@@ -485,6 +565,11 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_doorAutoCloseValueText != null)
                 _doorAutoCloseValueText.text = model.Territory.DoorAutoCloseSeconds + "s";
+
+            if (_biomeDoorAutoCloseValueText != null)
+                _biomeDoorAutoCloseValueText.text = model.BiomeDominion != null
+                    ? model.BiomeDominion.DoorAutoCloseSeconds + "s"
+                    : "";
 
             if (_terraformingRadiusValueText != null)
                 _terraformingRadiusValueText.text = FormatRadius(model.Terraforming.Radius) + " m";
@@ -512,6 +597,19 @@ namespace ClanTerritory.Features.WardMenu.UI
                 model.Territory.StructureDamageProtectionEnabled
                     ? CtLocalization.Get("ct.menu.button.disable_structure_protection")
                     : CtLocalization.Get("ct.menu.button.enable_structure_protection"));
+
+            SetButtonText(_claimBiomeDominionButton, CtLocalization.Get("ct.menu.button.claim_biome"));
+            SetButtonText(_releaseBiomeDominionButton, CtLocalization.Get("ct.menu.button.release_biome"));
+            SetButtonText(
+                _toggleBiomeDoorLockButton,
+                model.BiomeDominion != null && model.BiomeDominion.DoorLockEnabled
+                    ? CtLocalization.Get("ct.menu.button.unlock_biome_doors")
+                    : CtLocalization.Get("ct.menu.button.lock_biome_doors"));
+            SetButtonText(
+                _toggleBiomeStructureDamageProtectionButton,
+                model.BiomeDominion != null && model.BiomeDominion.StructureDamageProtectionEnabled
+                    ? CtLocalization.Get("ct.menu.button.disable_biome_structure_protection")
+                    : CtLocalization.Get("ct.menu.button.enable_biome_structure_protection"));
 
             SetButtonText(_decreaseRadiusButton, "-5");
             SetButtonText(_increaseRadiusButton, "+5");
@@ -552,6 +650,22 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonActive(_increaseDoorAutoCloseButton, ownerMode);
             SetTextActive(_doorAutoCloseValueText, ownerMode);
             SetButtonActive(_toggleStructureDamageProtectionButton, ownerMode);
+
+            bool biomeCanClaim =
+                model.BiomeDominion != null &&
+                model.BiomeDominion.CanClaim;
+            bool biomeCanManage =
+                model.BiomeDominion != null &&
+                model.BiomeDominion.CanManage;
+
+            SetButtonActive(_claimBiomeDominionButton, biomeCanClaim);
+            SetButtonActive(_releaseBiomeDominionButton, biomeCanManage);
+            SetButtonActive(_toggleBiomeDoorLockButton, biomeCanManage);
+            SetButtonActive(_decreaseBiomeDoorAutoCloseButton, biomeCanManage);
+            SetButtonActive(_increaseBiomeDoorAutoCloseButton, biomeCanManage);
+            SetTextActive(_biomeDoorAutoCloseValueText, biomeCanManage);
+            SetButtonActive(_toggleBiomeStructureDamageProtectionButton, biomeCanManage);
+
             SetButtonActive(_toggleTerraformingButton, ownerMode);
             SetButtonActive(_toggleTerraformingRunningButton, ownerMode);
             SetButtonActive(_openTerraformingPreparationButton, ownerMode);
@@ -638,14 +752,16 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _openTreasuryButton = CreateButton(CtLocalization.Get("ct.menu.button.treasury"), new Vector2(0f, 178f), 180f, 30f);
 
-            _overviewButton = CreateButton(CtLocalization.Get("ct.menu.tab.overview"), new Vector2(-300f, 138f), 160f, 38f);
-            _wardButton = CreateButton(CtLocalization.Get("ct.menu.tab.ward"), new Vector2(-100f, 138f), 160f, 38f);
-            _territoryButton = CreateButton(CtLocalization.Get("ct.menu.tab.territory"), new Vector2(100f, 138f), 160f, 38f);
-            _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(300f, 138f), 160f, 38f);
+            _overviewButton = CreateButton(CtLocalization.Get("ct.menu.tab.overview"), new Vector2(-320f, 138f), 140f, 38f);
+            _wardButton = CreateButton(CtLocalization.Get("ct.menu.tab.ward"), new Vector2(-160f, 138f), 140f, 38f);
+            _territoryButton = CreateButton(CtLocalization.Get("ct.menu.tab.territory"), new Vector2(0f, 138f), 140f, 38f);
+            _biomeDominionButton = CreateButton(CtLocalization.Get("ct.menu.tab.biome"), new Vector2(160f, 138f), 140f, 38f);
+            _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(320f, 138f), 140f, 38f);
 
             _overviewPanel = CreatePanelRoot("OverviewPanel");
             _wardPanel = CreatePanelRoot("WardPanel");
             _territoryPanel = CreatePanelRoot("TerritoryPanel");
+            _biomeDominionPanel = CreatePanelRoot("BiomeDominionPanel");
             _terraformingPanel = CreatePanelRoot("TerraformingPanel");
             _terraformingStoragePanel = CreatePanelRoot("TerraformingPreparationChest");
 
@@ -722,6 +838,38 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, CtLocalization.Get("ct.menu.button.enable_structure_protection"), new Vector2(0f, -132f), 280f, 30f);
             _renameTerritoryButton = CreateButton(_territoryPanel.transform, CtLocalization.Get("ct.menu.button.rename_territory"), new Vector2(0f, -168f), 280f, 30f);
 
+            _biomeDominionText = CreateLabel(
+                "",
+                new Vector2(0f, 55f),
+                18,
+                650f,
+                155f,
+                TextAnchor.UpperLeft,
+                gui.AveriaSerif,
+                gui.ValheimBeige);
+
+            _biomeDominionText.transform.SetParent(_biomeDominionPanel.transform, false);
+
+            _claimBiomeDominionButton = CreateButton(_biomeDominionPanel.transform, CtLocalization.Get("ct.menu.button.claim_biome"), new Vector2(-180f, -55f), 220f, 30f);
+            _releaseBiomeDominionButton = CreateButton(_biomeDominionPanel.transform, CtLocalization.Get("ct.menu.button.release_biome"), new Vector2(180f, -55f), 220f, 30f);
+            _toggleBiomeDoorLockButton = CreateButton(_biomeDominionPanel.transform, CtLocalization.Get("ct.menu.button.lock_biome_doors"), new Vector2(-180f, -94f), 220f, 30f);
+            _decreaseBiomeDoorAutoCloseButton = CreateButton(_biomeDominionPanel.transform, "-1", new Vector2(74f, -94f), 64f, 28f);
+
+            _biomeDoorAutoCloseValueText = CreateLabel(
+                "",
+                new Vector2(150f, -94f),
+                18,
+                82f,
+                28f,
+                TextAnchor.MiddleCenter,
+                gui.AveriaSerifBold,
+                gui.ValheimOrange);
+
+            _biomeDoorAutoCloseValueText.transform.SetParent(_biomeDominionPanel.transform, false);
+
+            _increaseBiomeDoorAutoCloseButton = CreateButton(_biomeDominionPanel.transform, "+1", new Vector2(226f, -94f), 64f, 28f);
+            _toggleBiomeStructureDamageProtectionButton = CreateButton(_biomeDominionPanel.transform, CtLocalization.Get("ct.menu.button.enable_biome_structure_protection"), new Vector2(0f, -134f), 320f, 30f);
+
             _terraformingText = CreateLabel(
                 "",
                 new Vector2(0f, 52f),
@@ -761,6 +909,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewButton.onClick.AddListener(RequestShowOverview);
             _wardButton.onClick.AddListener(RequestShowWard);
             _territoryButton.onClick.AddListener(RequestShowTerritory);
+            _biomeDominionButton.onClick.AddListener(RequestShowBiomeDominion);
             _terraformingButton.onClick.AddListener(RequestShowTerraforming);
             _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
             _closeButton.onClick.AddListener(RequestCloseByInput);
@@ -773,6 +922,12 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseDoorAutoCloseButton.onClick.AddListener(RequestDecreaseDoorAutoClose);
             _increaseDoorAutoCloseButton.onClick.AddListener(RequestIncreaseDoorAutoClose);
             _toggleStructureDamageProtectionButton.onClick.AddListener(RequestToggleStructureDamageProtection);
+            _claimBiomeDominionButton.onClick.AddListener(RequestClaimBiomeDominion);
+            _releaseBiomeDominionButton.onClick.AddListener(RequestReleaseBiomeDominion);
+            _toggleBiomeDoorLockButton.onClick.AddListener(RequestToggleBiomeDoorLock);
+            _decreaseBiomeDoorAutoCloseButton.onClick.AddListener(RequestDecreaseBiomeDoorAutoClose);
+            _increaseBiomeDoorAutoCloseButton.onClick.AddListener(RequestIncreaseBiomeDoorAutoClose);
+            _toggleBiomeStructureDamageProtectionButton.onClick.AddListener(RequestToggleBiomeStructureDamageProtection);
             _toggleTerraformingButton.onClick.AddListener(RequestToggleTerraforming);
             _toggleTerraformingRunningButton.onClick.AddListener(RequestToggleTerraformingRunning);
             _openTerraformingPreparationButton.onClick.AddListener(RequestShowTerraformingPreparationChest);
@@ -969,6 +1124,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_territoryPanel != null)
                 _territoryPanel.SetActive(activePanel == _territoryPanel);
+
+            if (_biomeDominionPanel != null)
+                _biomeDominionPanel.SetActive(activePanel == _biomeDominionPanel);
 
             if (_terraformingPanel != null)
                 _terraformingPanel.SetActive(activePanel == _terraformingPanel);
@@ -1183,6 +1341,95 @@ namespace ClanTerritory.Features.WardMenu.UI
 
 
 
+        private static string FormatBiomeDominionOverview(WardMenuModel model)
+        {
+            if (model == null || model.BiomeDominion == null)
+                return CtLocalization.Get("ct.menu.value.unavailable");
+
+            if (!model.BiomeDominion.Claimed)
+            {
+                return CtLocalization.Format(
+                    "ct.menu.biome.overview.free",
+                    FormatBiomeName(model));
+            }
+
+            return CtLocalization.Format(
+                "ct.menu.biome.overview.claimed",
+                FormatBiomeName(model),
+                FormatBiomeOwner(model));
+        }
+
+        private static string FormatBiomeName(WardMenuModel model)
+        {
+            if (model == null ||
+                model.BiomeDominion == null ||
+                string.IsNullOrEmpty(model.BiomeDominion.BiomeName))
+            {
+                return CtLocalization.Get("ct.menu.value.unknown");
+            }
+
+            return model.BiomeDominion.BiomeName;
+        }
+
+        private static string FormatBiomeDominionStatus(WardMenuModel model)
+        {
+            if (model == null || model.BiomeDominion == null)
+                return CtLocalization.Get("ct.menu.value.unavailable");
+
+            if (!model.BiomeDominion.Claimed)
+                return CtLocalization.Get("ct.menu.biome.status.free");
+
+            return CtLocalization.Get("ct.menu.biome.status.claimed");
+        }
+
+        private static string FormatBiomeOwner(WardMenuModel model)
+        {
+            if (model == null ||
+                model.BiomeDominion == null ||
+                string.IsNullOrEmpty(model.BiomeDominion.OwnerGuildName))
+            {
+                return CtLocalization.Get("ct.menu.value.none");
+            }
+
+            return model.BiomeDominion.OwnerGuildName;
+        }
+
+        private static string FormatBiomeVassal(WardMenuModel model)
+        {
+            if (model == null ||
+                model.BiomeDominion == null ||
+                !model.BiomeDominion.Claimed)
+            {
+                return CtLocalization.Get("ct.menu.value.none");
+            }
+
+            return model.BiomeDominion.Vassal
+                ? CtLocalization.Get("ct.menu.biome.vassal.yes")
+                : CtLocalization.Get("ct.menu.biome.vassal.no");
+        }
+
+        private static string FormatBiomeDoorLock(WardMenuModel model)
+        {
+            if (model == null ||
+                model.BiomeDominion == null ||
+                !model.BiomeDominion.DoorLockEnabled)
+            {
+                return CtLocalization.Get("ct.menu.value.unlocked");
+            }
+
+            return CtLocalization.Format(
+                "ct.menu.value.locked_auto_close",
+                model.BiomeDominion.DoorAutoCloseSeconds);
+        }
+
+        private static string FormatBiomeStructures(WardMenuModel model)
+        {
+            if (model == null || model.BiomeDominion == null)
+                return CtLocalization.Get("ct.menu.value.vulnerable");
+
+            return FormatStructures(model.BiomeDominion.StructureDamageProtectionEnabled);
+        }
+
         private static void SetButtonText(Button button, string text)
         {
             if (button == null)
@@ -1357,6 +1604,48 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_addTerraformingStoneSlotAction != null)
                 _addTerraformingStoneSlotAction(slotIndex);
+        }
+
+        private void RequestShowBiomeDominion()
+        {
+            if (_showBiomeDominionAction != null)
+                _showBiomeDominionAction();
+        }
+
+        private void RequestClaimBiomeDominion()
+        {
+            if (_claimBiomeDominionAction != null)
+                _claimBiomeDominionAction();
+        }
+
+        private void RequestReleaseBiomeDominion()
+        {
+            if (_releaseBiomeDominionAction != null)
+                _releaseBiomeDominionAction();
+        }
+
+        private void RequestToggleBiomeDoorLock()
+        {
+            if (_toggleBiomeDoorLockAction != null)
+                _toggleBiomeDoorLockAction();
+        }
+
+        private void RequestDecreaseBiomeDoorAutoClose()
+        {
+            if (_decreaseBiomeDoorAutoCloseAction != null)
+                _decreaseBiomeDoorAutoCloseAction();
+        }
+
+        private void RequestIncreaseBiomeDoorAutoClose()
+        {
+            if (_increaseBiomeDoorAutoCloseAction != null)
+                _increaseBiomeDoorAutoCloseAction();
+        }
+
+        private void RequestToggleBiomeStructureDamageProtection()
+        {
+            if (_toggleBiomeStructureDamageProtectionAction != null)
+                _toggleBiomeStructureDamageProtectionAction();
         }
 
         private void RequestCloseByInput()

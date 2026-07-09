@@ -11,14 +11,18 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public WardMenuTerraformingSection Terraforming { get; private set; }
 
+        public WardMenuBiomeDominionSection BiomeDominion { get; private set; }
+
         public WardMenuModel(
             WardMenuWardSection ward,
             WardMenuTerritorySection territory,
-            WardMenuTerraformingSection terraforming)
+            WardMenuTerraformingSection terraforming,
+            WardMenuBiomeDominionSection biomeDominion)
         {
             Ward = ward;
             Territory = territory;
             Terraforming = terraforming;
+            BiomeDominion = biomeDominion;
         }
     }
 
@@ -102,6 +106,63 @@ namespace ClanTerritory.Features.WardMenu.Models
             StructureDamageProtectionEnabled = structureDamageProtectionEnabled;
             DoorAutoCloseSeconds = doorAutoCloseSeconds;
             RulesSummary = rulesSummary;
+        }
+    }
+
+    internal sealed class WardMenuBiomeDominionSection
+    {
+        public string BiomeName { get; private set; }
+
+        public bool Claimed { get; private set; }
+
+        public string OwnerGuildName { get; private set; }
+
+        public bool Vassal { get; private set; }
+
+        public bool CanClaim { get; private set; }
+
+        public bool CanManage { get; private set; }
+
+        public bool DoorLockEnabled { get; private set; }
+
+        public bool StructureDamageProtectionEnabled { get; private set; }
+
+        public int DoorAutoCloseSeconds { get; private set; }
+
+        public WardMenuBiomeDominionSection(
+            string biomeName,
+            bool claimed,
+            string ownerGuildName,
+            bool vassal,
+            bool canClaim,
+            bool canManage,
+            bool doorLockEnabled,
+            bool structureDamageProtectionEnabled,
+            int doorAutoCloseSeconds)
+        {
+            BiomeName = biomeName ?? "";
+            Claimed = claimed;
+            OwnerGuildName = ownerGuildName ?? "";
+            Vassal = vassal;
+            CanClaim = canClaim;
+            CanManage = canManage;
+            DoorLockEnabled = doorLockEnabled;
+            StructureDamageProtectionEnabled = structureDamageProtectionEnabled;
+            DoorAutoCloseSeconds = doorAutoCloseSeconds;
+        }
+
+        public static WardMenuBiomeDominionSection Unavailable()
+        {
+            return new WardMenuBiomeDominionSection(
+                "",
+                false,
+                "",
+                false,
+                false,
+                false,
+                false,
+                false,
+                5);
         }
     }
 

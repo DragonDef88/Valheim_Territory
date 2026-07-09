@@ -1,5 +1,7 @@
 using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Services;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
@@ -154,6 +156,79 @@ namespace ClanTerritory.Features.WardMenu.Actions
             return _territoryTerraformingService.RequestAddStoneSlot(wardId, privateArea, player, slotIndex);
         }
 
+        public bool ClaimBiomeDominion(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!TryGetBiomeDominionService("ClaimBiomeDominion", wardId, out biomeDominionService))
+                return false;
+
+            return biomeDominionService.RequestClaimBiome(privateArea, player);
+        }
+
+        public bool ReleaseBiomeDominion(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!TryGetBiomeDominionService("ReleaseBiomeDominion", wardId, out biomeDominionService))
+                return false;
+
+            return biomeDominionService.RequestReleaseBiome(privateArea, player);
+        }
+
+        public bool ToggleBiomeDoorLock(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!TryGetBiomeDominionService("ToggleBiomeDoorLock", wardId, out biomeDominionService))
+                return false;
+
+            BiomeDominionMenuState state =
+                biomeDominionService.BuildMenuState(
+                    privateArea,
+                    player);
+
+            bool nextValue = state == null || !state.DoorLockEnabled;
+
+            return biomeDominionService.RequestSetBiomeDoorLock(
+                privateArea,
+                player,
+                nextValue);
+        }
+
+        public bool SetBiomeDoorAutoCloseSeconds(WardId wardId, PrivateArea privateArea, Player player, int seconds)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!TryGetBiomeDominionService("SetBiomeDoorAutoCloseSeconds", wardId, out biomeDominionService))
+                return false;
+
+            return biomeDominionService.RequestSetBiomeDoorAutoCloseSeconds(
+                privateArea,
+                player,
+                seconds);
+        }
+
+        public bool ToggleBiomeStructureDamageProtection(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!TryGetBiomeDominionService("ToggleBiomeStructureDamageProtection", wardId, out biomeDominionService))
+                return false;
+
+            BiomeDominionMenuState state =
+                biomeDominionService.BuildMenuState(
+                    privateArea,
+                    player);
+
+            bool nextValue = state == null || !state.StructureDamageProtectionEnabled;
+
+            return biomeDominionService.RequestSetBiomeStructureDamageProtection(
+                privateArea,
+                player,
+                nextValue);
+        }
+
         public void ToggleGuildAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGuildAccess requested: " + wardId);
@@ -162,6 +237,21 @@ namespace ClanTerritory.Features.WardMenu.Actions
         public void ToggleGroupAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGroupAccess requested: " + wardId);
+        }
+
+        private static bool TryGetBiomeDominionService(
+            string actionName,
+            WardId wardId,
+            out BiomeDominionService biomeDominionService)
+        {
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService != null)
+            {
+                return true;
+            }
+
+            ModLog.Debug("[WardMenuActions] " + actionName + " ignored. BiomeDominionService is null: " + wardId);
+            return false;
         }
 
         private bool TryGetTerraformingService(string actionName, WardId wardId)

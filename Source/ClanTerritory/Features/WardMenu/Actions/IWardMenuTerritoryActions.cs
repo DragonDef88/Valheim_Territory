@@ -78,6 +78,32 @@ namespace ClanTerritory.Features.WardMenu.Actions
             Player player,
             int slotIndex);
 
+        bool ClaimBiomeDominion(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
+        bool ReleaseBiomeDominion(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
+        bool ToggleBiomeDoorLock(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
+        bool SetBiomeDoorAutoCloseSeconds(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int seconds);
+
+        bool ToggleBiomeStructureDamageProtection(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
         void ToggleGuildAccess(WardId wardId);
 
         void ToggleGroupAccess(WardId wardId);

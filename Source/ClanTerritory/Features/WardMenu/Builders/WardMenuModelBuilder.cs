@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
@@ -86,10 +87,16 @@ namespace ClanTerritory.Features.WardMenu.Builders
             WardMenuTerraformingSection terraformingSection =
                 BuildTerraformingSection(privateArea);
 
+            WardMenuBiomeDominionSection biomeDominionSection =
+                BuildBiomeDominionSection(
+                    privateArea,
+                    player);
+
             WardMenuModel model = new WardMenuModel(
                 wardSection,
                 territorySection,
-                terraformingSection);
+                terraformingSection,
+                biomeDominionSection);
 
             ModLog.Debug(
                 "[WardMenu] Ward territory model created: " + wardId +
@@ -101,12 +108,47 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", doorsLocked: " + territorySection.DoorLockEnabled +
                 ", structureDamageProtection: " + territorySection.StructureDamageProtectionEnabled +
                 ", doorAutoCloseSeconds: " + territorySection.DoorAutoCloseSeconds +
+                ", biome: " + biomeDominionSection.BiomeName +
+                ", biomeClaimed: " + biomeDominionSection.Claimed +
+                ", biomeCanManage: " + biomeDominionSection.CanManage +
                 ", terraformingEnabled: " + terraformingSection.Enabled +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
 
             return model;
+        }
+
+        private static WardMenuBiomeDominionSection BuildBiomeDominionSection(
+            PrivateArea privateArea,
+            Player player)
+        {
+            BiomeDominionService biomeDominionService;
+
+            if (!ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) ||
+                biomeDominionService == null)
+            {
+                return WardMenuBiomeDominionSection.Unavailable();
+            }
+
+            BiomeDominionMenuState state =
+                biomeDominionService.BuildMenuState(
+                    privateArea,
+                    player);
+
+            if (state == null)
+                return WardMenuBiomeDominionSection.Unavailable();
+
+            return new WardMenuBiomeDominionSection(
+                state.BiomeName,
+                state.Claimed,
+                state.OwnerGuildName,
+                state.Vassal,
+                state.CanClaim,
+                state.CanManage,
+                state.DoorLockEnabled,
+                state.StructureDamageProtectionEnabled,
+                state.DoorAutoCloseSeconds);
         }
 
         private WardMenuTerraformingSection BuildTerraformingSection(PrivateArea privateArea)

@@ -19,6 +19,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         private float _currentWardRadius;
         private int _currentDoorAutoCloseSeconds;
+        private int _currentBiomeDoorAutoCloseSeconds;
         private WardId _currentWardId;
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
@@ -30,6 +31,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             Overview,
             Ward,
             Territory,
+            BiomeDominion,
             Terraforming
         }
 
@@ -58,6 +60,9 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
             _currentDoorAutoCloseSeconds = model.Territory.DoorAutoCloseSeconds;
+            _currentBiomeDoorAutoCloseSeconds = model.BiomeDominion != null
+                ? model.BiomeDominion.DoorAutoCloseSeconds
+                : 5;
             _currentTab = WardMenuTab.Overview;
 
             _view.Show(
@@ -65,6 +70,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowOverview,
                 ShowWard,
                 ShowTerritory,
+                ShowBiomeDominion,
                 ShowTerraforming,
                 RequestOpenTreasuryChest,
                 RequestToggleProtection,
@@ -86,6 +92,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestStoreTerraformingPickaxe,
                 RequestAddTerraformingFuelSlot,
                 RequestAddTerraformingStoneSlot,
+                RequestClaimBiomeDominion,
+                RequestReleaseBiomeDominion,
+                RequestToggleBiomeDoorLock,
+                RequestDecreaseBiomeDoorAutoCloseSeconds,
+                RequestIncreaseBiomeDoorAutoCloseSeconds,
+                RequestToggleBiomeStructureDamageProtection,
                 CloseByInput,
                 CloseByDistance);
 
@@ -101,6 +113,9 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _currentTerritoryName = model.Territory.Name;
             _currentWardRadius = model.Ward.Radius;
             _currentDoorAutoCloseSeconds = model.Territory.DoorAutoCloseSeconds;
+            _currentBiomeDoorAutoCloseSeconds = model.BiomeDominion != null
+                ? model.BiomeDominion.DoorAutoCloseSeconds
+                : _currentBiomeDoorAutoCloseSeconds;
 
             _view.Refresh(model);
             ShowCurrentTab();
@@ -213,6 +228,72 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             if (actionStarted && _refreshAction != null)
                 _refreshAction("ToggleStructureDamageProtection");
+        }
+
+        public void RequestClaimBiomeDominion()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ClaimBiomeDominion(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer),
+                "ClaimBiomeDominion");
+        }
+
+        public void RequestReleaseBiomeDominion()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ReleaseBiomeDominion(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer),
+                "ReleaseBiomeDominion");
+        }
+
+        public void RequestToggleBiomeDoorLock()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ToggleBiomeDoorLock(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer),
+                "ToggleBiomeDoorLock");
+        }
+
+        public void RequestDecreaseBiomeDoorAutoCloseSeconds()
+        {
+            RequestSetBiomeDoorAutoCloseSeconds(_currentBiomeDoorAutoCloseSeconds - 1);
+        }
+
+        public void RequestIncreaseBiomeDoorAutoCloseSeconds()
+        {
+            RequestSetBiomeDoorAutoCloseSeconds(_currentBiomeDoorAutoCloseSeconds + 1);
+        }
+
+        public void RequestSetBiomeDoorAutoCloseSeconds(int seconds)
+        {
+            bool actionStarted =
+                _territoryActions.SetBiomeDoorAutoCloseSeconds(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    seconds);
+
+            if (actionStarted)
+                _currentBiomeDoorAutoCloseSeconds = seconds;
+
+            if (actionStarted && _refreshAction != null)
+                _refreshAction("SetBiomeDoorAutoCloseSeconds");
+        }
+
+        public void RequestToggleBiomeStructureDamageProtection()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.ToggleBiomeStructureDamageProtection(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer),
+                "ToggleBiomeStructureDamageProtection");
         }
 
         public void RequestToggleTerraforming()
@@ -351,6 +432,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _view.ShowTerritoryPanel();
         }
 
+        private void ShowBiomeDominion()
+        {
+            _currentTab = WardMenuTab.BiomeDominion;
+            _view.ShowBiomeDominionPanel();
+        }
+
         private void ShowTerraforming()
         {
             _currentTab = WardMenuTab.Terraforming;
@@ -368,6 +455,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (_currentTab == WardMenuTab.Territory)
             {
                 _view.ShowTerritoryPanel();
+                return;
+            }
+
+            if (_currentTab == WardMenuTab.BiomeDominion)
+            {
+                _view.ShowBiomeDominionPanel();
                 return;
             }
 
