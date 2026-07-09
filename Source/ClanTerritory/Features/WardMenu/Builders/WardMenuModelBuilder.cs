@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Core;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardMenu.Models;
+using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Builders
@@ -39,7 +41,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ModLog.Debug("[WardMenu] Building ward territory model without ZDO: " + wardId);
 
             string ownerName = zdo != null
-                ? zdo.GetString(ZDOVars.s_creatorName, "Unknown")
+                ? BuildOwnerName(zdo)
                 : "Unknown";
 
             bool enabled = zdo != null && zdo.GetBool(ZDOVars.s_enabled);
@@ -50,7 +52,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
 
             List<WardMenuPlayerModel> permittedPlayers = BuildPermittedPlayers(zdo);
 
-            bool isCurrentPlayerCreator = IsCurrentPlayerCreator(privateArea, player);
+            bool isCurrentPlayerCreator = HasCreatorOrGuildAccess(privateArea, player);
             bool isCurrentPlayerPermitted = IsCurrentPlayerPermitted(permittedPlayers, player);
 
             bool doorLockEnabled = _territoryRuleService != null && _territoryRuleService.GetDoorLockEnabled(privateArea);
@@ -169,7 +171,26 @@ namespace ClanTerritory.Features.WardMenu.Builders
                    "\nStructures: " + (structureDamageProtectionEnabled ? "Protected" : "Vulnerable");
         }
 
-        private static bool IsCurrentPlayerCreator(PrivateArea privateArea, Player player)
+        private static string BuildOwnerName(ZDO zdo)
+        {
+            if (zdo == null)
+                return "Unknown";
+
+            string ownerName = zdo.GetString(
+                ZDOVars.s_creatorName,
+                "Unknown");
+
+            string guildName = zdo.GetString(
+                ClanTerritory.Features.Territory.TerritoryZdoKeys.WardGuildName,
+                "");
+
+            if (string.IsNullOrEmpty(guildName))
+                return ownerName;
+
+            return guildName;
+        }
+
+        private static bool HasCreatorOrGuildAccess(PrivateArea privateArea, Player player)
         {
             if (privateArea == null || player == null)
                 return false;
@@ -179,7 +200,12 @@ namespace ClanTerritory.Features.WardMenu.Builders
             if (piece == null)
                 return false;
 
-            return piece.GetCreator() == player.GetPlayerID();
+            if (piece.GetCreator() == player.GetPlayerID())
+                return true;
+
+            return TerritoryGuildAccess.HasGuildAccess(
+                privateArea,
+                player);
         }
 
         private static bool IsCurrentPlayerPermitted(List<WardMenuPlayerModel> permittedPlayers, Player player)

@@ -39,6 +39,10 @@ namespace ClanTerritory.Features.Territory
         public const string TerraformingVerifyCount = "ct_territory_terraforming_verify_count";
         public const string TerraformingNextVerifyTime = "ct_territory_terraforming_next_verify_time";
 
+        public const string WardGuildId = "ct_territory_guild_id";
+        public const string WardGuildName = "ct_territory_guild_name";
+        public const string WardGuildColor = "ct_territory_guild_color";
+
         public const string TerraformingFuelSlotPrefix = "ct_territory_terraforming_fuel_slot_";
 
         public const string TerraformingStoneSlotPrefix = "ct_territory_terraforming_stone_slot_";

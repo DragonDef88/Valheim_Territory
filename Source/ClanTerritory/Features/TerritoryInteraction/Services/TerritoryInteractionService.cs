@@ -1,6 +1,10 @@
-﻿using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Map.Services;
 using ClanTerritory.Features.Runtime.Registry;
+using ClanTerritory.Features.WardDetection.Models;
+using ClanTerritory.Integration.Guilds;
+using ClanTerritory.Core;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.TerritoryInteraction.Services
@@ -58,6 +62,16 @@ namespace ClanTerritory.Features.TerritoryInteraction.Services
                 return false;
             }
 
+            TerritoryGuildAccess.SyncWardGuildFromPlayer(
+                privateArea,
+                player,
+                true);
+
+            UpdateWardMapIcon(
+                wardId,
+                runtimeWard,
+                zdo);
+
             ModLog.Info("[TerritoryInteraction] Territory menu requested: " + wardId);
 
             _eventBus.Publish(new TerritoryInteractionRequestedEvent(
@@ -67,6 +81,29 @@ namespace ClanTerritory.Features.TerritoryInteraction.Services
                 player));
 
             return true;
+        }
+
+        private static void UpdateWardMapIcon(
+            WardId wardId,
+            RuntimeWard runtimeWard,
+            ZDO zdo)
+        {
+            if (runtimeWard == null || zdo == null)
+                return;
+
+            WardMapIconService mapIconService;
+
+            if (!ServiceContainer.TryGet<WardMapIconService>(out mapIconService))
+                return;
+
+            mapIconService.AddOrUpdate(
+                new WardModel(
+                    wardId.ToString(),
+                    zdo.GetLong(ZDOVars.s_creator, 0L),
+                    zdo.GetString(ZDOVars.s_creatorName, "Unknown"),
+                    runtimeWard.Position,
+                    0f,
+                    zdo.GetBool(ZDOVars.s_enabled)));
         }
     }
 }

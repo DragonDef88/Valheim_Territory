@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 using ClanTerritory.Features.Territory.Registry;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.WardDetection.Models;
+using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
 using HarmonyLib;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace ClanTerritory.Features.Map.Services
 
         private const string AssetBundleFileName = "clanterritory_mapicons";
         private const string NeutralSpriteName = "clan_ward_neutral";
-        private const string ClanSpriteName = "clan_ward_clan";
+        private const string GuildSpriteName = "clan_ward_clan";
 
         private readonly TerritoryZdoService _zdoService;
         private readonly TerritoryRegistry _territoryRegistry;
@@ -24,9 +25,12 @@ namespace ClanTerritory.Features.Map.Services
         private readonly Dictionary<string, Minimap.PinData> _pins =
             new Dictionary<string, Minimap.PinData>();
 
+        private readonly Dictionary<string, Sprite> _tintedSpritesByColor =
+            new Dictionary<string, Sprite>();
+
         private AssetBundle _assetBundle;
         private Sprite _neutralSprite;
-        private Sprite _clanSprite;
+        private Sprite _guildSprite;
 
         public WardMapIconService(
             TerritoryZdoService zdoService,
@@ -69,14 +73,22 @@ namespace ClanTerritory.Features.Map.Services
             if (Minimap.instance == null)
                 return;
 
+            TrySyncWardGuildFromLocalPlayer(ward);
+
+            string pinName = SelectPinName(ward);
+            Sprite selectedSprite = null;
+
             Minimap.PinData existing;
 
             if (_pins.TryGetValue(ward.Id, out existing))
             {
                 if (IsPinStillRegistered(existing))
                 {
+                    selectedSprite = SelectSprite(ward, existing.m_icon);
                     existing.m_pos = ward.Position;
-                    existing.m_icon = SelectSprite(ward, existing.m_icon);
+                    existing.m_name = pinName;
+                    existing.m_icon = selectedSprite;
+                    UpdatePinIconElement(existing, selectedSprite);
                     return;
                 }
 
@@ -87,13 +99,15 @@ namespace ClanTerritory.Features.Map.Services
                 Minimap.instance.AddPin(
                     ward.Position,
                     Minimap.PinType.Icon0,
-                    PinNamePrefix + ward.Id,
+                    pinName,
                     false,
                     false,
                     0L);
 
-            pin.m_icon = SelectSprite(ward, pin.m_icon);
+            selectedSprite = SelectSprite(ward, pin.m_icon);
+            pin.m_icon = selectedSprite;
             pin.m_doubleSize = true;
+            UpdatePinIconElement(pin, selectedSprite);
 
             _pins[ward.Id] = pin;
 
@@ -132,10 +146,42 @@ namespace ClanTerritory.Features.Map.Services
             _pins.Clear();
         }
 
+        private string SelectPinName(WardModel ward)
+        {
+            string guildName;
+
+            if (ward != null &&
+                TerritoryGuildAccess.TryGetWardGuildName(
+                    ward.Id,
+                    out guildName))
+            {
+                return guildName;
+            }
+
+            return PinNamePrefix + ward.Id;
+        }
+
         private Sprite SelectSprite(WardModel ward, Sprite fallback)
         {
-            if (HasClan(ward) && _clanSprite != null)
-                return _clanSprite;
+            if (HasGuild(ward))
+            {
+                Sprite guildMapSprite;
+
+                if (TerritoryGuildAccess.IsLocalPlayerInWardGuild(ward.Id) &&
+                    TerritoryGuildAccess.TryGetGuildMapSprite(out guildMapSprite) &&
+                    guildMapSprite != null)
+                {
+                    return guildMapSprite;
+                }
+
+                Sprite tintedSprite = TryCreateGuildTintedSprite(ward, fallback);
+
+                if (tintedSprite != null)
+                    return tintedSprite;
+
+                if (_guildSprite != null)
+                    return _guildSprite;
+            }
 
             if (_neutralSprite != null)
                 return _neutralSprite;
@@ -143,9 +189,122 @@ namespace ClanTerritory.Features.Map.Services
             return fallback;
         }
 
-        private bool HasClan(WardModel ward)
+        private bool HasGuild(WardModel ward)
         {
-            return false;
+            string guildId;
+
+            return ward != null &&
+                   TerritoryGuildAccess.TryGetWardGuildId(
+                       ward.Id,
+                       out guildId);
+        }
+
+        private Sprite TryCreateGuildTintedSprite(WardModel ward, Sprite fallback)
+        {
+            if (ward == null || fallback == null)
+                return null;
+
+            Color guildColor;
+
+            if (!TerritoryGuildAccess.TryGetWardGuildColor(
+                    ward.Id,
+                    out guildColor))
+            {
+                return null;
+            }
+
+            string key = ColorUtility.ToHtmlStringRGBA(guildColor);
+
+            Sprite cached;
+
+            if (_tintedSpritesByColor.TryGetValue(key, out cached) &&
+                cached != null)
+            {
+                return cached;
+            }
+
+            Sprite source = _guildSprite != null
+                ? _guildSprite
+                : fallback;
+
+            if (source == null || source.texture == null)
+                return null;
+
+            try
+            {
+                Texture2D sourceTexture = source.texture;
+                Rect rect = source.rect;
+                int width = Mathf.Max(1, Mathf.RoundToInt(rect.width));
+                int height = Mathf.Max(1, Mathf.RoundToInt(rect.height));
+
+                Color[] pixels = sourceTexture.GetPixels(
+                    Mathf.RoundToInt(rect.x),
+                    Mathf.RoundToInt(rect.y),
+                    width,
+                    height);
+
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    if (pixels[i].a <= 0f)
+                        continue;
+
+                    if (pixels[i].r > 0.45f &&
+                        pixels[i].g < 0.35f &&
+                        pixels[i].b < 0.35f)
+                    {
+                        pixels[i].r = guildColor.r;
+                        pixels[i].g = guildColor.g;
+                        pixels[i].b = guildColor.b;
+                    }
+                }
+
+                Texture2D texture = new Texture2D(
+                    width,
+                    height,
+                    TextureFormat.RGBA32,
+                    false);
+
+                texture.SetPixels(pixels);
+                texture.Apply();
+
+                Sprite sprite = Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, width, height),
+                    new Vector2(0.5f, 0.5f),
+                    source.pixelsPerUnit);
+
+                _tintedSpritesByColor[key] = sprite;
+                return sprite;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void UpdatePinIconElement(Minimap.PinData pin, Sprite sprite)
+        {
+            if (pin == null || sprite == null || pin.m_iconElement == null)
+                return;
+
+            pin.m_iconElement.sprite = sprite;
+        }
+
+        private static void TrySyncWardGuildFromLocalPlayer(WardModel ward)
+        {
+            if (ward == null || Player.m_localPlayer == null)
+                return;
+
+            PrivateArea privateArea =
+                TerritoryGuildAccess.FindPrivateAreaByWardId(ward.Id);
+
+            if (privateArea == null)
+                return;
+
+            TerritoryGuildAccess.SyncWardGuildFromPlayer(
+                privateArea,
+                Player.m_localPlayer,
+                true);
         }
 
         private void LoadIcons()
@@ -178,13 +337,13 @@ namespace ClanTerritory.Features.Map.Services
             }
 
             _neutralSprite = _assetBundle.LoadAsset<Sprite>(NeutralSpriteName);
-            _clanSprite = _assetBundle.LoadAsset<Sprite>(ClanSpriteName);
+            _guildSprite = _assetBundle.LoadAsset<Sprite>(GuildSpriteName);
 
             ModLog.Info(
                 "[Map] Ward map sprites loaded. Neutral: " +
                 (_neutralSprite != null) +
-                ", Clan: " +
-                (_clanSprite != null));
+                ", Guild: " +
+                (_guildSprite != null));
         }
 
         private static bool IsPinStillRegistered(Minimap.PinData pin)

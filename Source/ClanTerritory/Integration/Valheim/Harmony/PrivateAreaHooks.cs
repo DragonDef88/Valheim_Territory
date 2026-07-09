@@ -8,6 +8,7 @@ using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
+using ClanTerritory.Integration.Guilds;
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
@@ -53,6 +54,37 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             if (ServiceContainer.TryGet<IWardService>(out wardService))
                 wardService.RegisterWard(model);
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch("IsPermitted", new[] { typeof(long) })]
+        private static void IsPermittedPostfix(
+            PrivateArea __instance,
+            long playerID,
+            ref bool __result)
+        {
+            if (__result)
+                return;
+
+            if (__instance == null || playerID == 0L)
+                return;
+
+            ZNetView zNetView = __instance.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+                return;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return;
+
+            if (TerritoryGuildAccess.HasGuildAccess(
+                    zdo,
+                    playerID))
+            {
+                __result = true;
+            }
         }
 
         [HarmonyPrefix]

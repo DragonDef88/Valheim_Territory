@@ -1,4 +1,4 @@
-﻿using ClanTerritory.Abstractions;
+using ClanTerritory.Abstractions;
 using ClanTerritory.Core;
 using ClanTerritory.Utils;
 

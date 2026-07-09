@@ -1,5 +1,6 @@
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Services;
+using ClanTerritory.Integration.Guilds;
 using HarmonyLib;
 using UnityEngine;
 
@@ -92,7 +93,14 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (!ServiceContainer.TryGet<TerritoryRuleService>(out ruleService))
                 return false;
 
-            return ruleService.IsDoorLockedForPlayer(
+            if (!ruleService.IsDoorLockedForPlayer(
+                    door.transform.position,
+                    player))
+            {
+                return false;
+            }
+
+            return !TerritoryGuildAccess.HasGuildAccessAt(
                 door.transform.position,
                 player);
         }

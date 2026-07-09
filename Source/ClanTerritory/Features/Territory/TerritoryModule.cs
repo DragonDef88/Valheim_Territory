@@ -14,6 +14,7 @@ using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardDetection;
+using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
 using HarmonyLib;
 using UnityEngine;
@@ -5553,9 +5554,15 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
-            if (piece.GetCreator() != player.GetPlayerID())
+            long creatorId = piece.GetCreator();
+            long playerId = player.GetPlayerID();
+
+            if (creatorId != playerId &&
+                !TerritoryGuildAccess.HasGuildAccess(
+                    privateArea,
+                    player))
             {
-                ModLog.Debug("[TerritoryTerraforming] " + actionName + " ignored. Player is not ward creator: " + wardId);
+                ModLog.Debug("[TerritoryTerraforming] " + actionName + " ignored. Player is not ward creator or guild member: " + wardId);
                 return false;
             }
 
@@ -5591,9 +5598,14 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
-            if (zdo.GetLong(ZDOVars.s_creator, 0L) != playerId)
+            long creatorId = zdo.GetLong(ZDOVars.s_creator, 0L);
+
+            if (creatorId != playerId &&
+                !TerritoryGuildAccess.HasGuildAccess(
+                    zdo,
+                    playerId))
             {
-                ModLog.Debug("[TerritoryTerraforming] RPC ignored. Player is not ward creator: " + actionName + ", playerId: " + playerId);
+                ModLog.Debug("[TerritoryTerraforming] RPC ignored. Player is not ward creator or guild member: " + actionName + ", playerId: " + playerId);
                 return false;
             }
 

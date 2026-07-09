@@ -1,6 +1,7 @@
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
+using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Actions
@@ -194,9 +195,12 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 return false;
             }
 
-            if (piece.GetCreator() != player.GetPlayerID())
+            if (piece.GetCreator() != player.GetPlayerID() &&
+                !TerritoryGuildAccess.HasGuildAccess(
+                    privateArea,
+                    player))
             {
-                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is not ward creator: " + wardId);
+                ModLog.Debug("[WardMenuActions] " + actionName + " ignored. Player is not ward creator or guild member: " + wardId);
                 return false;
             }
 
