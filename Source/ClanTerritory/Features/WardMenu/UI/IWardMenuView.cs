@@ -13,6 +13,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showTerraformingAction,
+            Action openTreasuryChestAction,
             Action toggleProtectionAction,
             Action decreaseRadiusAction,
             Action increaseRadiusAction,

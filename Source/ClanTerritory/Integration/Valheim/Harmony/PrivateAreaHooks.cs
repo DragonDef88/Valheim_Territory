@@ -114,6 +114,18 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                     pos,
                     out __result);
 
+            if (handled)
+                return false;
+
+            handled =
+                TerritoryTerraformingService.TryMoveItemToTreasurySlot(
+                    targetInventory,
+                    fromInventory,
+                    item,
+                    amount,
+                    pos,
+                    out __result);
+
             return !handled;
         }
     }
@@ -138,15 +150,43 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             Inventory fromInventory,
             ItemDrop.ItemData item)
         {
-            if (!TerritoryTerraformingService.IsPreparationChestInventory(__instance))
-                return true;
+            if (TerritoryTerraformingService.IsPreparationChestInventory(__instance))
+            {
+                TerritoryTerraformingService.TryAutoMoveItemToPreparationChest(
+                    __instance,
+                    fromInventory,
+                    item);
 
-            TerritoryTerraformingService.TryAutoMoveItemToPreparationChest(
+                return false;
+            }
+
+            if (TerritoryTerraformingService.IsTreasuryChestInventory(__instance))
+            {
+                TerritoryTerraformingService.TryAutoMoveItemToTreasuryChest(
+                    __instance,
+                    fromInventory,
+                    item);
+
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+
+    [HarmonyPatch(typeof(InventoryGrid))]
+    internal static class InventoryGridUpdatePreparationChestVisibilityHook
+    {
+        [HarmonyPostfix]
+        [HarmonyPatch("UpdateInventory")]
+        private static void UpdateInventoryPostfix(
+            InventoryGrid __instance,
+            Inventory inventory)
+        {
+            TerritoryTerraformingService.ApplyPreparationChestGridVisibility(
                 __instance,
-                fromInventory,
-                item);
-
-            return false;
+                inventory);
         }
     }
 

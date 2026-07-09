@@ -37,6 +37,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _wardButton;
         private Button _territoryButton;
         private Button _terraformingButton;
+        private Button _openTreasuryButton;
         private Button _closeButton;
         private Button _toggleProtectionButton;
         private Button _toggleSelfPermissionButton;
@@ -62,6 +63,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _showWardAction;
         private Action _showTerritoryAction;
         private Action _showTerraformingAction;
+        private Action _openTreasuryChestAction;
         private Action _toggleProtectionAction;
         private Action _decreaseRadiusAction;
         private Action _increaseRadiusAction;
@@ -103,6 +105,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showTerraformingAction,
+            Action openTreasuryChestAction,
             Action toggleProtectionAction,
             Action decreaseRadiusAction,
             Action increaseRadiusAction,
@@ -133,6 +136,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 showWardAction,
                 showTerritoryAction,
                 showTerraformingAction,
+                openTreasuryChestAction,
                 toggleProtectionAction,
                 decreaseRadiusAction,
                 increaseRadiusAction,
@@ -277,6 +281,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardButton = null;
             _territoryButton = null;
             _terraformingButton = null;
+            _openTreasuryButton = null;
             _closeButton = null;
             _toggleProtectionButton = null;
             _toggleSelfPermissionButton = null;
@@ -324,6 +329,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showTerraformingAction,
+            Action openTreasuryChestAction,
             Action toggleProtectionAction,
             Action decreaseRadiusAction,
             Action increaseRadiusAction,
@@ -350,6 +356,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
             _showTerraformingAction = showTerraformingAction;
+            _openTreasuryChestAction = openTreasuryChestAction;
             _toggleProtectionAction = toggleProtectionAction;
             _decreaseRadiusAction = decreaseRadiusAction;
             _increaseRadiusAction = increaseRadiusAction;
@@ -379,6 +386,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = null;
             _showTerritoryAction = null;
             _showTerraformingAction = null;
+            _openTreasuryChestAction = null;
             _toggleProtectionAction = null;
             _decreaseRadiusAction = null;
             _increaseRadiusAction = null;
@@ -588,10 +596,12 @@ namespace ClanTerritory.Features.WardMenu.UI
                 gui.AveriaSerif,
                 gui.ValheimBeige);
 
-            _overviewButton = CreateButton("Overview", new Vector2(-300f, 155f), 160f, 38f);
-            _wardButton = CreateButton("Ward", new Vector2(-100f, 155f), 160f, 38f);
-            _territoryButton = CreateButton("Territory", new Vector2(100f, 155f), 160f, 38f);
-            _terraformingButton = CreateButton("Terraforming", new Vector2(300f, 155f), 160f, 38f);
+            _openTreasuryButton = CreateButton("Treasury", new Vector2(0f, 178f), 180f, 30f);
+
+            _overviewButton = CreateButton("Overview", new Vector2(-300f, 138f), 160f, 38f);
+            _wardButton = CreateButton("Ward", new Vector2(-100f, 138f), 160f, 38f);
+            _territoryButton = CreateButton("Territory", new Vector2(100f, 138f), 160f, 38f);
+            _terraformingButton = CreateButton("Terraforming", new Vector2(300f, 138f), 160f, 38f);
 
             _overviewPanel = CreatePanelRoot("OverviewPanel");
             _wardPanel = CreatePanelRoot("WardPanel");
@@ -712,6 +722,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardButton.onClick.AddListener(RequestShowWard);
             _territoryButton.onClick.AddListener(RequestShowTerritory);
             _terraformingButton.onClick.AddListener(RequestShowTerraforming);
+            _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
             _toggleSelfPermissionButton.onClick.AddListener(RequestToggleSelfPermission);
@@ -1140,6 +1151,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_showTerraformingAction != null)
                 _showTerraformingAction();
+        }
+
+        private void RequestOpenTreasuryChest()
+        {
+            if (_openTreasuryChestAction != null)
+                _openTreasuryChestAction();
         }
 
         private void RequestShowTerraformingPreparationChest()

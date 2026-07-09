@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using ClanTerritory.Abstractions;
@@ -306,6 +307,8 @@ namespace ClanTerritory.Features.Territory.Services
         private const string PreparationChestName = "$piece_chestwood";
         private const int PreparationChestWidth = 5;
         private const int PreparationChestHeight = 3;
+        private const string TreasuryChestPrefabName = "piece_chest_blackmetal";
+        private const int TreasurySlotCapacity = 9999;
 
         private static readonly FieldInfo InventoryWidthField =
             AccessTools.Field(
@@ -322,7 +325,15 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Inventory),
                 "Changed");
 
+        private static readonly FieldInfo InventoryGridElementsField =
+            AccessTools.Field(
+                typeof(InventoryGrid),
+                "m_elements");
+
         private static readonly Dictionary<Inventory, Container> PreparationContainerByInventory =
+            new Dictionary<Inventory, Container>();
+
+        private static readonly Dictionary<Inventory, Container> TreasuryContainerByInventory =
             new Dictionary<Inventory, Container>();
 
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
@@ -518,6 +529,33 @@ namespace ClanTerritory.Features.Territory.Services
                 false);
         }
 
+        public bool RequestOpenTreasuryChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (!ValidateCreatorAction("OpenTreasuryChest", wardId, privateArea, player))
+                return false;
+
+            Container container = GetOrCreateTreasuryChest(
+                wardId,
+                privateArea,
+                player);
+
+            if (container == null)
+                return false;
+
+            ConfigureTreasuryChest(container);
+
+            if (InventoryGui.instance != null)
+                InventoryGui.instance.Hide();
+
+            return container.Interact(
+                player,
+                false,
+                false);
+        }
+
         public bool RequestDecreaseRadius(
             WardId wardId,
             PrivateArea privateArea,
@@ -690,6 +728,168 @@ namespace ClanTerritory.Features.Territory.Services
             return true;
         }
 
+        private Container GetOrCreateTreasuryChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            Container existing = FindLinkedTreasuryChest(privateArea);
+
+            if (existing != null)
+                return existing;
+
+            if (ZNetScene.instance == null)
+            {
+                ModLog.Debug("[TerritoryTreasury] Treasury chest ignored. ZNetScene is null: " + wardId);
+                return null;
+            }
+
+            GameObject prefab = ZNetScene.instance.GetPrefab(TreasuryChestPrefabName);
+
+            if (prefab == null)
+            {
+                ModLog.Debug("[TerritoryTreasury] Treasury chest prefab not found: " + TreasuryChestPrefabName);
+                return null;
+            }
+
+            Vector3 position = CalculateTreasuryChestPosition(privateArea, player);
+            Quaternion rotation = Quaternion.identity;
+
+            if (player != null)
+                rotation = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
+
+            GameObject chestObject = Object.Instantiate(
+                prefab,
+                position,
+                rotation);
+
+            if (chestObject == null)
+                return null;
+
+            Container container = chestObject.GetComponent<Container>();
+
+            if (container == null)
+            {
+                ModLog.Debug("[TerritoryTreasury] Treasury chest ignored. Container component is missing.");
+                return null;
+            }
+
+            Piece piece = chestObject.GetComponent<Piece>();
+
+            if (piece != null && player != null)
+                piece.SetCreator(player.GetPlayerID());
+
+            ZNetView chestView = chestObject.GetComponent<ZNetView>();
+            ZDO chestZdo = chestView != null && chestView.IsValid()
+                ? chestView.GetZDO()
+                : null;
+
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo != null && chestZdo != null)
+            {
+                chestZdo.Set(TerritoryZdoKeys.TreasuryChestMarker, true);
+                wardZdo.Set(TerritoryZdoKeys.TreasuryChestZdoUser, chestZdo.m_uid.UserID);
+                wardZdo.Set(TerritoryZdoKeys.TreasuryChestZdoId, (int)chestZdo.m_uid.ID);
+            }
+
+            ConfigureTreasuryChest(container);
+
+            ModLog.Info("[TerritoryTreasury] Real treasury chest created from " + TreasuryChestPrefabName + ": " + wardId);
+            return container;
+        }
+
+        private Container FindLinkedTreasuryChest(PrivateArea privateArea)
+        {
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo == null)
+                return null;
+
+            long userId = wardZdo.GetLong(TerritoryZdoKeys.TreasuryChestZdoUser, 0L);
+            int id = wardZdo.GetInt(TerritoryZdoKeys.TreasuryChestZdoId, 0);
+
+            if (userId == 0L || id == 0 || ZNetScene.instance == null)
+                return null;
+
+            GameObject chestObject = ZNetScene.instance.FindInstance(
+                new ZDOID(
+                    userId,
+                    (uint)id));
+
+            if (chestObject == null)
+                return null;
+
+            Container container = chestObject.GetComponent<Container>();
+
+            if (container == null)
+                return null;
+
+            ConfigureTreasuryChest(container);
+            return container;
+        }
+
+        private static Vector3 CalculateTreasuryChestPosition(
+            PrivateArea privateArea,
+            Player player)
+        {
+            Vector3 basePosition = privateArea != null
+                ? privateArea.transform.position
+                : player != null
+                    ? player.transform.position
+                    : Vector3.zero;
+
+            Vector3 right = player != null
+                ? player.transform.right
+                : privateArea != null
+                    ? privateArea.transform.right
+                    : Vector3.right;
+
+            if (right == Vector3.zero)
+                right = Vector3.right;
+
+            Vector3 position =
+                basePosition +
+                right.normalized * 2.75f;
+
+            float groundHeight;
+
+            if (ZoneSystem.instance != null &&
+                ZoneSystem.instance.GetGroundHeight(position, out groundHeight))
+            {
+                position.y = groundHeight;
+            }
+            else
+            {
+                position.y = basePosition.y;
+            }
+
+            return position;
+        }
+
+        private static void ConfigureTreasuryChest(Container container)
+        {
+            if (container == null)
+                return;
+
+            container.m_name = "Territory Treasury";
+            container.m_privacy = Container.PrivacySetting.Private;
+            container.m_checkGuardStone = false;
+            container.m_autoDestroyEmpty = false;
+
+            ZNetView zNetView = container.GetComponent<ZNetView>();
+
+            if (zNetView != null && zNetView.IsValid())
+                zNetView.GetZDO().Set(TerritoryZdoKeys.TreasuryChestMarker, true);
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+                return;
+
+            TreasuryContainerByInventory[inventory] = container;
+        }
+
         private Container GetOrCreatePreparationChest(
             WardId wardId,
             PrivateArea privateArea,
@@ -763,13 +963,26 @@ namespace ClanTerritory.Features.Territory.Services
 
         private Container FindLinkedPreparationChest(PrivateArea privateArea)
         {
+            return FindLinkedChest(
+                privateArea,
+                TerritoryZdoKeys.TerraformingChestZdoUser,
+                TerritoryZdoKeys.TerraformingChestZdoId,
+                ConfigurePreparationChest);
+        }
+
+        private Container FindLinkedChest(
+            PrivateArea privateArea,
+            string userKey,
+            string idKey,
+            System.Action<Container> configureAction)
+        {
             ZDO wardZdo = GetZdo(privateArea);
 
             if (wardZdo == null)
                 return null;
 
-            long userId = wardZdo.GetLong(TerritoryZdoKeys.TerraformingChestZdoUser, 0L);
-            int id = wardZdo.GetInt(TerritoryZdoKeys.TerraformingChestZdoId, 0);
+            long userId = wardZdo.GetLong(userKey, 0L);
+            int id = wardZdo.GetInt(idKey, 0);
 
             if (userId == 0L || id == 0 || ZNetScene.instance == null)
                 return null;
@@ -787,13 +1000,26 @@ namespace ClanTerritory.Features.Territory.Services
             if (container == null)
                 return null;
 
-            ConfigurePreparationChest(container);
+            if (configureAction != null)
+                configureAction(container);
+
             return container;
         }
 
         private static Vector3 CalculateChestPosition(
             PrivateArea privateArea,
             Player player)
+        {
+            return CalculateChestPosition(
+                privateArea,
+                player,
+                2.25f);
+        }
+
+        private static Vector3 CalculateChestPosition(
+            PrivateArea privateArea,
+            Player player,
+            float distance)
         {
             if (privateArea == null)
                 return player != null ? player.transform.position : Vector3.zero;
@@ -807,7 +1033,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             Vector3 position =
                 privateArea.transform.position +
-                forward.normalized * 2.25f;
+                forward.normalized * distance;
 
             float groundHeight = position.y;
 
@@ -862,6 +1088,133 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
 
             return PreparationContainerByInventory.ContainsKey(inventory);
+        }
+
+        public static bool IsTreasuryChestInventory(Inventory inventory)
+        {
+            if (inventory == null)
+                return false;
+
+            return TreasuryContainerByInventory.ContainsKey(inventory);
+        }
+
+        public static bool TryMoveItemToTreasurySlot(
+            Inventory targetInventory,
+            Inventory sourceInventory,
+            ItemDrop.ItemData item,
+            int amount,
+            Vector2i slot,
+            out bool result)
+        {
+            result = false;
+
+            if (!IsTreasuryChestInventory(targetInventory))
+                return false;
+
+            if (sourceInventory == null || item == null)
+                return true;
+
+            if (slot.x < 0 || slot.y < 0 ||
+                slot.x >= targetInventory.GetWidth() ||
+                slot.y >= targetInventory.GetHeight())
+            {
+                PlayerMessage("Invalid treasury slot");
+                return true;
+            }
+
+            result = MoveItemToLargeStackSlot(
+                targetInventory,
+                sourceInventory,
+                item,
+                amount,
+                slot,
+                TreasurySlotCapacity);
+
+            return true;
+        }
+
+        public static bool TryAutoMoveItemToTreasuryChest(
+            Inventory targetInventory,
+            Inventory sourceInventory,
+            ItemDrop.ItemData item)
+        {
+            if (!IsTreasuryChestInventory(targetInventory))
+                return false;
+
+            if (sourceInventory == null || item == null)
+                return true;
+
+            Vector2i slot;
+
+            if (!TryFindTreasurySlotForItem(
+                    targetInventory,
+                    item,
+                    out slot))
+            {
+                PlayerMessage("Treasury is full");
+                return true;
+            }
+
+            bool moved;
+            TryMoveItemToTreasurySlot(
+                targetInventory,
+                sourceInventory,
+                item,
+                item.m_stack,
+                slot,
+                out moved);
+
+            return true;
+        }
+
+        public static void ApplyPreparationChestGridVisibility(
+            InventoryGrid grid,
+            Inventory inventory)
+        {
+            if (grid == null || inventory == null)
+                return;
+
+            if (!IsPreparationChestInventory(inventory))
+                return;
+
+            if (InventoryGridElementsField == null)
+                return;
+
+            IList elements = InventoryGridElementsField.GetValue(grid) as IList;
+
+            if (elements == null)
+                return;
+
+            for (int i = 0; i < elements.Count; i++)
+            {
+                object element = elements[i];
+
+                if (element == null)
+                    continue;
+
+                FieldInfo goField =
+                    element.GetType().GetField(
+                        "m_go",
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                FieldInfo posField =
+                    element.GetType().GetField(
+                        "m_pos",
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                if (goField == null || posField == null)
+                    continue;
+
+                GameObject gameObject = goField.GetValue(element) as GameObject;
+
+                if (gameObject == null)
+                    continue;
+
+                Vector2i position = (Vector2i)posField.GetValue(element);
+                bool hiddenReservedTopCell = position.y == 0 && position.x >= 2;
+
+                gameObject.SetActive(!hiddenReservedTopCell);
+            }
         }
 
         public static bool TryMoveItemToPreparationSlot(
@@ -974,6 +1327,166 @@ namespace ClanTerritory.Features.Territory.Services
                 out moved);
 
             return true;
+        }
+
+        private static bool MoveItemToLargeStackSlot(
+            Inventory targetInventory,
+            Inventory sourceInventory,
+            ItemDrop.ItemData item,
+            int amount,
+            Vector2i slot,
+            int capacity)
+        {
+            if (targetInventory == null || sourceInventory == null || item == null)
+                return false;
+
+            ItemDrop.ItemData targetItem = targetInventory.GetItemAt(slot.x, slot.y);
+            int requestedAmount = amount > 0 ? amount : item.m_stack;
+
+            if (sourceInventory == targetInventory)
+            {
+                if (targetItem == item)
+                    return true;
+
+                if (targetItem == null)
+                {
+                    if (requestedAmount < item.m_stack)
+                    {
+                        ItemDrop.ItemData clone = item.Clone();
+                        clone.m_stack = requestedAmount;
+                        clone.m_gridPos = slot;
+                        targetInventory.GetAllItems().Add(clone);
+                        item.m_stack -= requestedAmount;
+                        InvokeInventoryChanged(targetInventory);
+                        return true;
+                    }
+
+                    item.m_gridPos = slot;
+                    InvokeInventoryChanged(targetInventory);
+                    return true;
+                }
+
+                if (IsSameItemStack(targetItem, item))
+                {
+                    int space = capacity - targetItem.m_stack;
+                    int moved = Mathf.Min(item.m_stack, Mathf.Max(0, space));
+
+                    if (moved <= 0)
+                    {
+                        PlayerMessage("Treasury slot is full");
+                        return false;
+                    }
+
+                    targetItem.m_stack += moved;
+                    item.m_stack -= moved;
+
+                    if (item.m_stack <= 0)
+                        targetInventory.RemoveItem(item);
+                    else
+                        InvokeInventoryChanged(targetInventory);
+
+                    return true;
+                }
+
+                if (requestedAmount >= item.m_stack)
+                {
+                    Vector2i originalPosition = item.m_gridPos;
+                    item.m_gridPos = slot;
+                    targetItem.m_gridPos = originalPosition;
+                    InvokeInventoryChanged(targetInventory);
+                    return true;
+                }
+
+                PlayerMessage("Cannot split into occupied treasury slot");
+                return false;
+            }
+
+            if (targetItem != null && !IsSameItemStack(targetItem, item))
+            {
+                PlayerMessage("Treasury slot already contains another item");
+                return false;
+            }
+
+            int current = targetItem != null ? targetItem.m_stack : 0;
+            int spaceAvailable = capacity - current;
+
+            if (spaceAvailable <= 0)
+            {
+                PlayerMessage("Treasury slot is full");
+                return false;
+            }
+
+            int movedAmount = Mathf.Min(
+                Mathf.Min(item.m_stack, requestedAmount),
+                spaceAvailable);
+
+            if (movedAmount <= 0)
+                return false;
+
+            if (targetItem != null)
+            {
+                targetItem.m_stack += movedAmount;
+            }
+            else
+            {
+                ItemDrop.ItemData clone = item.Clone();
+                clone.m_stack = movedAmount;
+                clone.m_gridPos = slot;
+                targetInventory.GetAllItems().Add(clone);
+            }
+
+            sourceInventory.RemoveItem(item, movedAmount);
+            InvokeInventoryChanged(targetInventory);
+            InvokeInventoryChanged(sourceInventory);
+            return true;
+        }
+
+        private static bool TryFindTreasurySlotForItem(
+            Inventory inventory,
+            ItemDrop.ItemData item,
+            out Vector2i slot)
+        {
+            slot = new Vector2i(-1, -1);
+
+            if (inventory == null || item == null)
+                return false;
+
+            int width = inventory.GetWidth();
+            int height = inventory.GetHeight();
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    ItemDrop.ItemData existing = inventory.GetItemAt(x, y);
+
+                    if (existing == null)
+                        continue;
+
+                    if (!IsSameItemStack(existing, item))
+                        continue;
+
+                    if (existing.m_stack >= TreasurySlotCapacity)
+                        continue;
+
+                    slot = new Vector2i(x, y);
+                    return true;
+                }
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (inventory.GetItemAt(x, y) != null)
+                        continue;
+
+                    slot = new Vector2i(x, y);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void NormalizePreparationChestInventory(Inventory inventory)

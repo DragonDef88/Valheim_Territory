@@ -97,6 +97,14 @@ namespace ClanTerritory.Features.WardMenu.Actions
             return _territoryTerraformingService.RequestOpenPreparationChest(wardId, privateArea, player);
         }
 
+        public bool OpenTreasuryChest(WardId wardId, PrivateArea privateArea, Player player)
+        {
+            if (!TryGetTerraformingService("OpenTreasuryChest", wardId))
+                return false;
+
+            return _territoryTerraformingService.RequestOpenTreasuryChest(wardId, privateArea, player);
+        }
+
         public bool DecreaseTerraformingRadius(WardId wardId, PrivateArea privateArea, Player player)
         {
             if (!TryGetTerraformingService("DecreaseTerraformingRadius", wardId))

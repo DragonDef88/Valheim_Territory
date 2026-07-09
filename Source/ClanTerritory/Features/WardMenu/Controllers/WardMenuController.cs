@@ -66,6 +66,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowWard,
                 ShowTerritory,
                 ShowTerraforming,
+                RequestOpenTreasuryChest,
                 RequestToggleProtection,
                 RequestDecreaseRadius,
                 RequestIncreaseRadius,
@@ -240,6 +241,20 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
             if (actionStarted && _closeAction != null)
                 _closeAction("OpenTerraformingPreparationChest");
+        }
+
+        public void RequestOpenTreasuryChest()
+        {
+            _view.Hide();
+
+            bool actionStarted =
+                _territoryActions.OpenTreasuryChest(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer);
+
+            if (actionStarted && _closeAction != null)
+                _closeAction("OpenTreasuryChest");
         }
 
         public void RequestDecreaseTerraformingRadius()
