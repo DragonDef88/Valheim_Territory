@@ -7297,3 +7297,798 @@ namespace ClanTerritory.Features.BiomeDominion
         }
     }
 }
+
+namespace ClanTerritory.Features.Economy
+{
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Reflection;
+    using System.Text;
+    using ClanTerritory.Abstractions;
+    using ClanTerritory.Core;
+    using ClanTerritory.Features.Persistence.FileSystem;
+    using ClanTerritory.Features.World.Services;
+    using ClanTerritory.Integration.Guilds;
+    using ClanTerritory.Localization;
+    using ClanTerritory.Utils;
+    using HarmonyLib;
+    using UnityEngine;
+
+    internal sealed class EconomyAccount
+    {
+        public string GuildId;
+        public string GuildName;
+        public long Balance;
+        public long DepositedTotal;
+        public long WithdrawnTotal;
+        public string UpdatedAtUtc;
+
+        public string DisplayName
+        {
+            get
+            {
+                return string.IsNullOrEmpty(GuildName)
+                    ? GuildId
+                    : GuildName;
+            }
+        }
+    }
+
+    internal sealed class EconomyModule :
+        IInitializable,
+        IDisposableModule
+    {
+        private EconomyService _service;
+
+        public void Initialize()
+        {
+            _service = new EconomyService();
+            _service.Initialize();
+
+            ServiceContainer.Register<EconomyService>(_service);
+
+            ModLog.Info("[Economy] Module initialized.");
+        }
+
+        public void Shutdown()
+        {
+            if (_service != null)
+                _service.Shutdown();
+
+            _service = null;
+
+            ModLog.Info("[Economy] Module shutdown.");
+        }
+    }
+
+    internal sealed class EconomyService
+    {
+        private const string FileSuffix = ".economy.txt";
+        private const string CurrencyPrefabName = "Coins";
+
+        private static readonly MethodInfo InventoryChangedMethod =
+            AccessTools.Method(
+                typeof(Inventory),
+                "Changed");
+
+        private readonly Dictionary<string, EconomyAccount> _accountsByGuildId =
+            new Dictionary<string, EconomyAccount>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly PersistenceFileSystem _fileSystem =
+            new PersistenceFileSystem();
+
+        private string _loadedWorldName = "";
+        private bool _commandsRegistered;
+
+        public void Initialize()
+        {
+            _fileSystem.EnsureDirectories();
+            EnsureLoadedForCurrentWorld();
+
+            if (!_commandsRegistered)
+            {
+                RegisterCommands();
+                _commandsRegistered = true;
+            }
+
+            ModLog.Info("[Economy] Service initialized. Accounts: " + _accountsByGuildId.Count);
+        }
+
+        public void Shutdown()
+        {
+            Save();
+            _accountsByGuildId.Clear();
+            _loadedWorldName = "";
+            ModLog.Info("[Economy] Service shutdown.");
+        }
+
+        public long GetBalance(string guildId)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            EconomyAccount account;
+
+            if (string.IsNullOrEmpty(guildId) ||
+                !_accountsByGuildId.TryGetValue(guildId, out account) ||
+                account == null)
+            {
+                return 0L;
+            }
+
+            return account.Balance;
+        }
+
+        private void RegisterCommands()
+        {
+            new Terminal.ConsoleCommand(
+                "cteco",
+                "Clan Territory economy commands",
+                HandleEconomyCommand,
+                false,
+                false,
+                false,
+                false,
+                true);
+
+            new Terminal.ConsoleCommand(
+                "cteconomy",
+                "Clan Territory economy commands",
+                HandleEconomyCommand,
+                false,
+                false,
+                false,
+                false,
+                true);
+        }
+
+        private object HandleEconomyCommand(Terminal.ConsoleEventArgs args)
+        {
+            if (args == null)
+                return false;
+
+            if (args.Length <= 1 || IsHelp(args[1]))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.help"));
+                return true;
+            }
+
+            string action = args[1].ToLowerInvariant();
+
+            if (action == "status" || action == "balance")
+                return ShowStatus(args);
+
+            if (action == "deposit")
+                return Deposit(args);
+
+            if (action == "withdraw")
+                return Withdraw(args);
+
+            Reply(args, CtLocalization.Get("ct.economy.command.help"));
+            return true;
+        }
+
+        private object ShowStatus(Terminal.ConsoleEventArgs args)
+        {
+            Player player = Player.m_localPlayer;
+
+            EconomyAccount account;
+
+            if (!TryGetPlayerEconomyAccount(player, false, out account))
+            {
+                Reply(args, ResolveLastPlayerAccountError(player));
+                return true;
+            }
+
+            Reply(
+                args,
+                CtLocalization.Format(
+                    "ct.economy.command.status",
+                    account.DisplayName,
+                    account.Balance,
+                    account.DepositedTotal,
+                    account.WithdrawnTotal));
+
+            return true;
+        }
+
+        private object Deposit(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.server_only"));
+                return true;
+            }
+
+            int amount;
+
+            if (!TryParseAmount(args, 2, out amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+            EconomyAccount account;
+
+            if (!TryGetPlayerEconomyAccount(player, false, out account))
+            {
+                Reply(args, ResolveLastPlayerAccountError(player));
+                return true;
+            }
+
+            Inventory inventory = player.GetInventory();
+
+            if (!TryRemoveCoins(inventory, amount))
+            {
+                Reply(args, CtLocalization.Format("ct.economy.command.not_enough_coins", amount));
+                return true;
+            }
+
+            account.Balance += amount;
+            account.DepositedTotal += amount;
+            account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.deposit_success",
+                    account.DisplayName,
+                    amount,
+                    account.Balance);
+
+            Reply(args, message);
+            ShowPlayerMessage(player, message);
+
+            ModLog.Info("[Economy] Deposit. Guild: " + account.DisplayName + ", amount: " + amount + ", balance: " + account.Balance);
+            return true;
+        }
+
+        private object Withdraw(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.server_only"));
+                return true;
+            }
+
+            int amount;
+
+            if (!TryParseAmount(args, 2, out amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+            EconomyAccount account;
+
+            if (!TryGetPlayerEconomyAccount(player, true, out account))
+            {
+                Reply(args, ResolveLastPlayerAccountError(player));
+                return true;
+            }
+
+            if (account.Balance < amount)
+            {
+                Reply(
+                    args,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_balance",
+                        account.Balance,
+                        amount));
+
+                return true;
+            }
+
+            if (!TrySpawnCoinsForPlayer(player, amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.withdraw_failed"));
+                return true;
+            }
+
+            account.Balance -= amount;
+            account.WithdrawnTotal += amount;
+            account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.withdraw_success",
+                    account.DisplayName,
+                    amount,
+                    account.Balance);
+
+            Reply(args, message);
+            ShowPlayerMessage(player, message);
+
+            ModLog.Info("[Economy] Withdraw. Guild: " + account.DisplayName + ", amount: " + amount + ", balance: " + account.Balance);
+            return true;
+        }
+
+        private bool TryGetPlayerEconomyAccount(Player player, bool leaderRequired, out EconomyAccount account)
+        {
+            account = null;
+
+            EnsureLoadedForCurrentWorld();
+
+            if (player == null)
+                return false;
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+                return false;
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+            string guildName;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) || string.IsNullOrEmpty(guildId))
+                return false;
+
+            if (leaderRequired && !guildService.IsPlayerGuildLeader(playerId))
+                return false;
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) || string.IsNullOrEmpty(guildName))
+                guildName = guildId;
+
+            account = GetOrCreateAccount(guildId, guildName);
+            return true;
+        }
+
+        private string ResolveLastPlayerAccountError(Player player)
+        {
+            if (player == null)
+                return CtLocalization.Get("ct.economy.command.no_player");
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+                return CtLocalization.Get("ct.economy.command.no_guilds");
+
+            string guildId;
+
+            if (!guildService.TryGetPlayerGuildId(player.GetPlayerID(), out guildId) || string.IsNullOrEmpty(guildId))
+                return CtLocalization.Get("ct.economy.command.no_guild");
+
+            return CtLocalization.Get("ct.economy.command.leader_only");
+        }
+
+        private EconomyAccount GetOrCreateAccount(string guildId, string guildName)
+        {
+            EconomyAccount account;
+
+            if (_accountsByGuildId.TryGetValue(guildId, out account) && account != null)
+            {
+                if (!string.IsNullOrEmpty(guildName))
+                    account.GuildName = guildName;
+
+                return account;
+            }
+
+            account = new EconomyAccount();
+            account.GuildId = guildId;
+            account.GuildName = guildName ?? guildId;
+            account.Balance = 0L;
+            account.DepositedTotal = 0L;
+            account.WithdrawnTotal = 0L;
+            account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            _accountsByGuildId[guildId] = account;
+            return account;
+        }
+
+        private static bool TryParseAmount(Terminal.ConsoleEventArgs args, int index, out int amount)
+        {
+            amount = 0;
+
+            if (args == null || args.Length <= index)
+                return false;
+
+            if (!int.TryParse(args[index], out amount))
+                return false;
+
+            return amount > 0 && amount <= 1000000;
+        }
+
+        private static bool TryRemoveCoins(Inventory inventory, int amount)
+        {
+            if (inventory == null || amount <= 0)
+                return false;
+
+            if (CountCoins(inventory) < amount)
+                return false;
+
+            int remaining = amount;
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = items.Count - 1; i >= 0 && remaining > 0; i--)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (!IsCoins(item))
+                    continue;
+
+                int consumed = Mathf.Min(remaining, item.m_stack);
+
+                if (consumed <= 0)
+                    continue;
+
+                item.m_stack -= consumed;
+                remaining -= consumed;
+
+                if (item.m_stack <= 0)
+                    inventory.RemoveItem(item);
+            }
+
+            InvokeInventoryChanged(inventory);
+            return remaining <= 0;
+        }
+
+        private static int CountCoins(Inventory inventory)
+        {
+            if (inventory == null)
+                return 0;
+
+            int total = 0;
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (IsCoins(item))
+                    total += Mathf.Max(0, item.m_stack);
+            }
+
+            return total;
+        }
+
+        private static bool IsCoins(ItemDrop.ItemData item)
+        {
+            if (item == null)
+                return false;
+
+            if (item.m_dropPrefab != null &&
+                string.Equals(item.m_dropPrefab.name, CurrencyPrefabName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (item.m_shared != null && !string.IsNullOrEmpty(item.m_shared.m_name))
+            {
+                return string.Equals(item.m_shared.m_name, "$item_coins", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(item.m_shared.m_name, "Coins", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        private static bool TrySpawnCoinsForPlayer(Player player, int amount)
+        {
+            if (player == null || amount <= 0 || ObjectDB.instance == null)
+                return false;
+
+            GameObject prefab = ObjectDB.instance.GetItemPrefab(CurrencyPrefabName);
+
+            if (prefab == null)
+                return false;
+
+            ItemDrop prefabDrop = prefab.GetComponent<ItemDrop>();
+
+            int maxStack =
+                prefabDrop != null &&
+                prefabDrop.m_itemData != null &&
+                prefabDrop.m_itemData.m_shared != null &&
+                prefabDrop.m_itemData.m_shared.m_maxStackSize > 0
+                    ? prefabDrop.m_itemData.m_shared.m_maxStackSize
+                    : 999;
+
+            int remaining = amount;
+
+            while (remaining > 0)
+            {
+                int stack = Mathf.Min(remaining, maxStack);
+
+                Vector3 position =
+                    player.transform.position +
+                    player.transform.forward * 1.4f +
+                    Vector3.up * 0.8f;
+
+                GameObject coinObject =
+                    UnityEngine.Object.Instantiate(
+                        prefab,
+                        position,
+                        Quaternion.identity);
+
+                ItemDrop coinDrop = coinObject != null
+                    ? coinObject.GetComponent<ItemDrop>()
+                    : null;
+
+                if (coinDrop != null)
+                    coinDrop.m_itemData.m_stack = stack;
+
+                remaining -= stack;
+            }
+
+            return true;
+        }
+
+        private void EnsureLoadedForCurrentWorld()
+        {
+            string worldName = GetCurrentWorldName();
+
+            if (IsUnknownWorldName(worldName))
+            {
+                if (string.IsNullOrEmpty(_loadedWorldName))
+                    ModLog.Debug("[Economy] Load deferred until world name is known.");
+
+                return;
+            }
+
+            if (string.Equals(_loadedWorldName, worldName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            Load(worldName);
+        }
+
+        private void Load(string worldName)
+        {
+            _accountsByGuildId.Clear();
+            _loadedWorldName = worldName;
+
+            string path = GetSavePath(worldName);
+
+            if (!File.Exists(path))
+            {
+                ModLog.Info("[Economy] No economy save found: " + path);
+                return;
+            }
+
+            EconomyAccount current = null;
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string rawLine = lines[i];
+
+                if (string.IsNullOrWhiteSpace(rawLine))
+                    continue;
+
+                string line = rawLine.Trim();
+
+                if (line.StartsWith("#", StringComparison.Ordinal) || line.StartsWith("//", StringComparison.Ordinal))
+                    continue;
+
+                if (line.StartsWith("[Account:", StringComparison.OrdinalIgnoreCase) && line.EndsWith("]", StringComparison.Ordinal))
+                {
+                    StoreLoadedAccount(current);
+
+                    string guildId =
+                        line.Substring(
+                            "[Account:".Length,
+                            line.Length - "[Account:".Length - 1);
+
+                    current = new EconomyAccount();
+                    current.GuildId = Unescape(guildId);
+                    current.UpdatedAtUtc = "";
+                    continue;
+                }
+
+                if (current == null)
+                    continue;
+
+                int separator = line.IndexOf('=');
+
+                if (separator <= 0)
+                    continue;
+
+                string key = line.Substring(0, separator).Trim();
+                string value = Unescape(line.Substring(separator + 1).Trim());
+
+                ApplyLoadedValue(current, key, value);
+            }
+
+            StoreLoadedAccount(current);
+
+            ModLog.Info("[Economy] Economy accounts loaded. World: " + worldName + ", count: " + _accountsByGuildId.Count);
+        }
+
+        private void StoreLoadedAccount(EconomyAccount account)
+        {
+            if (account == null || string.IsNullOrEmpty(account.GuildId))
+                return;
+
+            if (string.IsNullOrEmpty(account.GuildName))
+                account.GuildName = account.GuildId;
+
+            _accountsByGuildId[account.GuildId] = account;
+        }
+
+        private static void ApplyLoadedValue(EconomyAccount account, string key, string value)
+        {
+            if (account == null || string.IsNullOrEmpty(key))
+                return;
+
+            if (string.Equals(key, "GuildName", StringComparison.OrdinalIgnoreCase))
+                account.GuildName = value ?? "";
+
+            if (string.Equals(key, "Balance", StringComparison.OrdinalIgnoreCase))
+                account.Balance = ParseLong(value);
+
+            if (string.Equals(key, "DepositedTotal", StringComparison.OrdinalIgnoreCase))
+                account.DepositedTotal = ParseLong(value);
+
+            if (string.Equals(key, "WithdrawnTotal", StringComparison.OrdinalIgnoreCase))
+                account.WithdrawnTotal = ParseLong(value);
+
+            if (string.Equals(key, "UpdatedAtUtc", StringComparison.OrdinalIgnoreCase))
+                account.UpdatedAtUtc = value ?? "";
+        }
+
+        private void Save()
+        {
+            try
+            {
+                string worldName = GetCurrentWorldName();
+
+                if (IsUnknownWorldName(worldName))
+                {
+                    ModLog.Info("[Economy] Save skipped: world name is not known.");
+                    return;
+                }
+
+                _loadedWorldName = worldName;
+
+                string path = GetSavePath(worldName);
+                StringBuilder builder = new StringBuilder();
+
+                builder.AppendLine("# Clan Territory economy accounts");
+                builder.AppendLine("# World: " + worldName);
+                builder.AppendLine("# Format version: 1");
+                builder.AppendLine();
+
+                foreach (EconomyAccount account in _accountsByGuildId.Values)
+                {
+                    if (account == null || string.IsNullOrEmpty(account.GuildId))
+                        continue;
+
+                    builder.Append("[Account:");
+                    builder.Append(Escape(account.GuildId));
+                    builder.AppendLine("]");
+                    builder.Append("GuildName=");
+                    builder.AppendLine(Escape(account.GuildName ?? ""));
+                    builder.Append("Balance=");
+                    builder.AppendLine(account.Balance.ToString());
+                    builder.Append("DepositedTotal=");
+                    builder.AppendLine(account.DepositedTotal.ToString());
+                    builder.Append("WithdrawnTotal=");
+                    builder.AppendLine(account.WithdrawnTotal.ToString());
+                    builder.Append("UpdatedAtUtc=");
+                    builder.AppendLine(Escape(account.UpdatedAtUtc ?? ""));
+                    builder.AppendLine();
+                }
+
+                File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+                ModLog.Info("[Economy] Economy accounts saved. Count: " + _accountsByGuildId.Count);
+            }
+            catch (Exception exception)
+            {
+                ModLog.Warning("[Economy] Save failed: " + exception.Message);
+            }
+        }
+
+        private string GetSavePath(string worldName)
+        {
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return Path.Combine(_fileSystem.WorldsDirectory, worldName + FileSuffix);
+        }
+
+        private string GetCurrentWorldName()
+        {
+            string worldName = "Unknown";
+
+            IWorldInfoService worldInfoService;
+
+            if (ServiceContainer.TryGet<IWorldInfoService>(out worldInfoService) && worldInfoService != null)
+                worldName = worldInfoService.GetWorldName();
+
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return worldName;
+        }
+
+        private static bool IsUnknownWorldName(string worldName)
+        {
+            return string.IsNullOrWhiteSpace(worldName) ||
+                   string.Equals(worldName, "Unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryGetGuildService(out IGuildService guildService)
+        {
+            guildService = null;
+
+            return ServiceContainer.TryGet<IGuildService>(out guildService) &&
+                   guildService != null &&
+                   guildService.IsAvailable;
+        }
+
+        private static bool IsServerOrSinglePlayer()
+        {
+            return ZNet.instance == null || ZNet.instance.IsServer();
+        }
+
+        private static bool IsHelp(string value)
+        {
+            return string.Equals(value, "help", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(value, "?", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static long ParseLong(string value)
+        {
+            long parsed;
+
+            if (!long.TryParse(value, out parsed))
+                return 0L;
+
+            return parsed < 0L ? 0L : parsed;
+        }
+
+        private static string Escape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\", "\\\\").Replace("\n", "\\n").Replace("]", "\\]");
+        }
+
+        private static string Unescape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\]", "]").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+
+        private static void InvokeInventoryChanged(Inventory inventory)
+        {
+            if (inventory == null || InventoryChangedMethod == null)
+                return;
+
+            InventoryChangedMethod.Invoke(inventory, null);
+        }
+
+        private static void ShowPlayerMessage(Player player, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (player == null)
+                player = Player.m_localPlayer;
+
+            if (player == null)
+                return;
+
+            player.Message(MessageHud.MessageType.Center, message);
+        }
+
+        private static void Reply(Terminal.ConsoleEventArgs args, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (args != null && args.Context != null)
+                args.Context.AddString(message);
+
+            if (Player.m_localPlayer != null)
+                Player.m_localPlayer.Message(MessageHud.MessageType.Center, message);
+        }
+    }
+}
+

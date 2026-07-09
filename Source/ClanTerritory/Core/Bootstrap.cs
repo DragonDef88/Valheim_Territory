@@ -5,6 +5,7 @@ using ClanTerritory.Config;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Diagnostics;
+using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.Persistence;
 using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Territory;
@@ -58,6 +59,7 @@ namespace ClanTerritory.Core
             _moduleManager.Register(new GuildsModule());
             _moduleManager.Register(new GroupsModule());
 
+            _moduleManager.Register(new EconomyModule());
             _moduleManager.Register(new BiomeDominionModule());
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
