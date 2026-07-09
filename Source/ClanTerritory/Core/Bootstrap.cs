@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using ClanTerritory.Config;
@@ -8,6 +8,7 @@ using ClanTerritory.Features.Diagnostics;
 using ClanTerritory.Features.Persistence;
 using ClanTerritory.Features.Runtime;
 using ClanTerritory.Features.Territory;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Features.WorldDiscovery;
 using ClanTerritory.Utils;
@@ -57,6 +58,7 @@ namespace ClanTerritory.Core
             _moduleManager.Register(new GuildsModule());
             _moduleManager.Register(new GroupsModule());
 
+            _moduleManager.Register(new BiomeDominionModule());
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
             _moduleManager.Register(new WorldDiscoveryModule());

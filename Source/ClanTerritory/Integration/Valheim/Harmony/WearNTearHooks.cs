@@ -1,4 +1,5 @@
 using ClanTerritory.Core;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.Territory.Services;
 using HarmonyLib;
 using UnityEngine;
@@ -20,6 +21,14 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             if (__instance.GetComponent<Piece>() == null)
                 return true;
+
+            BiomeDominionService biomeDominionService;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService.IsStructureDamageProtected(__instance.transform.position))
+            {
+                return false;
+            }
 
             TerritoryRuleService ruleService;
 
@@ -52,6 +61,15 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             if (__instance.GetComponent<Piece>() == null)
                 return true;
+
+            BiomeDominionService biomeDominionService;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService.IsStructureDamageProtected(__instance.transform.position))
+            {
+                __result = false;
+                return false;
+            }
 
             TerritoryRuleService ruleService;
 

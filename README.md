@@ -87,6 +87,31 @@
 - Если guild нет, используется стандартный marker.
 - Reflection lookup для Minimap pins закеширован.
 
+### Biome dominion
+
+- Guilds-гильдия может объявить владение текущим биомом.
+- Владение объявляет только лидер guild.
+- Биомные правила сохраняются отдельно для мира.
+- Поддерживаемые правила первого этапа:
+  - biome door lock;
+  - biome structure damage protection;
+  - biome door auto-close.
+- Территории внутри захваченного биома становятся вассальными территориями guild-владельца биома.
+- При входе в вассальную территорию показывается локализованное сообщение.
+- Локальный ward-владелец/permitted/guild access сохраняет доступ к своей территории, но biome rules дополнительно защищают весь биом.
+
+Команды:
+
+```text
+/ctbiome status
+/ctbiome claim
+/ctbiome release
+/ctbiome list
+/ctbiome set doorlock on|off
+/ctbiome set protection on|off
+/ctbiome set autoclose 3-10
+```
+
 ### Guilds integration
 
 - Подключение к Guilds без compile-time ссылки на `Guilds.dll`.
@@ -252,6 +277,7 @@ Treasury / preparation storage   ✅ готово
 Terraforming worker              ✅ готово
 Tree / rock / stump workers      ✅ готово
 Map markers                      ✅ готово
+Biome dominion                   ✅ первый этап
 Guilds integration               ✅ готово
 Groups integration layer         ✅ есть
 EN/RU localization               ✅ готово

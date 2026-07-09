@@ -1,11 +1,19 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+using System.IO;
+using System.Globalization;
 using System.Reflection;
+using ClanTerritory.Config;
 using ClanTerritory.Abstractions;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
 using ClanTerritory.Events;
 using ClanTerritory.Features.Map.Services;
+using ClanTerritory.Features.World.Services;
+using ClanTerritory.Features.Persistence.FileSystem;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.Territory.Events;
 using ClanTerritory.Features.Territory.Factories;
 using ClanTerritory.Features.Territory.Placement;
@@ -81,7 +89,7 @@ namespace ClanTerritory.Features.Territory
             }
 
             _runnerObject = new GameObject("ClanTerritory_TerritoryRunner");
-            Object.DontDestroyOnLoad(_runnerObject);
+            UnityEngine.Object.DontDestroyOnLoad(_runnerObject);
 
             _runner = _runnerObject.AddComponent<TerritoryRunner>();
             _runner.Initialize(
@@ -101,7 +109,7 @@ namespace ClanTerritory.Features.Territory
                 _registry.Clear();
 
             if (_runnerObject != null)
-                Object.Destroy(_runnerObject);
+                UnityEngine.Object.Destroy(_runnerObject);
 
             _runner = null;
             _runnerObject = null;
@@ -198,7 +206,11 @@ namespace ClanTerritory.Features.Territory
                 _currentWardId = wardId;
                 _currentTerritoryName = GetTerritoryName(currentArea);
 
-                ShowMessage(player, CtLocalization.Format("ct.message.entered_territory", _currentTerritoryName));
+                ShowEnterTerritoryMessage(
+                    player,
+                    currentArea,
+                    _currentTerritoryName);
+
                 ModLog.Info("[TerritoryPresence] Entered territory: " + _currentTerritoryName + ", ward: " + _currentWardId);
             }
 
@@ -206,6 +218,36 @@ namespace ClanTerritory.Features.Territory
             {
                 _currentWardId = "";
                 _currentTerritoryName = "";
+            }
+
+            private static void ShowEnterTerritoryMessage(
+                Player player,
+                PrivateArea currentArea,
+                string territoryName)
+            {
+                BiomeDominionService biomeDominionService;
+                BiomeDominionRecord dominion;
+
+                if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                    biomeDominionService.TryGetVassalStatus(
+                        currentArea,
+                        out dominion))
+                {
+                    ShowMessage(
+                        player,
+                        CtLocalization.Format(
+                            "ct.message.entered_vassal_territory",
+                            territoryName,
+                            dominion.BiomeName,
+                            dominion.DisplayName));
+                    return;
+                }
+
+                ShowMessage(
+                    player,
+                    CtLocalization.Format(
+                        "ct.message.entered_territory",
+                        territoryName));
             }
 
             private static List<PrivateArea> GetPrivateAreas()
@@ -635,7 +677,7 @@ namespace ClanTerritory.Features.Territory.Services
             List<Container> territoryContainers =
                 GetRealContainersInTerritory(privateArea);
 
-            ItemDrop[] drops = Object.FindObjectsOfType<ItemDrop>();
+            ItemDrop[] drops = UnityEngine.Object.FindObjectsOfType<ItemDrop>();
 
             for (int i = 0; i < drops.Length && absorbedItems < ResourceAbsorbMaxItemsPerWard; i++)
             {
@@ -941,7 +983,7 @@ namespace ClanTerritory.Features.Territory.Services
             if (privateArea == null)
                 return result;
 
-            Container[] containers = Object.FindObjectsOfType<Container>();
+            Container[] containers = UnityEngine.Object.FindObjectsOfType<Container>();
 
             for (int i = 0; i < containers.Length && result.Count < ResourceAbsorbMaxContainersPerWard; i++)
             {
@@ -1244,7 +1286,7 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
             }
 
-            Object.Destroy(drop.gameObject);
+            UnityEngine.Object.Destroy(drop.gameObject);
         }
 
         private void ProcessLevelingWorkers()
@@ -1892,7 +1934,7 @@ namespace ClanTerritory.Features.Territory.Services
             Collider collider = spirit.GetComponent<Collider>();
 
             if (collider != null)
-                Object.Destroy(collider);
+                UnityEngine.Object.Destroy(collider);
 
             Renderer renderer = spirit.GetComponent<Renderer>();
 
@@ -1929,7 +1971,7 @@ namespace ClanTerritory.Features.Territory.Services
             LevelingSpiritVelocityByWardId.Remove(wardId);
 
             if (spirit != null)
-                Object.Destroy(spirit);
+                UnityEngine.Object.Destroy(spirit);
         }
 
         private static string GetWardRuntimeId(PrivateArea privateArea)
@@ -2437,7 +2479,7 @@ namespace ClanTerritory.Features.Territory.Services
             Collider bestCollider = null;
             float bestDistance = float.MaxValue;
 
-            TreeBase[] trees = Object.FindObjectsOfType<TreeBase>();
+            TreeBase[] trees = UnityEngine.Object.FindObjectsOfType<TreeBase>();
 
             for (int i = 0; i < trees.Length; i++)
             {
@@ -2478,7 +2520,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            TreeLog[] logs = Object.FindObjectsOfType<TreeLog>();
+            TreeLog[] logs = UnityEngine.Object.FindObjectsOfType<TreeLog>();
 
             for (int i = 0; i < logs.Length; i++)
             {
@@ -2519,7 +2561,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            Destructible[] destructibles = Object.FindObjectsOfType<Destructible>();
+            Destructible[] destructibles = UnityEngine.Object.FindObjectsOfType<Destructible>();
 
             for (int i = 0; i < destructibles.Length; i++)
             {
@@ -2648,7 +2690,7 @@ namespace ClanTerritory.Features.Territory.Services
             MineRock5 bestMineRock5 = null;
             float bestDistance = float.MaxValue;
 
-            MineRock[] mineRocks = Object.FindObjectsOfType<MineRock>();
+            MineRock[] mineRocks = UnityEngine.Object.FindObjectsOfType<MineRock>();
 
             for (int i = 0; i < mineRocks.Length; i++)
             {
@@ -2688,7 +2730,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            MineRock5[] mineRocks5 = Object.FindObjectsOfType<MineRock5>();
+            MineRock5[] mineRocks5 = UnityEngine.Object.FindObjectsOfType<MineRock5>();
 
             for (int i = 0; i < mineRocks5.Length; i++)
             {
@@ -3646,7 +3688,7 @@ namespace ClanTerritory.Features.Territory.Services
                 return null;
             }
 
-            GameObject chestObject = Object.Instantiate(
+            GameObject chestObject = UnityEngine.Object.Instantiate(
                 prefab,
                 CalculateVirtualContainerPosition(privateArea, player),
                 Quaternion.identity);
@@ -4070,7 +4112,7 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
             }
 
-            Object.Destroy(gameObject);
+            UnityEngine.Object.Destroy(gameObject);
         }
 
         private Container GetOrCreateTreasuryChest(
@@ -4103,7 +4145,7 @@ namespace ClanTerritory.Features.Territory.Services
             if (player != null)
                 rotation = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
 
-            GameObject chestObject = Object.Instantiate(
+            GameObject chestObject = UnityEngine.Object.Instantiate(
                 prefab,
                 position,
                 rotation);
@@ -4265,7 +4307,7 @@ namespace ClanTerritory.Features.Territory.Services
             if (player != null)
                 rotation = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
 
-            GameObject chestObject = Object.Instantiate(
+            GameObject chestObject = UnityEngine.Object.Instantiate(
                 prefab,
                 position,
                 rotation);
@@ -5876,6 +5918,1027 @@ namespace ClanTerritory.Features.Territory.Services
                 total += values[i];
 
             return total;
+        }
+    }
+}
+
+namespace ClanTerritory.Features.BiomeDominion
+{
+    internal sealed class BiomeDominionRecord
+    {
+        public string BiomeName;
+        public string GuildId;
+        public string GuildName;
+        public string GuildColor;
+        public long ClaimedByPlayerId;
+        public string ClaimedByPlayerName;
+        public bool DoorLockEnabled;
+        public bool StructureDamageProtectionEnabled;
+        public int DoorAutoCloseSeconds;
+        public string UpdatedAtUtc;
+
+        public string DisplayName
+        {
+            get
+            {
+                return string.IsNullOrEmpty(GuildName)
+                    ? GuildId
+                    : GuildName;
+            }
+        }
+    }
+
+    internal sealed class BiomeDominionModule :
+        IInitializable,
+        IDisposableModule
+    {
+        private BiomeDominionService _service;
+        private GameObject _runnerObject;
+        private BiomeDominionRunner _runner;
+
+        public void Initialize()
+        {
+            _service = new BiomeDominionService();
+            _service.Initialize();
+
+            ServiceContainer.Register<BiomeDominionService>(_service);
+
+            _runnerObject = new GameObject("ClanTerritory_BiomeDominionRunner");
+            UnityEngine.Object.DontDestroyOnLoad(_runnerObject);
+
+            _runner = _runnerObject.AddComponent<BiomeDominionRunner>();
+            _runner.Initialize(_service);
+
+            ModLog.Info("[BiomeDominion] Module initialized.");
+        }
+
+        public void Shutdown()
+        {
+            if (_service != null)
+                _service.Shutdown();
+
+            if (_runnerObject != null)
+                UnityEngine.Object.Destroy(_runnerObject);
+
+            _runner = null;
+            _runnerObject = null;
+            _service = null;
+
+            ModLog.Info("[BiomeDominion] Module shutdown.");
+        }
+
+        private sealed class BiomeDominionRunner : MonoBehaviour
+        {
+            private BiomeDominionService _service;
+
+            public void Initialize(BiomeDominionService service)
+            {
+                _service = service;
+            }
+
+            private void Update()
+            {
+                if (_service != null)
+                    _service.Update();
+            }
+        }
+    }
+
+    internal sealed class BiomeDominionService
+    {
+        private const string FileSuffix = ".biome_dominions.txt";
+
+        private static readonly FieldInfo AllAreasField =
+            AccessTools.Field(typeof(PrivateArea), "m_allAreas");
+
+        private static readonly FieldInfo DoorZNetViewField =
+            AccessTools.Field(typeof(Door), "m_nview");
+
+        private static readonly MethodInfo DoorUpdateStateMethod =
+            AccessTools.Method(typeof(Door), "UpdateState");
+
+        private readonly Dictionary<string, BiomeDominionRecord> _recordsByBiome =
+            new Dictionary<string, BiomeDominionRecord>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly Dictionary<ZDOID, ScheduledDoorClose> _scheduledDoorClosures =
+            new Dictionary<ZDOID, ScheduledDoorClose>();
+
+        private readonly PersistenceFileSystem _fileSystem =
+            new PersistenceFileSystem();
+
+        private bool _commandsRegistered;
+
+        public void Initialize()
+        {
+            _fileSystem.EnsureDirectories();
+            Load();
+
+            if (!_commandsRegistered)
+            {
+                RegisterCommands();
+                _commandsRegistered = true;
+            }
+
+            ModLog.Info("[BiomeDominion] Service initialized. Claims: " + _recordsByBiome.Count);
+        }
+
+        public void Shutdown()
+        {
+            Save();
+            _recordsByBiome.Clear();
+            _scheduledDoorClosures.Clear();
+
+            ModLog.Info("[BiomeDominion] Service shutdown.");
+        }
+
+        public void Update()
+        {
+            if (_scheduledDoorClosures.Count <= 0)
+                return;
+
+            float time = Time.time;
+            List<ZDOID> dueDoorIds = new List<ZDOID>();
+
+            foreach (KeyValuePair<ZDOID, ScheduledDoorClose> scheduledDoor in _scheduledDoorClosures)
+            {
+                if (time >= scheduledDoor.Value.DueTime)
+                    dueDoorIds.Add(scheduledDoor.Key);
+            }
+
+            for (int i = 0; i < dueDoorIds.Count; i++)
+            {
+                ZDOID doorId = dueDoorIds[i];
+                ScheduledDoorClose scheduledDoor;
+
+                if (!_scheduledDoorClosures.TryGetValue(doorId, out scheduledDoor))
+                    continue;
+
+                CloseScheduledDoor(scheduledDoor);
+                _scheduledDoorClosures.Remove(doorId);
+            }
+        }
+
+        public bool TryGetDominionAt(Vector3 position, out BiomeDominionRecord record)
+        {
+            record = null;
+            string biomeName = GetBiomeName(position);
+
+            if (string.IsNullOrEmpty(biomeName))
+                return false;
+
+            return _recordsByBiome.TryGetValue(biomeName, out record);
+        }
+
+        public bool TryGetVassalStatus(PrivateArea privateArea, out BiomeDominionRecord record)
+        {
+            record = null;
+
+            if (privateArea == null)
+                return false;
+
+            if (!TryGetDominionAt(privateArea.transform.position, out record))
+                return false;
+
+            string wardGuildId;
+
+            if (!TryGetWardGuildId(privateArea, out wardGuildId))
+                return true;
+
+            if (string.IsNullOrEmpty(wardGuildId))
+                return true;
+
+            return !string.Equals(wardGuildId, record.GuildId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public bool IsDoorLockedForPlayer(Vector3 position, Player player)
+        {
+            if (player == null)
+                return false;
+
+            BiomeDominionRecord record;
+
+            if (!TryGetDominionAt(position, out record))
+                return false;
+
+            if (!record.DoorLockEnabled)
+                return false;
+
+            if (IsPlayerInDominionGuild(player, record))
+                return false;
+
+            if (HasLocalTerritoryAccess(position, player))
+                return false;
+
+            return true;
+        }
+
+        public bool IsStructureDamageProtected(Vector3 position)
+        {
+            BiomeDominionRecord record;
+
+            return TryGetDominionAt(position, out record) &&
+                   record.StructureDamageProtectionEnabled;
+        }
+
+        public void ScheduleDoorAutoClose(Door door)
+        {
+            if (door == null)
+                return;
+
+            BiomeDominionRecord record;
+
+            if (!TryGetDominionAt(door.transform.position, out record) ||
+                !record.DoorLockEnabled)
+            {
+                RemoveScheduledDoor(door);
+                return;
+            }
+
+            ZNetView zNetView = GetDoorZNetView(door);
+
+            if (zNetView == null || !zNetView.IsValid() || !zNetView.IsOwner())
+                return;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return;
+
+            if (zdo.GetInt(ZDOVars.s_state) == 0)
+            {
+                _scheduledDoorClosures.Remove(zdo.m_uid);
+                return;
+            }
+
+            int seconds = NormalizeDoorAutoCloseSeconds(record.DoorAutoCloseSeconds);
+            float dueTime = Time.time + seconds;
+
+            _scheduledDoorClosures[zdo.m_uid] = new ScheduledDoorClose(door, dueTime);
+
+            ModLog.Debug("[BiomeDominion] Biome door auto-close scheduled: " + zdo.m_uid + ", biome: " + record.BiomeName + ", seconds: " + seconds);
+        }
+
+        private void RegisterCommands()
+        {
+            new Terminal.ConsoleCommand(
+                "ctbiome",
+                "Clan Territory biome dominion commands",
+                HandleBiomeCommand,
+                false,
+                false,
+                false,
+                false,
+                true);
+        }
+
+        private object HandleBiomeCommand(Terminal.ConsoleEventArgs args)
+        {
+            if (args == null)
+                return false;
+
+            if (args.Length <= 1 || IsHelp(args[1]))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.help"));
+                return true;
+            }
+
+            string action = args[1].ToLowerInvariant();
+
+            if (action == "claim")
+                return ClaimCurrentBiome(args);
+
+            if (action == "release")
+                return ReleaseCurrentBiome(args);
+
+            if (action == "status")
+                return ShowCurrentBiomeStatus(args);
+
+            if (action == "list")
+                return ListDominions(args);
+
+            if (action == "set")
+                return SetRule(args);
+
+            Reply(args, CtLocalization.Get("ct.biome.command.help"));
+            return true;
+        }
+
+        private object ClaimCurrentBiome(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.server_only"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_player"));
+                return true;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_guilds"));
+                return true;
+            }
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+            string guildName;
+            string guildColor;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) || string.IsNullOrEmpty(guildId))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_guild"));
+                return true;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) || string.IsNullOrEmpty(guildName))
+                guildName = guildId;
+
+            guildService.TryGetPlayerGuildColor(playerId, out guildColor);
+
+            if (!guildService.IsPlayerGuildLeader(playerId))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.leader_only"));
+                return true;
+            }
+
+            string biomeName = GetBiomeName(player.transform.position);
+
+            if (string.IsNullOrEmpty(biomeName) || biomeName == Heightmap.Biome.None.ToString())
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_biome"));
+                return true;
+            }
+
+            BiomeDominionRecord existing;
+
+            if (_recordsByBiome.TryGetValue(biomeName, out existing) &&
+                !string.Equals(existing.GuildId, guildId, StringComparison.OrdinalIgnoreCase))
+            {
+                Reply(args, CtLocalization.Format("ct.biome.command.already_claimed", biomeName, existing.DisplayName));
+                return true;
+            }
+
+            BiomeDominionRecord record = new BiomeDominionRecord();
+            record.BiomeName = biomeName;
+            record.GuildId = guildId;
+            record.GuildName = guildName;
+            record.GuildColor = guildColor ?? "";
+            record.ClaimedByPlayerId = playerId;
+            record.ClaimedByPlayerName = player.GetPlayerName();
+            record.DoorLockEnabled = existing != null && existing.DoorLockEnabled;
+            record.StructureDamageProtectionEnabled = existing != null && existing.StructureDamageProtectionEnabled;
+            record.DoorAutoCloseSeconds = existing != null ? NormalizeDoorAutoCloseSeconds(existing.DoorAutoCloseSeconds) : ClanTerritory.Config.ConfigValues.DoorAutoCloseSeconds;
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            _recordsByBiome[biomeName] = record;
+            Save();
+
+            Reply(args, CtLocalization.Format("ct.biome.command.claimed", biomeName, guildName));
+            ModLog.Info("[BiomeDominion] Biome claimed: " + biomeName + ", guild: " + guildName + ", player: " + player.GetPlayerName());
+            return true;
+        }
+
+        private object ReleaseCurrentBiome(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.server_only"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_player"));
+                return true;
+            }
+
+            string biomeName = GetBiomeName(player.transform.position);
+            BiomeDominionRecord record;
+
+            if (string.IsNullOrEmpty(biomeName) || !_recordsByBiome.TryGetValue(biomeName, out record))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.not_claimed"));
+                return true;
+            }
+
+            if (!CanManageDominion(player, record))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.not_owner"));
+                return true;
+            }
+
+            _recordsByBiome.Remove(biomeName);
+            Save();
+
+            Reply(args, CtLocalization.Format("ct.biome.command.released", biomeName));
+            ModLog.Info("[BiomeDominion] Biome released: " + biomeName + ", guild: " + record.DisplayName);
+            return true;
+        }
+
+        private object ShowCurrentBiomeStatus(Terminal.ConsoleEventArgs args)
+        {
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_player"));
+                return true;
+            }
+
+            string biomeName = GetBiomeName(player.transform.position);
+            BiomeDominionRecord record;
+
+            if (string.IsNullOrEmpty(biomeName) || !_recordsByBiome.TryGetValue(biomeName, out record))
+            {
+                Reply(args, CtLocalization.Format("ct.biome.command.status_free", biomeName));
+                return true;
+            }
+
+            Reply(args, CtLocalization.Format(
+                "ct.biome.command.status_claimed",
+                record.BiomeName,
+                record.DisplayName,
+                FormatBool(record.DoorLockEnabled),
+                FormatBool(record.StructureDamageProtectionEnabled),
+                NormalizeDoorAutoCloseSeconds(record.DoorAutoCloseSeconds)));
+            return true;
+        }
+
+        private object ListDominions(Terminal.ConsoleEventArgs args)
+        {
+            if (_recordsByBiome.Count <= 0)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.list_empty"));
+                return true;
+            }
+
+            StringBuilder builder = new StringBuilder();
+            builder.Append(CtLocalization.Get("ct.biome.command.list_header"));
+
+            foreach (BiomeDominionRecord record in _recordsByBiome.Values)
+            {
+                builder.AppendLine();
+                builder.Append("- ");
+                builder.Append(record.BiomeName);
+                builder.Append(": ");
+                builder.Append(record.DisplayName);
+                builder.Append(" | doorlock=");
+                builder.Append(FormatBool(record.DoorLockEnabled));
+                builder.Append(", protection=");
+                builder.Append(FormatBool(record.StructureDamageProtectionEnabled));
+                builder.Append(", autoclose=");
+                builder.Append(NormalizeDoorAutoCloseSeconds(record.DoorAutoCloseSeconds));
+                builder.Append("s");
+            }
+
+            Reply(args, builder.ToString());
+            return true;
+        }
+
+        private object SetRule(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.server_only"));
+                return true;
+            }
+
+            if (args.Length < 4)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.set_help"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.no_player"));
+                return true;
+            }
+
+            string biomeName = GetBiomeName(player.transform.position);
+            BiomeDominionRecord record;
+
+            if (string.IsNullOrEmpty(biomeName) || !_recordsByBiome.TryGetValue(biomeName, out record))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.not_claimed"));
+                return true;
+            }
+
+            if (!CanManageDominion(player, record))
+            {
+                Reply(args, CtLocalization.Get("ct.biome.command.not_owner"));
+                return true;
+            }
+
+            string rule = args[2].ToLowerInvariant();
+            string value = args[3].ToLowerInvariant();
+
+            if (rule == "doorlock" || rule == "doors")
+            {
+                bool enabled;
+                if (!TryParseBool(value, out enabled))
+                {
+                    Reply(args, CtLocalization.Get("ct.biome.command.invalid_value"));
+                    return true;
+                }
+
+                record.DoorLockEnabled = enabled;
+                record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                Save();
+                Reply(args, CtLocalization.Format("ct.biome.command.rule_saved", record.BiomeName, "doorlock", FormatBool(enabled)));
+                return true;
+            }
+
+            if (rule == "protection" || rule == "structures")
+            {
+                bool enabled;
+                if (!TryParseBool(value, out enabled))
+                {
+                    Reply(args, CtLocalization.Get("ct.biome.command.invalid_value"));
+                    return true;
+                }
+
+                record.StructureDamageProtectionEnabled = enabled;
+                record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                Save();
+                Reply(args, CtLocalization.Format("ct.biome.command.rule_saved", record.BiomeName, "protection", FormatBool(enabled)));
+                return true;
+            }
+
+            if (rule == "autoclose")
+            {
+                int seconds;
+                if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds))
+                {
+                    Reply(args, CtLocalization.Get("ct.biome.command.invalid_value"));
+                    return true;
+                }
+
+                record.DoorAutoCloseSeconds = NormalizeDoorAutoCloseSeconds(seconds);
+                record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                Save();
+                Reply(args, CtLocalization.Format("ct.biome.command.autoclose_saved", record.BiomeName, record.DoorAutoCloseSeconds));
+                return true;
+            }
+
+            Reply(args, CtLocalization.Get("ct.biome.command.invalid_rule"));
+            return true;
+        }
+
+        private bool CanManageDominion(Player player, BiomeDominionRecord record)
+        {
+            if (player == null || record == null)
+                return false;
+
+            IGuildService guildService;
+            if (!TryGetGuildService(out guildService))
+                return false;
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId))
+                return false;
+
+            if (!string.Equals(guildId, record.GuildId, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return guildService.IsPlayerGuildLeader(playerId);
+        }
+
+        private bool IsPlayerInDominionGuild(Player player, BiomeDominionRecord record)
+        {
+            if (player == null || record == null)
+                return false;
+
+            IGuildService guildService;
+            if (!TryGetGuildService(out guildService))
+                return false;
+
+            string guildId;
+            return guildService.TryGetPlayerGuildId(player.GetPlayerID(), out guildId) &&
+                   string.Equals(guildId, record.GuildId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool HasLocalTerritoryAccess(Vector3 position, Player player)
+        {
+            if (player == null)
+                return false;
+
+            List<PrivateArea> areas = GetPrivateAreas();
+
+            for (int i = 0; i < areas.Count; i++)
+            {
+                PrivateArea privateArea = areas[i];
+
+                if (privateArea == null)
+                    continue;
+
+                if (!IsInside(privateArea, position))
+                    continue;
+
+                if (HasPrivateAreaAccess(privateArea, player))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool HasPrivateAreaAccess(PrivateArea privateArea, Player player)
+        {
+            if (privateArea == null || player == null)
+                return false;
+
+            ZDO zdo = GetZdo(privateArea);
+            if (zdo == null)
+                return false;
+
+            long playerId = player.GetPlayerID();
+
+            if (zdo.GetLong(ZDOVars.s_creator, 0L) == playerId)
+                return true;
+
+            int permittedCount = zdo.GetInt(ZDOVars.s_permitted);
+
+            for (int i = 0; i < permittedCount; i++)
+            {
+                long permittedPlayerId = zdo.GetLong("pu_id" + i, 0L);
+
+                if (permittedPlayerId == playerId)
+                    return true;
+            }
+
+            return TerritoryGuildAccess.HasGuildAccess(privateArea, player);
+        }
+
+        private static bool TryGetWardGuildId(PrivateArea privateArea, out string guildId)
+        {
+            guildId = "";
+            ZDO zdo = GetZdo(privateArea);
+
+            if (zdo == null)
+                return false;
+
+            return TerritoryGuildAccess.TryGetWardGuildId(zdo.m_uid.ToString(), out guildId);
+        }
+
+        private static bool TryGetGuildService(out IGuildService guildService)
+        {
+            guildService = null;
+            return ServiceContainer.TryGet<IGuildService>(out guildService) &&
+                   guildService != null &&
+                   guildService.IsAvailable;
+        }
+
+        private static string GetBiomeName(Vector3 position)
+        {
+            try
+            {
+                Heightmap.Biome biome = Heightmap.Biome.None;
+
+                if (WorldGenerator.instance != null)
+                    biome = WorldGenerator.instance.GetBiome(position);
+                else if (Player.m_localPlayer != null)
+                    biome = Player.m_localPlayer.GetCurrentBiome();
+
+                return biome.ToString();
+            }
+            catch (Exception exception)
+            {
+                ModLog.Warning("[BiomeDominion] Failed to resolve biome: " + exception.Message);
+                return Heightmap.Biome.None.ToString();
+            }
+        }
+
+        private static bool IsInside(PrivateArea privateArea, Vector3 position)
+        {
+            if (privateArea == null)
+                return false;
+
+            return global::Utils.DistanceXZ(privateArea.transform.position, position) < privateArea.m_radius;
+        }
+
+        private static List<PrivateArea> GetPrivateAreas()
+        {
+            if (AllAreasField == null)
+                return new List<PrivateArea>();
+
+            List<PrivateArea> areas = AllAreasField.GetValue(null) as List<PrivateArea>;
+
+            if (areas == null)
+                return new List<PrivateArea>();
+
+            return areas;
+        }
+
+        private static ZDO GetZdo(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return null;
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+                return null;
+
+            return zNetView.GetZDO();
+        }
+
+        private static ZNetView GetDoorZNetView(Door door)
+        {
+            if (door == null || DoorZNetViewField == null)
+                return null;
+
+            return DoorZNetViewField.GetValue(door) as ZNetView;
+        }
+
+        private void RemoveScheduledDoor(Door door)
+        {
+            ZNetView zNetView = GetDoorZNetView(door);
+
+            if (zNetView == null || !zNetView.IsValid())
+                return;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo != null)
+                _scheduledDoorClosures.Remove(zdo.m_uid);
+        }
+
+        private void CloseScheduledDoor(ScheduledDoorClose scheduledDoor)
+        {
+            if (scheduledDoor == null || scheduledDoor.Door == null)
+                return;
+
+            Door door = scheduledDoor.Door;
+            ZNetView zNetView = GetDoorZNetView(door);
+
+            if (zNetView == null || !zNetView.IsValid() || !zNetView.IsOwner())
+                return;
+
+            ZDO zdo = zNetView.GetZDO();
+            if (zdo == null)
+                return;
+
+            if (zdo.GetInt(ZDOVars.s_state) == 0)
+                return;
+
+            BiomeDominionRecord record;
+            if (!TryGetDominionAt(door.transform.position, out record) || !record.DoorLockEnabled)
+                return;
+
+            zdo.Set(ZDOVars.s_state, 0);
+
+            if (DoorUpdateStateMethod != null)
+                DoorUpdateStateMethod.Invoke(door, null);
+
+            ModLog.Debug("[BiomeDominion] Biome door auto-closed: " + zdo.m_uid);
+        }
+
+        private void Load()
+        {
+            _recordsByBiome.Clear();
+            string path = GetSavePath();
+
+            if (!File.Exists(path))
+            {
+                ModLog.Info("[BiomeDominion] No biome dominion save found: " + path);
+                return;
+            }
+
+            BiomeDominionRecord current = null;
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string rawLine = lines[i];
+
+                if (string.IsNullOrWhiteSpace(rawLine))
+                    continue;
+
+                string line = rawLine.Trim();
+
+                if (line.StartsWith("#", StringComparison.Ordinal) || line.StartsWith("//", StringComparison.Ordinal))
+                    continue;
+
+                if (line.StartsWith("[Biome:", StringComparison.OrdinalIgnoreCase) && line.EndsWith("]", StringComparison.Ordinal))
+                {
+                    if (current != null && !string.IsNullOrEmpty(current.BiomeName))
+                        _recordsByBiome[current.BiomeName] = current;
+
+                    current = new BiomeDominionRecord();
+                    current.BiomeName = Unescape(line.Substring("[Biome:".Length, line.Length - "[Biome:".Length - 1));
+                    current.DoorAutoCloseSeconds = ClanTerritory.Config.ConfigValues.DoorAutoCloseSeconds;
+                    continue;
+                }
+
+                if (current == null)
+                    continue;
+
+                int separator = line.IndexOf('=');
+                if (separator <= 0)
+                    continue;
+
+                string key = line.Substring(0, separator).Trim();
+                string value = Unescape(line.Substring(separator + 1).Trim());
+                ApplyLoadedValue(current, key, value);
+            }
+
+            if (current != null && !string.IsNullOrEmpty(current.BiomeName))
+                _recordsByBiome[current.BiomeName] = current;
+
+            ModLog.Info("[BiomeDominion] Biome dominions loaded. Count: " + _recordsByBiome.Count);
+        }
+
+        private void Save()
+        {
+            try
+            {
+                _fileSystem.EnsureDirectories();
+                string path = GetSavePath();
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine("# Clan Territory biome dominions");
+                builder.AppendLine("# One claimed biome per section.");
+                builder.AppendLine();
+
+                foreach (BiomeDominionRecord record in _recordsByBiome.Values)
+                {
+                    builder.AppendLine("[Biome:" + Escape(record.BiomeName) + "]");
+                    builder.AppendLine("GuildId=" + Escape(record.GuildId));
+                    builder.AppendLine("GuildName=" + Escape(record.GuildName));
+                    builder.AppendLine("GuildColor=" + Escape(record.GuildColor));
+                    builder.AppendLine("ClaimedByPlayerId=" + record.ClaimedByPlayerId);
+                    builder.AppendLine("ClaimedByPlayerName=" + Escape(record.ClaimedByPlayerName));
+                    builder.AppendLine("DoorLockEnabled=" + record.DoorLockEnabled);
+                    builder.AppendLine("StructureDamageProtectionEnabled=" + record.StructureDamageProtectionEnabled);
+                    builder.AppendLine("DoorAutoCloseSeconds=" + NormalizeDoorAutoCloseSeconds(record.DoorAutoCloseSeconds));
+                    builder.AppendLine("UpdatedAtUtc=" + Escape(record.UpdatedAtUtc));
+                    builder.AppendLine();
+                }
+
+                File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+                ModLog.Info("[BiomeDominion] Biome dominions saved. Count: " + _recordsByBiome.Count);
+            }
+            catch (Exception exception)
+            {
+                ModLog.Warning("[BiomeDominion] Failed to save biome dominions: " + exception.Message);
+            }
+        }
+
+        private string GetSavePath()
+        {
+            string worldName = "Unknown";
+            IWorldInfoService worldInfoService;
+
+            if (ServiceContainer.TryGet<IWorldInfoService>(out worldInfoService) && worldInfoService != null)
+                worldName = worldInfoService.GetWorldName();
+
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return Path.Combine(_fileSystem.WorldsDirectory, worldName + FileSuffix);
+        }
+
+        private static void ApplyLoadedValue(BiomeDominionRecord record, string key, string value)
+        {
+            if (record == null || string.IsNullOrEmpty(key))
+                return;
+
+            if (string.Equals(key, "GuildId", StringComparison.OrdinalIgnoreCase)) { record.GuildId = value; return; }
+            if (string.Equals(key, "GuildName", StringComparison.OrdinalIgnoreCase)) { record.GuildName = value; return; }
+            if (string.Equals(key, "GuildColor", StringComparison.OrdinalIgnoreCase)) { record.GuildColor = value; return; }
+            if (string.Equals(key, "ClaimedByPlayerName", StringComparison.OrdinalIgnoreCase)) { record.ClaimedByPlayerName = value; return; }
+            if (string.Equals(key, "UpdatedAtUtc", StringComparison.OrdinalIgnoreCase)) { record.UpdatedAtUtc = value; return; }
+
+            if (string.Equals(key, "ClaimedByPlayerId", StringComparison.OrdinalIgnoreCase))
+            {
+                long playerId;
+                if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out playerId))
+                    record.ClaimedByPlayerId = playerId;
+                return;
+            }
+
+            if (string.Equals(key, "DoorLockEnabled", StringComparison.OrdinalIgnoreCase))
+            {
+                bool enabled;
+                if (bool.TryParse(value, out enabled))
+                    record.DoorLockEnabled = enabled;
+                return;
+            }
+
+            if (string.Equals(key, "StructureDamageProtectionEnabled", StringComparison.OrdinalIgnoreCase))
+            {
+                bool enabled;
+                if (bool.TryParse(value, out enabled))
+                    record.StructureDamageProtectionEnabled = enabled;
+                return;
+            }
+
+            if (string.Equals(key, "DoorAutoCloseSeconds", StringComparison.OrdinalIgnoreCase))
+            {
+                int seconds;
+                if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds))
+                    record.DoorAutoCloseSeconds = NormalizeDoorAutoCloseSeconds(seconds);
+            }
+        }
+
+        private static bool IsServerOrSinglePlayer()
+        {
+            return ZNet.instance == null || ZNet.instance.IsServer();
+        }
+
+        private static bool IsHelp(string value)
+        {
+            return string.IsNullOrEmpty(value) || value == "help" || value == "?";
+        }
+
+        private static bool TryParseBool(string value, out bool result)
+        {
+            result = false;
+            if (string.IsNullOrEmpty(value))
+                return false;
+
+            value = value.Trim().ToLowerInvariant();
+
+            if (value == "on" || value == "true" || value == "1" || value == "yes" || value == "enable" || value == "enabled")
+            {
+                result = true;
+                return true;
+            }
+
+            if (value == "off" || value == "false" || value == "0" || value == "no" || value == "disable" || value == "disabled")
+            {
+                result = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string FormatBool(bool value)
+        {
+            return value ? CtLocalization.Get("ct.menu.value.enabled") : CtLocalization.Get("ct.menu.value.disabled");
+        }
+
+        private static int NormalizeDoorAutoCloseSeconds(int seconds)
+        {
+            if (seconds < 3)
+                return 3;
+            if (seconds > 10)
+                return 10;
+            return seconds;
+        }
+
+        private static string Escape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\", "\\\\").Replace("\r", "").Replace("\n", "\\n").Replace("]", "\\]");
+        }
+
+        private static string Unescape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\]", "]").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+
+        private static void Reply(Terminal.ConsoleEventArgs args, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (args != null && args.Context != null)
+                args.Context.AddString(message);
+
+            if (Player.m_localPlayer != null)
+                Player.m_localPlayer.Message(MessageHud.MessageType.Center, message);
+        }
+
+        private sealed class ScheduledDoorClose
+        {
+            public Door Door { get; private set; }
+            public float DueTime { get; private set; }
+
+            public ScheduledDoorClose(Door door, float dueTime)
+            {
+                Door = door;
+                DueTime = dueTime;
+            }
         }
     }
 }

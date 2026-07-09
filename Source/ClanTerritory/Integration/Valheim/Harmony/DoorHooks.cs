@@ -1,4 +1,5 @@
 using ClanTerritory.Core;
+using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Localization;
@@ -80,6 +81,11 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                 return;
 
             ruleService.ScheduleDoorAutoClose(__instance);
+
+            BiomeDominionService biomeDominionService;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService))
+                biomeDominionService.ScheduleDoorAutoClose(__instance);
         }
 
         private static bool IsDoorLocked(
@@ -88,6 +94,16 @@ namespace ClanTerritory.Integration.Valheim.Harmony
         {
             if (door == null || player == null)
                 return false;
+
+            BiomeDominionService biomeDominionService;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService.IsDoorLockedForPlayer(
+                    door.transform.position,
+                    player))
+            {
+                return true;
+            }
 
             TerritoryRuleService ruleService;
 
