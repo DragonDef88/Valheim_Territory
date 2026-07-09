@@ -206,6 +206,20 @@ namespace ClanTerritory.Features.Territory
                 _currentTerritoryName = "";
             }
 
+            private static List<PrivateArea> GetPrivateAreas()
+            {
+                if (AllAreasField == null)
+                    return new List<PrivateArea>();
+
+                List<PrivateArea> areas =
+                    AllAreasField.GetValue(null) as List<PrivateArea>;
+
+                if (areas == null)
+                    return new List<PrivateArea>();
+
+                return areas;
+            }
+
             private static PrivateArea FindCurrentTerritoryArea(Vector3 position)
             {
                 List<PrivateArea> areas = GetPrivateAreas();
@@ -424,8 +438,6 @@ namespace ClanTerritory.Features.Territory.Services
             "PickaxeIron",
             "PickaxeBlackMetal"
         };
-
-        private float _nextLevelingWorkerTime;
 
         private static bool _wardHeightLevelingOperationActive;
 
