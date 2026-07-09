@@ -25,6 +25,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
+            Action openTerraformingPreparationChestAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
             Action storeTerraformingHoeAction,

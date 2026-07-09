@@ -36,6 +36,11 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
+        bool OpenTerraformingPreparationChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player);
+
         bool DecreaseTerraformingRadius(
             WardId wardId,
             PrivateArea privateArea,

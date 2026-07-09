@@ -74,6 +74,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _toggleStructureDamageProtectionAction;
         private Action _toggleTerraformingAction;
         private Action _toggleTerraformingRunningAction;
+        private Action _openTerraformingPreparationChestAction;
         private Action _decreaseTerraformingRadiusAction;
         private Action _increaseTerraformingRadiusAction;
         private Action _storeTerraformingHoeAction;
@@ -114,6 +115,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
+            Action openTerraformingPreparationChestAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
             Action storeTerraformingHoeAction,
@@ -143,6 +145,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 toggleStructureDamageProtectionAction,
                 toggleTerraformingAction,
                 toggleTerraformingRunningAction,
+                openTerraformingPreparationChestAction,
                 decreaseTerraformingRadiusAction,
                 increaseTerraformingRadiusAction,
                 storeTerraformingHoeAction,
@@ -333,6 +336,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action toggleStructureDamageProtectionAction,
             Action toggleTerraformingAction,
             Action toggleTerraformingRunningAction,
+            Action openTerraformingPreparationChestAction,
             Action decreaseTerraformingRadiusAction,
             Action increaseTerraformingRadiusAction,
             Action storeTerraformingHoeAction,
@@ -358,6 +362,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionAction = toggleStructureDamageProtectionAction;
             _toggleTerraformingAction = toggleTerraformingAction;
             _toggleTerraformingRunningAction = toggleTerraformingRunningAction;
+            _openTerraformingPreparationChestAction = openTerraformingPreparationChestAction;
             _decreaseTerraformingRadiusAction = decreaseTerraformingRadiusAction;
             _increaseTerraformingRadiusAction = increaseTerraformingRadiusAction;
             _storeTerraformingHoeAction = storeTerraformingHoeAction;
@@ -386,6 +391,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _toggleStructureDamageProtectionAction = null;
             _toggleTerraformingAction = null;
             _toggleTerraformingRunningAction = null;
+            _openTerraformingPreparationChestAction = null;
             _decreaseTerraformingRadiusAction = null;
             _increaseTerraformingRadiusAction = null;
             _storeTerraformingHoeAction = null;
@@ -443,7 +449,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Fuel: " + model.Terraforming.FuelStored + " / 2500\n" +
                 "Stone: " + model.Terraforming.StoneStored + " / 2500\n" +
                 "Scan: " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex + "\n\n" +
-                "Preparation opens a chest-style storage panel.";
+                "Preparation opens a real piece_chest_wood container.";
 
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
@@ -482,7 +488,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonText(_increaseDoorAutoCloseButton, "+1");
             SetButtonText(_toggleTerraformingButton, model.Terraforming.Enabled ? "Disable Leveling" : "Enable Leveling");
             SetButtonText(_toggleTerraformingRunningButton, model.Terraforming.Running ? "Stop Leveling" : "Start Leveling");
-            SetButtonText(_openTerraformingPreparationButton, "Prepare Leveling");
+            SetButtonText(_openTerraformingPreparationButton, "Open Preparation Chest");
             SetButtonText(_decreaseTerraformingRadiusButton, "-2");
             SetButtonText(_increaseTerraformingRadiusButton, "+2");
             SetButtonText(_storeTerraformingHoeButton, model.Terraforming.HoeStored ? "Hoe: Set" : "Hoe Slot");
@@ -680,7 +686,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _toggleTerraformingButton = CreateButton(_terraformingPanel.transform, "Enable Leveling", new Vector2(-190f, -82f), 220f, 30f);
             _toggleTerraformingRunningButton = CreateButton(_terraformingPanel.transform, "Start Leveling", new Vector2(190f, -82f), 220f, 30f);
-            _openTerraformingPreparationButton = CreateButton(_terraformingPanel.transform, "Prepare Leveling", new Vector2(0f, -120f), 280f, 30f);
+            _openTerraformingPreparationButton = CreateButton(_terraformingPanel.transform, "Open Preparation Chest", new Vector2(0f, -120f), 280f, 30f);
 
             _decreaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "-2", new Vector2(-150f, -158f), 76f, 28f);
 
@@ -1138,8 +1144,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void RequestShowTerraformingPreparationChest()
         {
-            if (_terraformingStoragePanel != null)
-                _terraformingStoragePanel.SetActive(true);
+            if (_openTerraformingPreparationChestAction != null)
+                _openTerraformingPreparationChestAction();
         }
 
         private void RequestCloseTerraformingPreparationChest()

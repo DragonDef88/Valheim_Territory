@@ -302,6 +302,21 @@ namespace ClanTerritory.Features.Territory.Services
 {
     internal sealed class TerritoryTerraformingService
     {
+        private const string PreparationChestPrefabName = "piece_chest_wood";
+        private const string PreparationChestName = "$piece_chestwood";
+        private const int PreparationChestWidth = 5;
+        private const int PreparationChestHeight = 3;
+
+        private static readonly FieldInfo InventoryWidthField =
+            AccessTools.Field(
+                typeof(Inventory),
+                "m_width");
+
+        private static readonly FieldInfo InventoryHeightField =
+            AccessTools.Field(
+                typeof(Inventory),
+                "m_height");
+
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
         private const string SetRadiusRpc = "CT_SetTerraformingRadius";
@@ -464,6 +479,35 @@ namespace ClanTerritory.Features.Territory.Services
                 privateArea,
                 player,
                 !state.Running);
+        }
+
+        public bool RequestOpenPreparationChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (!ValidateCreatorAction("OpenPreparationChest", wardId, privateArea, player))
+                return false;
+
+            Container container = GetOrCreatePreparationChest(
+                wardId,
+                privateArea,
+                player);
+
+            if (container == null)
+                return false;
+
+            ConfigurePreparationChest(container);
+
+            if (InventoryGui.instance != null)
+            {
+                InventoryGui.instance.Hide();
+            }
+
+            return container.Interact(
+                player,
+                false,
+                false);
         }
 
         public bool RequestDecreaseRadius(
@@ -636,6 +680,163 @@ namespace ClanTerritory.Features.Territory.Services
             player.Message(MessageHud.MessageType.Center, "Stone stored: " + moved);
             ModLog.Info("[TerritoryTerraforming] Add stone slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
             return true;
+        }
+
+        private Container GetOrCreatePreparationChest(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player)
+        {
+            Container existing = FindLinkedPreparationChest(privateArea);
+
+            if (existing != null)
+                return existing;
+
+            if (ZNetScene.instance == null)
+            {
+                ModLog.Debug("[TerritoryTerraforming] Preparation chest ignored. ZNetScene is null: " + wardId);
+                return null;
+            }
+
+            GameObject prefab = ZNetScene.instance.GetPrefab(PreparationChestPrefabName);
+
+            if (prefab == null)
+            {
+                ModLog.Debug("[TerritoryTerraforming] Preparation chest prefab not found: " + PreparationChestPrefabName);
+                return null;
+            }
+
+            Vector3 position = CalculateChestPosition(privateArea, player);
+            Quaternion rotation = Quaternion.identity;
+
+            if (player != null)
+                rotation = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f);
+
+            GameObject chestObject = Object.Instantiate(
+                prefab,
+                position,
+                rotation);
+
+            if (chestObject == null)
+                return null;
+
+            Container container = chestObject.GetComponent<Container>();
+
+            if (container == null)
+            {
+                ModLog.Debug("[TerritoryTerraforming] Preparation chest ignored. Container component is missing.");
+                return null;
+            }
+
+            Piece piece = chestObject.GetComponent<Piece>();
+
+            if (piece != null && player != null)
+                piece.SetCreator(player.GetPlayerID());
+
+            ZNetView chestView = chestObject.GetComponent<ZNetView>();
+            ZDO chestZdo = chestView != null && chestView.IsValid()
+                ? chestView.GetZDO()
+                : null;
+
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo != null && chestZdo != null)
+            {
+                wardZdo.Set(TerritoryZdoKeys.TerraformingChestZdoUser, chestZdo.m_uid.UserID);
+                wardZdo.Set(TerritoryZdoKeys.TerraformingChestZdoId, (int)chestZdo.m_uid.ID);
+            }
+
+            ConfigurePreparationChest(container);
+
+            ModLog.Info("[TerritoryTerraforming] Real preparation chest created from " + PreparationChestPrefabName + ": " + wardId);
+            return container;
+        }
+
+        private Container FindLinkedPreparationChest(PrivateArea privateArea)
+        {
+            ZDO wardZdo = GetZdo(privateArea);
+
+            if (wardZdo == null)
+                return null;
+
+            long userId = wardZdo.GetLong(TerritoryZdoKeys.TerraformingChestZdoUser, 0L);
+            int id = wardZdo.GetInt(TerritoryZdoKeys.TerraformingChestZdoId, 0);
+
+            if (userId == 0L || id == 0 || ZNetScene.instance == null)
+                return null;
+
+            GameObject chestObject = ZNetScene.instance.FindInstance(
+                new ZDOID(
+                    userId,
+                    (uint)id));
+
+            if (chestObject == null)
+                return null;
+
+            Container container = chestObject.GetComponent<Container>();
+
+            if (container == null)
+                return null;
+
+            ConfigurePreparationChest(container);
+            return container;
+        }
+
+        private static Vector3 CalculateChestPosition(
+            PrivateArea privateArea,
+            Player player)
+        {
+            if (privateArea == null)
+                return player != null ? player.transform.position : Vector3.zero;
+
+            Vector3 forward = player != null
+                ? player.transform.forward
+                : privateArea.transform.forward;
+
+            if (forward == Vector3.zero)
+                forward = Vector3.forward;
+
+            Vector3 position =
+                privateArea.transform.position +
+                forward.normalized * 2.25f;
+
+            float groundHeight = position.y;
+
+            if (ZoneSystem.instance != null &&
+                ZoneSystem.instance.GetGroundHeight(position, ref groundHeight))
+            {
+                position.y = groundHeight;
+            }
+            else
+            {
+                position.y = privateArea.transform.position.y;
+            }
+
+            return position;
+        }
+
+        private static void ConfigurePreparationChest(Container container)
+        {
+            if (container == null)
+                return;
+
+            container.m_name = "Territory Leveling Chest";
+            container.m_width = PreparationChestWidth;
+            container.m_height = PreparationChestHeight;
+            container.m_privacy = Container.PrivacySetting.Private;
+            container.m_checkGuardStone = false;
+            container.m_autoDestroyEmpty = false;
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+                return;
+
+            if (InventoryWidthField != null)
+                InventoryWidthField.SetValue(inventory, PreparationChestWidth);
+
+            if (InventoryHeightField != null)
+                InventoryHeightField.SetValue(inventory, PreparationChestHeight);
         }
 
         private bool RequestSetEnabled(

@@ -78,6 +78,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestToggleStructureDamageProtection,
                 RequestToggleTerraforming,
                 RequestToggleTerraformingRunning,
+                RequestOpenTerraformingPreparationChest,
                 RequestDecreaseTerraformingRadius,
                 RequestIncreaseTerraformingRadius,
                 RequestStoreTerraformingHoe,
@@ -225,6 +226,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             RefreshIfActionStarted(
                 _territoryActions.ToggleTerraformingRunning(_currentWardId, _currentPrivateArea, _currentPlayer),
                 "ToggleTerraformingRunning");
+        }
+
+        public void RequestOpenTerraformingPreparationChest()
+        {
+            RefreshIfActionStarted(
+                _territoryActions.OpenTerraformingPreparationChest(_currentWardId, _currentPrivateArea, _currentPlayer),
+                "OpenTerraformingPreparationChest");
         }
 
         public void RequestDecreaseTerraformingRadius()
