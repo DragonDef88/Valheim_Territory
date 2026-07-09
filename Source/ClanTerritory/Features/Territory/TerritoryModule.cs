@@ -15,6 +15,7 @@ using ClanTerritory.Features.Territory.Zdo;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Integration.Guilds;
+using ClanTerritory.Localization;
 using ClanTerritory.Utils;
 using HarmonyLib;
 using UnityEngine;
@@ -172,7 +173,7 @@ namespace ClanTerritory.Features.Territory
                 {
                     if (!string.IsNullOrEmpty(_currentWardId))
                     {
-                        ShowMessage(player, "Left territory: " + _currentTerritoryName);
+                        ShowMessage(player, CtLocalization.Format("ct.message.left_territory", _currentTerritoryName));
                         ModLog.Info("[TerritoryPresence] Left territory: " + _currentTerritoryName + ", ward: " + _currentWardId);
                     }
 
@@ -190,14 +191,14 @@ namespace ClanTerritory.Features.Territory
 
                 if (!string.IsNullOrEmpty(_currentWardId))
                 {
-                    ShowMessage(player, "Left territory: " + _currentTerritoryName);
+                    ShowMessage(player, CtLocalization.Format("ct.message.left_territory", _currentTerritoryName));
                     ModLog.Info("[TerritoryPresence] Left territory: " + _currentTerritoryName + ", ward: " + _currentWardId);
                 }
 
                 _currentWardId = wardId;
                 _currentTerritoryName = GetTerritoryName(currentArea);
 
-                ShowMessage(player, "Entered territory: " + _currentTerritoryName);
+                ShowMessage(player, CtLocalization.Format("ct.message.entered_territory", _currentTerritoryName));
                 ModLog.Info("[TerritoryPresence] Entered territory: " + _currentTerritoryName + ", ward: " + _currentWardId);
             }
 
@@ -287,7 +288,7 @@ namespace ClanTerritory.Features.Territory
                         return name;
                 }
 
-                return "Unnamed Territory";
+                return CtLocalization.Get("ct.territory.unnamed");
             }
 
             private static void ShowMessage(Player player, string message)

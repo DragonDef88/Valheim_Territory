@@ -1043,6 +1043,9 @@ namespace ClanTerritory.Localization
                 { "ct.menu.storage.stone.value", "Stone {0}\\n{1}/500" },
                 { "ct.menu.more_players", "... and {0} more" },
                 { "ct.message.doors_locked", "Territory doors are locked." },
+                { "ct.message.entered_territory", "Entered territory: {0}" },
+                { "ct.message.left_territory", "Left territory: {0}" },
+                { "ct.territory.unnamed", "Unnamed Territory" },
                 { "ct.status.terraforming_unavailable", "Terraforming service unavailable" }
             };
         }
@@ -1132,6 +1135,9 @@ namespace ClanTerritory.Localization
                 { "ct.menu.storage.stone.value", "Камень {0}\\n{1}/500" },
                 { "ct.menu.more_players", "... и ещё {0}" },
                 { "ct.message.doors_locked", "Двери территории заперты." },
+                { "ct.message.entered_territory", "Вы вошли на территорию: {0}" },
+                { "ct.message.left_territory", "Вы покинули территорию: {0}" },
+                { "ct.territory.unnamed", "Безымянная территория" },
                 { "ct.status.terraforming_unavailable", "Сервис выравнивания недоступен" }
             };
         }
