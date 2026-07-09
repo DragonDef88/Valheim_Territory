@@ -276,31 +276,9 @@ namespace ClanTerritory.Features.Territory
 
                 player.Message(MessageHud.MessageType.Center, message);
             }
-
-            private static List<PrivateArea> GetPrivateAreas()
-            {
-                if (AllAreasField == null)
-                    return new List<PrivateArea>();
-
-                List<PrivateArea> areas = AllAreasField.GetValue(null) as List<PrivateArea>;
-
-                if (areas == null)
-                    return new List<PrivateArea>();
-
-                return areas;
-            }
-
-            private void ClearCurrentTerritory()
-            {
-                _currentWardId = "";
-                _currentTerritoryName = "";
-            }
         }
     }
-}
 
-namespace ClanTerritory.Features.Territory.Services
-{
     internal sealed class TerritoryTerraformingService
     {
         private const string PreparationChestPrefabName = "piece_chest_wood";
@@ -389,6 +367,9 @@ namespace ClanTerritory.Features.Territory.Services
         private static readonly Dictionary<Inventory, VirtualContainerBinding> VirtualContainerBindings =
             new Dictionary<Inventory, VirtualContainerBinding>();
 
+        private static readonly Dictionary<string, GameObject> LevelingSpiritByWardId =
+            new Dictionary<string, GameObject>();
+
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
         private const string SetRadiusRpc = "CT_SetTerraformingRadius";
@@ -399,18 +380,22 @@ namespace ClanTerritory.Features.Territory.Services
 
         private const float DefaultRadius = 12f;
         private const float MinimumRadius = 2f;
-        private const float MaximumRadius = 80f;
+        private const float MaximumRadius = 40f;
         private const float RadiusStep = 2f;
         private const int SlotCapacity = 500;
         private const int FuelSlotCount = 5;
         private const int StoneSlotCount = 5;
-        private const float LevelingWorkerInterval = 1.25f;
-        private const int LevelingMaxScanStepsPerTick = 4;
+        private const float LevelingWorkerInterval = 0.1f;
+        private const int LevelingMaxScanStepsPerTick = 1;
         private const float LevelingSampleSpacing = 2.6f;
         private const float LevelingOperationRadius = 4f;
         private const float LevelingSampleRadius = 2f;
         private const float LevelingLocalSampleSpacing = 0.5f;
         private const float LevelingWorkThreshold = 0.75f;
+        private const int LevelingVerifyPasses = 3;
+        private const float LevelingScanTime = 0.45f;
+        private const float LevelingFlatteningTime = 1.6f;
+        private const float LevelingStonePerLower = 0.05f;
         private const float LevelingTolerance = 0.25f;
         private const int LevelingFuelCost = 1;
         private const int LevelingStoneCostWhenRaising = 1;
@@ -441,8 +426,11 @@ namespace ClanTerritory.Features.Territory.Services
             public bool Raising;
             public float NetDelta;
             public float WorkScore;
+            public float RaiseAmount;
+            public float LowerAmount;
             public int FuelCost;
             public int StoneCost;
+            public int StoneYield;
         }
 
         private sealed class VirtualContainerBinding
@@ -531,22 +519,54 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
-            if (Time.time < _nextLevelingWorkerTime)
-                return;
-
-            _nextLevelingWorkerTime = Time.time + LevelingWorkerInterval;
             ProcessLevelingWorkers();
         }
 
         private void ProcessLevelingWorkers()
         {
             List<PrivateArea> privateAreas = GetPrivateAreas();
+            bool activeWorkerProcessed = false;
 
             for (int i = 0; i < privateAreas.Count; i++)
             {
-                if (TryProcessLevelingWorker(privateAreas[i]))
-                    return;
+                PrivateArea privateArea = privateAreas[i];
+
+                if (privateArea == null)
+                    continue;
+
+                if (IsLevelingWorkerRunning(privateArea))
+                {
+                    if (!activeWorkerProcessed)
+                    {
+                        activeWorkerProcessed = TryProcessLevelingWorker(privateArea);
+                    }
+                    else
+                    {
+                        UpdateLevelingSpirit(
+                            privateArea,
+                            privateArea.transform.position,
+                            false);
+                    }
+                }
+                else
+                {
+                    UpdateLevelingSpirit(
+                        privateArea,
+                        privateArea.transform.position,
+                        false);
+                }
             }
+        }
+
+        private bool IsLevelingWorkerRunning(PrivateArea privateArea)
+        {
+            ZDO zdo = GetZdo(privateArea);
+
+            if (zdo == null)
+                return false;
+
+            return zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false) &&
+                   zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false);
         }
 
         private bool TryProcessLevelingWorker(PrivateArea privateArea)
@@ -567,6 +587,11 @@ namespace ClanTerritory.Features.Territory.Services
             if (!zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false) ||
                 !zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false))
             {
+                UpdateLevelingSpirit(
+                    privateArea,
+                    privateArea.transform.position,
+                    false);
+
                 return false;
             }
 
@@ -582,6 +607,12 @@ namespace ClanTerritory.Features.Territory.Services
                 PauseLevelingWorker(
                     zdo,
                     "missing pickaxe or hoe in preparation chest");
+
+                UpdateLevelingSpirit(
+                    privateArea,
+                    privateArea.transform.position,
+                    false);
+
                 return true;
             }
 
@@ -594,6 +625,12 @@ namespace ClanTerritory.Features.Territory.Services
                 PauseLevelingWorker(
                     zdo,
                     "invalid radius");
+
+                UpdateLevelingSpirit(
+                    privateArea,
+                    privateArea.transform.position,
+                    false);
+
                 return true;
             }
 
@@ -610,108 +647,388 @@ namespace ClanTerritory.Features.Territory.Services
                 0,
                 Mathf.Max(0, pointCount - 1));
 
-            for (int attempt = 0; attempt < LevelingMaxScanStepsPerTick; attempt++)
+            float scanProgress = zdo.GetFloat(
+                TerritoryZdoKeys.TerraformingScanProgress,
+                0f);
+
+            float scanSpeed = zdo.GetFloat(
+                TerritoryZdoKeys.TerraformingScanSpeed,
+                1f / LevelingScanTime);
+
+            scanProgress += Time.deltaTime * Mathf.Max(
+                0.01f,
+                scanSpeed);
+
+            if (scanProgress >= pointCount)
             {
-                if (scanIndex >= pointCount)
-                    scanIndex = 0;
+                scanProgress = 0f;
+                scanIndex = 0;
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingPendingScanIndex,
+                    -1);
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingVerifyCount,
+                    0);
+            }
 
-                Vector3 point = GetLevelingSpiralPoint(
-                    center,
+            Vector3 spiritPoint = GetLevelingSpiralPoint(
+                center,
+                Mathf.Clamp(
+                    Mathf.FloorToInt(scanProgress),
+                    0,
+                    Mathf.Max(0, pointCount - 1)),
+                radius);
+
+            UpdateLevelingSpirit(
+                privateArea,
+                spiritPoint,
+                true);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingScanProgress,
+                scanProgress);
+
+            if (scanProgress < scanIndex)
+                return true;
+
+            if (scanIndex >= pointCount)
+                scanIndex = 0;
+
+            Vector3 point = GetLevelingSpiralPoint(
+                center,
+                scanIndex,
+                radius);
+
+            if (!IsInsideTerraformingRadius(center, point, radius))
+            {
+                AdvanceLevelingScan(
+                    zdo,
                     scanIndex,
-                    radius);
+                    scanProgress,
+                    pointCount,
+                    false);
 
-                scanIndex++;
+                return true;
+            }
 
-                zdo.Set(
-                    TerritoryZdoKeys.TerraformingScanIndex,
-                    scanIndex);
+            LevelingEvaluation evaluation;
 
-                zdo.Set(
-                    TerritoryZdoKeys.TerraformingScanProgress,
-                    (float)scanIndex);
+            if (!TryEvaluateLevelingPoint(
+                    point,
+                    targetHeight,
+                    out evaluation))
+            {
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    false);
 
-                if (!IsInsideTerraformingRadius(center, point, radius))
-                    continue;
+                return true;
+            }
 
-                LevelingEvaluation evaluation;
-
-                if (!TryEvaluateLevelingPoint(
-                        point,
-                        targetHeight,
-                        out evaluation))
-                {
-                    continue;
-                }
-
-                if (!HasLevelingFuel(
-                        preparationInventory,
-                        evaluation.FuelCost))
-                {
-                    PersistTerraformingWorkerInventory(
-                        zdo,
-                        preparationInventory);
-
-                    PauseLevelingWorker(
-                        zdo,
-                        "fuel is empty");
-                    return true;
-                }
-
-                if (evaluation.Raising &&
-                    !HasLevelingStone(
-                        preparationInventory,
-                        evaluation.StoneCost))
-                {
-                    PersistTerraformingWorkerInventory(
-                        zdo,
-                        preparationInventory);
-
-                    PauseLevelingWorker(
-                        zdo,
-                        "stone is empty");
-                    return true;
-                }
-
-                if (!ApplyWardHeightLevelingOperation(
-                        point,
-                        targetHeight))
-                {
-                    continue;
-                }
-
-                ConsumeLevelingFuel(
+            if (!HasLevelingFuel(
                     preparationInventory,
-                    evaluation.FuelCost);
-
-                if (evaluation.Raising)
-                {
-                    ConsumeLevelingStone(
-                        preparationInventory,
-                        evaluation.StoneCost);
-                }
-
+                    evaluation.FuelCost))
+            {
                 PersistTerraformingWorkerInventory(
                     zdo,
                     preparationInventory);
 
-                ModLog.Debug(
-                    "[TerritoryTerraforming] Smooth leveling step applied. target: " +
-                    targetHeight +
-                    ", point: " +
-                    point +
-                    ", netDelta: " +
-                    evaluation.NetDelta +
-                    ", workScore: " +
-                    evaluation.WorkScore);
+                PauseLevelingWorker(
+                    zdo,
+                    "fuel is empty");
+
+                UpdateLevelingSpirit(
+                    privateArea,
+                    point,
+                    false);
 
                 return true;
+            }
+
+            if (evaluation.Raising &&
+                !HasLevelingStone(
+                    preparationInventory,
+                    evaluation.StoneCost))
+            {
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                PauseLevelingWorker(
+                    zdo,
+                    "stone is empty");
+
+                UpdateLevelingSpirit(
+                    privateArea,
+                    point,
+                    false);
+
+                return true;
+            }
+
+            if (!evaluation.Raising &&
+                !HasStoneCapacity(
+                    preparationInventory,
+                    evaluation.StoneYield))
+            {
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    false);
+
+                return true;
+            }
+
+            int pendingIndex = zdo.GetInt(
+                TerritoryZdoKeys.TerraformingPendingScanIndex,
+                -1);
+
+            int verifyCount = zdo.GetInt(
+                TerritoryZdoKeys.TerraformingVerifyCount,
+                0);
+
+            if (pendingIndex == scanIndex)
+                verifyCount++;
+            else
+                verifyCount = 1;
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingPendingScanIndex,
+                scanIndex);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingVerifyCount,
+                verifyCount);
+
+            if (verifyCount < LevelingVerifyPasses)
+            {
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingScanProgress,
+                    Mathf.Max(
+                        0f,
+                        scanIndex - 0.75f));
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingScanSpeed,
+                    1f / LevelingScanTime);
+
+                return true;
+            }
+
+            if (!ApplyWardHeightLevelingOperation(
+                    point,
+                    targetHeight))
+            {
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    false);
+
+                return true;
+            }
+
+            ConsumeLevelingFuel(
+                preparationInventory,
+                evaluation.FuelCost);
+
+            if (evaluation.Raising)
+            {
+                ConsumeLevelingStone(
+                    preparationInventory,
+                    evaluation.StoneCost);
+            }
+            else
+            {
+                AddLevelingStone(
+                    preparationInventory,
+                    evaluation.StoneYield);
             }
 
             PersistTerraformingWorkerInventory(
                 zdo,
                 preparationInventory);
 
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingPendingScanIndex,
+                -1);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingVerifyCount,
+                0);
+
+            AdvanceLevelingScan(
+                zdo,
+                scanIndex,
+                scanProgress,
+                pointCount,
+                true);
+
+            ModLog.Debug(
+                "[TerritoryTerraforming] Plateautem-style leveling step applied. target: " +
+                targetHeight +
+                ", point: " +
+                point +
+                ", netDelta: " +
+                evaluation.NetDelta +
+                ", workScore: " +
+                evaluation.WorkScore +
+                ", stoneYield: " +
+                evaluation.StoneYield);
+
             return true;
+        }
+
+        private static void AdvanceLevelingScan(
+            ZDO zdo,
+            int scanIndex,
+            float scanProgress,
+            int pointCount,
+            bool appliedWork)
+        {
+            if (zdo == null)
+                return;
+
+            int nextIndex = scanIndex + 1;
+
+            if (nextIndex >= pointCount)
+            {
+                nextIndex = 0;
+                scanProgress = 0f;
+            }
+            else
+            {
+                scanProgress = Mathf.Max(
+                    scanProgress,
+                    (float)nextIndex);
+            }
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingScanIndex,
+                nextIndex);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingScanProgress,
+                scanProgress);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingScanSpeed,
+                appliedWork
+                    ? 1f / LevelingFlatteningTime
+                    : 1f / LevelingScanTime);
+
+            if (!appliedWork)
+            {
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingPendingScanIndex,
+                    -1);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingVerifyCount,
+                    0);
+            }
+        }
+
+        private static void UpdateLevelingSpirit(
+            PrivateArea privateArea,
+            Vector3 groundPoint,
+            bool active)
+        {
+            if (privateArea == null)
+                return;
+
+            string wardId = GetWardRuntimeId(privateArea);
+
+            if (string.IsNullOrEmpty(wardId))
+                return;
+
+            if (!active)
+            {
+                DestroyLevelingSpirit(wardId);
+                return;
+            }
+
+            GameObject spirit = GetOrCreateLevelingSpirit(
+                wardId);
+
+            if (spirit == null)
+                return;
+
+            Vector3 position = groundPoint + Vector3.up * 1.35f;
+            spirit.transform.position = Vector3.Lerp(
+                spirit.transform.position,
+                position,
+                Mathf.Clamp01(Time.deltaTime * 7f));
+
+            if (!spirit.activeSelf)
+                spirit.SetActive(true);
+        }
+
+        private static GameObject GetOrCreateLevelingSpirit(string wardId)
+        {
+            GameObject spirit;
+
+            if (LevelingSpiritByWardId.TryGetValue(wardId, out spirit) &&
+                spirit != null)
+            {
+                return spirit;
+            }
+
+            spirit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            spirit.name = "ClanTerritory_LevelingSpirit_" + wardId;
+            spirit.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+
+            Collider collider = spirit.GetComponent<Collider>();
+
+            if (collider != null)
+                Object.Destroy(collider);
+
+            Renderer renderer = spirit.GetComponent<Renderer>();
+
+            if (renderer != null)
+            {
+                renderer.material.color = new Color(0.35f, 0.75f, 1f, 0.85f);
+            }
+
+            Light light = spirit.AddComponent<Light>();
+            light.color = new Color(0.35f, 0.75f, 1f, 1f);
+            light.range = 5f;
+            light.intensity = 1.6f;
+
+            LevelingSpiritByWardId[wardId] = spirit;
+            return spirit;
+        }
+
+        private static void DestroyLevelingSpirit(string wardId)
+        {
+            if (string.IsNullOrEmpty(wardId))
+                return;
+
+            GameObject spirit;
+
+            if (!LevelingSpiritByWardId.TryGetValue(wardId, out spirit))
+                return;
+
+            LevelingSpiritByWardId.Remove(wardId);
+
+            if (spirit != null)
+                Object.Destroy(spirit);
+        }
+
+        private static string GetWardRuntimeId(PrivateArea privateArea)
+        {
+            ZDO zdo = GetZdo(privateArea);
+
+            if (zdo == null)
+                return "";
+
+            return zdo.m_uid.ToString();
         }
 
         private static List<PrivateArea> GetPrivateAreas()
@@ -902,6 +1219,110 @@ namespace ClanTerritory.Features.Territory.Services
                     amount));
         }
 
+        private static bool HasStoneCapacity(
+            Inventory inventory,
+            int amount)
+        {
+            if (inventory == null || amount <= 0)
+                return true;
+
+            int remaining = amount;
+
+            for (int x = 0; x < PreparationChestWidth; x++)
+            {
+                ItemDrop.ItemData item = inventory.GetItemAt(x, 2);
+
+                if (item == null)
+                {
+                    remaining -= SlotCapacity;
+                }
+                else if (IsStone(item))
+                {
+                    remaining -= Mathf.Max(
+                        0,
+                        SlotCapacity - item.m_stack);
+                }
+
+                if (remaining <= 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static int AddLevelingStone(
+            Inventory inventory,
+            int amount)
+        {
+            if (inventory == null || amount <= 0)
+                return 0;
+
+            int remaining = amount;
+            int added = 0;
+
+            for (int x = 0; x < PreparationChestWidth && remaining > 0; x++)
+            {
+                ItemDrop.ItemData item = inventory.GetItemAt(x, 2);
+
+                if (item == null || !IsStone(item))
+                    continue;
+
+                ApplyVirtualStackLimit(
+                    item,
+                    SlotCapacity);
+
+                int moved = Mathf.Min(
+                    remaining,
+                    Mathf.Max(
+                        0,
+                        SlotCapacity - item.m_stack));
+
+                if (moved <= 0)
+                    continue;
+
+                item.m_stack += moved;
+                remaining -= moved;
+                added += moved;
+            }
+
+            for (int x = 0; x < PreparationChestWidth && remaining > 0; x++)
+            {
+                if (inventory.GetItemAt(x, 2) != null)
+                    continue;
+
+                int moved = Mathf.Min(
+                    remaining,
+                    SlotCapacity);
+
+                ItemDrop.ItemData item = CreateVirtualItemData(
+                    "Stone",
+                    moved,
+                    0f,
+                    new Vector2i(x, 2),
+                    false,
+                    1,
+                    0,
+                    0L,
+                    "",
+                    new Dictionary<string, string>(),
+                    0,
+                    false,
+                    SlotCapacity);
+
+                if (item == null)
+                    continue;
+
+                inventory.GetAllItems().Add(item);
+                remaining -= moved;
+                added += moved;
+            }
+
+            if (added > 0)
+                InvokeInventoryChanged(inventory);
+
+            return added;
+        }
+
         private static ItemDrop.ItemData FindPreparationRowItem(
             Inventory inventory,
             int row,
@@ -1073,6 +1494,8 @@ namespace ClanTerritory.Features.Territory.Services
             evaluation.Raising = netDelta > 0f;
             evaluation.NetDelta = netDelta;
             evaluation.WorkScore = workScore;
+            evaluation.RaiseAmount = raiseAmount;
+            evaluation.LowerAmount = lowerAmount;
             evaluation.FuelCost = Mathf.Max(
                 1,
                 Mathf.CeilToInt(workScore * 0.5f));
@@ -1081,6 +1504,11 @@ namespace ClanTerritory.Features.Territory.Services
                     1,
                     Mathf.CeilToInt(raiseAmount * 0.5f))
                 : 0;
+            evaluation.StoneYield = evaluation.Raising
+                ? 0
+                : Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(lowerAmount * LevelingStonePerLower));
 
             return true;
         }
@@ -1359,6 +1787,14 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(
                 TerritoryZdoKeys.TerraformingRunning,
                 false);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingPendingScanIndex,
+                -1);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingVerifyCount,
+                0);
 
             ModLog.Info(
                 "[TerritoryTerraforming] Worker paused: " +
@@ -3352,7 +3788,10 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(TerritoryZdoKeys.TerraformingEnabled, enabled);
 
             if (!enabled)
+            {
                 zdo.Set(TerritoryZdoKeys.TerraformingRunning, false);
+                DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
+            }
 
             ModLog.Info("[TerritoryTerraforming] Enabled saved: " + enabled);
         }
@@ -3373,6 +3812,10 @@ namespace ClanTerritory.Features.Territory.Services
             }
 
             zdo.Set(TerritoryZdoKeys.TerraformingRunning, running);
+
+            if (!running)
+                DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
+
             ModLog.Info("[TerritoryTerraforming] Running saved: " + running);
         }
 
@@ -3388,6 +3831,9 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(TerritoryZdoKeys.TerraformingRadius, NormalizeRadius(radius));
             zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
             zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
+            zdo.Set(TerritoryZdoKeys.TerraformingScanSpeed, 1f / LevelingScanTime);
+            zdo.Set(TerritoryZdoKeys.TerraformingPendingScanIndex, -1);
+            zdo.Set(TerritoryZdoKeys.TerraformingVerifyCount, 0);
             ModLog.Info("[TerritoryTerraforming] Radius saved: " + NormalizeRadius(radius));
         }
 
@@ -3484,6 +3930,9 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (zdo.GetFloat(TerritoryZdoKeys.TerraformingRadius, 0f) <= 0f)
                 zdo.Set(TerritoryZdoKeys.TerraformingRadius, DefaultRadius);
+
+            if (zdo.GetFloat(TerritoryZdoKeys.TerraformingScanSpeed, 0f) <= 0f)
+                zdo.Set(TerritoryZdoKeys.TerraformingScanSpeed, 1f / LevelingScanTime);
 
             SyncLegacyTotals(zdo);
         }

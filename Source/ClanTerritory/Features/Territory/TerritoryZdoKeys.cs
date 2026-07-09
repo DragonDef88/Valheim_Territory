@@ -28,6 +28,12 @@ namespace ClanTerritory.Features.Territory
 
         public const string TerraformingScanIndex = "ct_territory_terraforming_scan_index";
 
+        public const string TerraformingScanSpeed = "ct_territory_terraforming_scan_speed";
+
+        public const string TerraformingPendingScanIndex = "ct_territory_terraforming_pending_scan_index";
+
+        public const string TerraformingVerifyCount = "ct_territory_terraforming_verify_count";
+
         public const string TerraformingFuelSlotPrefix = "ct_territory_terraforming_fuel_slot_";
 
         public const string TerraformingStoneSlotPrefix = "ct_territory_terraforming_stone_slot_";
