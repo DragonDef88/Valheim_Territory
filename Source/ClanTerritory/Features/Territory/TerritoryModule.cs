@@ -393,6 +393,9 @@ namespace ClanTerritory.Features.Territory.Services
         private static readonly Dictionary<string, GameObject> LevelingSpiritByWardId =
             new Dictionary<string, GameObject>();
 
+        private static readonly Dictionary<string, Vector3> LevelingSpiritVelocityByWardId =
+            new Dictionary<string, Vector3>();
+
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
         private const string SetRadiusRpc = "CT_SetTerraformingRadius";
@@ -411,17 +414,24 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingWorkerInterval = 0.1f;
         private const int LevelingMaxScanStepsPerTick = 1;
         private const float LevelingSampleSpacing = 2.6f;
-        private const float LevelingOperationRadius = 4f;
-        private const float LevelingSampleRadius = 2f;
+        private const float LevelingOperationRadius = 1.75f;
+        private const float LevelingSampleRadius = 1.5f;
         private const float LevelingLocalSampleSpacing = 0.5f;
-        private const float LevelingWorkThreshold = 0.75f;
+        private const float LevelingWorkThreshold = 0.45f;
         private const int LevelingVerifyPasses = 3;
-        private const float LevelingScanTime = 0.45f;
-        private const float LevelingFlatteningTime = 1.6f;
+        private const float LevelingScanTime = 1.25f;
+        private const float LevelingFlatteningTime = 3.2f;
         private const float LevelingStonePerLower = 0.05f;
         private const float LevelingTolerance = 0.25f;
         private const int LevelingFuelCost = 1;
         private const int LevelingStoneCostWhenRaising = 1;
+        private const float LevelingMaxDeltaPerOperation = 0.18f;
+        private const float LevelingSpiritSmoothTime = 0.95f;
+        private const float LevelingSpiritMaxSpeed = 5f;
+        private const float LevelingMineRockRadius = 2.5f;
+        private const float LevelingMineRockHitRadius = 0.75f;
+        private const float LevelingFallbackPickaxeDamage = 25f;
+
 
 
         private static readonly string[] FuelPrefabNames =
@@ -695,8 +705,8 @@ namespace ClanTerritory.Features.Territory.Services
             Vector3 spiritPoint = GetLevelingSpiralPoint(
                 center,
                 Mathf.Clamp(
-                    Mathf.FloorToInt(scanProgress),
-                    0,
+                    scanProgress,
+                    0f,
                     Mathf.Max(0, pointCount - 1)),
                 radius);
 
@@ -728,6 +738,62 @@ namespace ClanTerritory.Features.Territory.Services
                     scanProgress,
                     pointCount,
                     false);
+
+                return true;
+            }
+
+            if (TryMineRockAtPoint(
+                    point,
+                    center,
+                    radius,
+                    preparationInventory))
+            {
+                if (!HasLevelingFuel(
+                        preparationInventory,
+                        LevelingFuelCost))
+                {
+                    PersistTerraformingWorkerInventory(
+                        zdo,
+                        preparationInventory);
+
+                    PauseLevelingWorker(
+                        zdo,
+                        "fuel is empty");
+
+                    UpdateLevelingSpirit(
+                        privateArea,
+                        point,
+                        false);
+
+                    return true;
+                }
+
+                ConsumeLevelingFuel(
+                    preparationInventory,
+                    LevelingFuelCost);
+
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingPendingScanIndex,
+                    -1);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingVerifyCount,
+                    0);
+
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    true);
+
+                ModLog.Debug(
+                    "[TerritoryTerraforming] Mining hit applied near scan point: " +
+                    point);
 
                 return true;
             }
@@ -831,12 +897,12 @@ namespace ClanTerritory.Features.Territory.Services
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingScanProgress,
                     Mathf.Max(
-                        0f,
-                        scanIndex - 0.75f));
+                        scanProgress,
+                        (float)scanIndex + 0.15f));
 
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingScanSpeed,
-                    1f / LevelingScanTime);
+                    1f / LevelingScanTime * 0.35f);
 
                 return true;
             }
@@ -982,13 +1048,29 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
 
             Vector3 position = groundPoint + Vector3.up * 1.35f;
-            spirit.transform.position = Vector3.Lerp(
-                spirit.transform.position,
-                position,
-                Mathf.Clamp01(Time.deltaTime * 7f));
 
             if (!spirit.activeSelf)
+            {
+                spirit.transform.position = position;
                 spirit.SetActive(true);
+                LevelingSpiritVelocityByWardId[wardId] = Vector3.zero;
+                return;
+            }
+
+            Vector3 velocity;
+
+            if (!LevelingSpiritVelocityByWardId.TryGetValue(wardId, out velocity))
+                velocity = Vector3.zero;
+
+            spirit.transform.position = Vector3.SmoothDamp(
+                spirit.transform.position,
+                position,
+                ref velocity,
+                LevelingSpiritSmoothTime,
+                LevelingSpiritMaxSpeed,
+                Time.deltaTime);
+
+            LevelingSpiritVelocityByWardId[wardId] = velocity;
         }
 
         private static GameObject GetOrCreateLevelingSpirit(string wardId)
@@ -1003,7 +1085,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             spirit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             spirit.name = "ClanTerritory_LevelingSpirit_" + wardId;
-            spirit.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+            spirit.transform.localScale = new Vector3(0.22f, 0.22f, 0.22f);
 
             Collider collider = spirit.GetComponent<Collider>();
 
@@ -1014,13 +1096,13 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (renderer != null)
             {
-                renderer.material.color = new Color(0.35f, 0.75f, 1f, 0.85f);
+                renderer.material.color = new Color(0.35f, 0.75f, 1f, 0.45f);
             }
 
             Light light = spirit.AddComponent<Light>();
             light.color = new Color(0.35f, 0.75f, 1f, 1f);
-            light.range = 5f;
-            light.intensity = 1.6f;
+            light.range = 3.2f;
+            light.intensity = 0.9f;
 
             LevelingSpiritByWardId[wardId] = spirit;
             return spirit;
@@ -1037,6 +1119,7 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
 
             LevelingSpiritByWardId.Remove(wardId);
+            LevelingSpiritVelocityByWardId.Remove(wardId);
 
             if (spirit != null)
                 Object.Destroy(spirit);
@@ -1433,6 +1516,215 @@ namespace ClanTerritory.Features.Territory.Services
             return remaining <= 0;
         }
 
+        private static bool TryMineRockAtPoint(
+            Vector3 point,
+            Vector3 center,
+            float territoryRadius,
+            Inventory preparationInventory)
+        {
+            ItemDrop.ItemData pickaxe = preparationInventory != null
+                ? preparationInventory.GetItemAt(0, 0)
+                : null;
+
+            if (!IsPickaxe(pickaxe))
+                return false;
+
+            Collider bestCollider = null;
+            MineRock bestMineRock = null;
+            MineRock5 bestMineRock5 = null;
+            float bestDistance = float.MaxValue;
+
+            MineRock[] mineRocks = Object.FindObjectsOfType<MineRock>();
+
+            for (int i = 0; i < mineRocks.Length; i++)
+            {
+                MineRock mineRock = mineRocks[i];
+
+                if (mineRock == null)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    mineRock.gameObject,
+                    point,
+                    LevelingMineRockRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    point,
+                    colliderPoint);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestCollider = collider;
+                    bestMineRock = mineRock;
+                    bestMineRock5 = null;
+                }
+            }
+
+            MineRock5[] mineRocks5 = Object.FindObjectsOfType<MineRock5>();
+
+            for (int i = 0; i < mineRocks5.Length; i++)
+            {
+                MineRock5 mineRock = mineRocks5[i];
+
+                if (mineRock == null)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    mineRock.gameObject,
+                    point,
+                    LevelingMineRockRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    point,
+                    colliderPoint);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestCollider = collider;
+                    bestMineRock = null;
+                    bestMineRock5 = mineRock;
+                }
+            }
+
+            if (bestCollider == null)
+                return false;
+
+            HitData hit = CreateLevelingPickaxeHit(
+                pickaxe,
+                bestCollider);
+
+            if (bestMineRock != null)
+            {
+                bestMineRock.Damage(hit);
+                return true;
+            }
+
+            if (bestMineRock5 != null)
+            {
+                bestMineRock5.Damage(hit);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static Collider FindNearestActiveCollider(
+            GameObject root,
+            Vector3 point,
+            float maxDistance)
+        {
+            if (root == null)
+                return null;
+
+            Collider[] colliders = root.GetComponentsInChildren<Collider>();
+            Collider nearest = null;
+            float nearestDistance = maxDistance;
+
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                Collider collider = colliders[i];
+
+                if (collider == null ||
+                    !collider.enabled ||
+                    !collider.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    point,
+                    GetColliderCenter(collider));
+
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearest = collider;
+                }
+            }
+
+            return nearest;
+        }
+
+        private static Vector3 GetColliderCenter(Collider collider)
+        {
+            if (collider == null)
+                return Vector3.zero;
+
+            Bounds bounds = collider.bounds;
+            return bounds.center;
+        }
+
+        private static HitData CreateLevelingPickaxeHit(
+            ItemDrop.ItemData pickaxe,
+            Collider collider)
+        {
+            HitData hit = new HitData();
+            hit.m_damage.m_pickaxe = GetPickaxeDamage(pickaxe);
+            hit.m_toolTier = (short)GetPickaxeToolTier(pickaxe);
+            hit.m_point = GetColliderCenter(collider);
+            hit.m_dir = Vector3.down;
+            hit.m_radius = LevelingMineRockHitRadius;
+            hit.m_hitCollider = collider;
+            hit.m_hitType = HitData.HitType.Structural;
+            hit.m_skill = Skills.SkillType.Pickaxes;
+            return hit;
+        }
+
+        private static float GetPickaxeDamage(ItemDrop.ItemData pickaxe)
+        {
+            if (pickaxe == null || pickaxe.m_shared == null)
+                return LevelingFallbackPickaxeDamage;
+
+            float damage =
+                pickaxe.m_shared.m_damages.m_pickaxe +
+                pickaxe.m_shared.m_damagesPerLevel.m_pickaxe *
+                Mathf.Max(
+                    0,
+                    pickaxe.m_quality - 1);
+
+            return Mathf.Max(
+                LevelingFallbackPickaxeDamage,
+                damage);
+        }
+
+        private static int GetPickaxeToolTier(ItemDrop.ItemData pickaxe)
+        {
+            if (pickaxe == null || pickaxe.m_shared == null)
+                return 0;
+
+            return Mathf.Max(
+                0,
+                pickaxe.m_shared.m_toolTier);
+        }
+
         private static bool TryEvaluateLevelingPoint(
             Vector3 point,
             float targetHeight,
@@ -1485,7 +1777,7 @@ namespace ClanTerritory.Features.Territory.Services
                 if (Mathf.Abs(difference) <= LevelingTolerance)
                     continue;
 
-                float amount = Mathf.Abs(difference) * 0.25f;
+                float amount = Mathf.Min(Mathf.Abs(difference), LevelingMaxDeltaPerOperation) * 0.35f;
                 float weight =
                     Mathf.Pow(
                         Mathf.Clamp01(
@@ -1560,14 +1852,14 @@ namespace ClanTerritory.Features.Territory.Services
 
         private static Vector3 GetLevelingSpiralPoint(
             Vector3 center,
-            int scanIndex,
+            float scanProgress,
             float radius)
         {
             float angle;
             float spiralRadius;
 
             PolarPointOnSpiral(
-                scanIndex,
+                scanProgress,
                 LevelingSampleSpacing,
                 out angle,
                 out spiralRadius);
@@ -1750,21 +2042,30 @@ namespace ClanTerritory.Features.Territory.Services
                         continue;
                     }
 
-                    float weight = 1f - distance / scaledRadius;
-                    weight = weight > 0.5f
-                        ? 1f
-                        : weight / 0.5f;
+                    float weight = Mathf.Clamp01(1f - distance / Mathf.Max(0.001f, scaledRadius));
+                    weight = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        weight);
 
                     float height = heightmap.GetHeight(
                         x,
                         y);
 
                     int index = y * vertexWidth + x;
-                    float delta =
+                    float rawDelta =
                         (localTarget.y - height) *
-                        Mathf.Clamp01(weight);
+                        weight;
 
-                    delta += smoothDelta[index];
+                    float delta = Mathf.Clamp(
+                        rawDelta,
+                        -LevelingMaxDeltaPerOperation,
+                        LevelingMaxDeltaPerOperation);
+
+                    if (Mathf.Abs(delta) <= 0.01f)
+                        continue;
+
+                    delta += smoothDelta[index] * 0.25f;
                     smoothDelta[index] = 0f;
                     levelDelta[index] += delta;
                     levelDelta[index] = Mathf.Clamp(
