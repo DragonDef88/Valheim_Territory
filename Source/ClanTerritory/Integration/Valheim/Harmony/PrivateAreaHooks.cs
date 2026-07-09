@@ -1,5 +1,6 @@
 using System.Reflection;
 using HarmonyLib;
+using UnityEngine;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
 using ClanTerritory.Features.TerritoryInteraction.Services;
@@ -229,5 +230,36 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             _closingContainer = null;
         }
     }
+
+    [HarmonyPatch]
+    internal static class TerritoryTerraformingLevelTerrainHook
+    {
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(TerrainComp),
+                "LevelTerrain");
+        }
+
+        private static bool Prefix(
+            TerrainComp __instance,
+            Vector3 worldPos,
+            float radius,
+            bool square)
+        {
+            if (!TerritoryTerraformingService.ShouldUseWardHeightFalloffLeveling())
+                return true;
+
+            bool handled =
+                TerritoryTerraformingService.TryApplyWardHeightFalloffLevelTerrain(
+                    __instance,
+                    worldPos,
+                    radius,
+                    square);
+
+            return !handled;
+        }
+    }
+
 
 }

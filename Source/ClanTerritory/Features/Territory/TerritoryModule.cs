@@ -350,6 +350,31 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Heightmap),
                 "GetAndCreateTerrainCompiler");
 
+        private static readonly FieldInfo TerrainCompHeightmapField =
+            AccessTools.Field(
+                typeof(TerrainComp),
+                "m_hmap");
+
+        private static readonly FieldInfo TerrainCompWidthField =
+            AccessTools.Field(
+                typeof(TerrainComp),
+                "m_width");
+
+        private static readonly FieldInfo TerrainCompModifiedHeightField =
+            AccessTools.Field(
+                typeof(TerrainComp),
+                "m_modifiedHeight");
+
+        private static readonly FieldInfo TerrainCompLevelDeltaField =
+            AccessTools.Field(
+                typeof(TerrainComp),
+                "m_levelDelta");
+
+        private static readonly FieldInfo TerrainCompSmoothDeltaField =
+            AccessTools.Field(
+                typeof(TerrainComp),
+                "m_smoothDelta");
+
         private static readonly FieldInfo InventoryGridElementsField =
             AccessTools.Field(
                 typeof(InventoryGrid),
@@ -379,11 +404,14 @@ namespace ClanTerritory.Features.Territory.Services
         private const int SlotCapacity = 500;
         private const int FuelSlotCount = 5;
         private const int StoneSlotCount = 5;
-        private const float LevelingWorkerInterval = 0.35f;
-        private const int LevelingMaxScanStepsPerTick = 12;
+        private const float LevelingWorkerInterval = 1.25f;
+        private const int LevelingMaxScanStepsPerTick = 4;
         private const float LevelingSampleSpacing = 2.6f;
-        private const float LevelingOperationRadius = 2f;
-        private const float LevelingTolerance = 0.15f;
+        private const float LevelingOperationRadius = 4f;
+        private const float LevelingSampleRadius = 2f;
+        private const float LevelingLocalSampleSpacing = 0.5f;
+        private const float LevelingWorkThreshold = 0.75f;
+        private const float LevelingTolerance = 0.25f;
         private const int LevelingFuelCost = 1;
         private const int LevelingStoneCostWhenRaising = 1;
 
@@ -404,6 +432,18 @@ namespace ClanTerritory.Features.Territory.Services
         };
 
         private float _nextLevelingWorkerTime;
+
+        private static bool _wardHeightLevelingOperationActive;
+
+        private struct LevelingEvaluation
+        {
+            public bool ShouldApply;
+            public bool Raising;
+            public float NetDelta;
+            public float WorkScore;
+            public int FuelCost;
+            public int StoneCost;
+        }
 
         private sealed class VirtualContainerBinding
         {
@@ -593,19 +633,19 @@ namespace ClanTerritory.Features.Territory.Services
                 if (!IsInsideTerraformingRadius(center, point, radius))
                     continue;
 
-                float groundHeight;
+                LevelingEvaluation evaluation;
 
-                if (!TryGetGroundHeight(point, out groundHeight))
+                if (!TryEvaluateLevelingPoint(
+                        point,
+                        targetHeight,
+                        out evaluation))
+                {
                     continue;
+                }
 
-                float delta = targetHeight - groundHeight;
-
-                if (Mathf.Abs(delta) <= LevelingTolerance)
-                    continue;
-
-                bool raising = delta > 0f;
-
-                if (!HasLevelingFuel(preparationInventory))
+                if (!HasLevelingFuel(
+                        preparationInventory,
+                        evaluation.FuelCost))
                 {
                     PersistTerraformingWorkerInventory(
                         zdo,
@@ -617,7 +657,10 @@ namespace ClanTerritory.Features.Territory.Services
                     return true;
                 }
 
-                if (raising && !HasLevelingStone(preparationInventory))
+                if (evaluation.Raising &&
+                    !HasLevelingStone(
+                        preparationInventory,
+                        evaluation.StoneCost))
                 {
                     PersistTerraformingWorkerInventory(
                         zdo,
@@ -636,22 +679,30 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
                 }
 
-                ConsumeLevelingFuel(preparationInventory);
+                ConsumeLevelingFuel(
+                    preparationInventory,
+                    evaluation.FuelCost);
 
-                if (raising)
-                    ConsumeLevelingStone(preparationInventory);
+                if (evaluation.Raising)
+                {
+                    ConsumeLevelingStone(
+                        preparationInventory,
+                        evaluation.StoneCost);
+                }
 
                 PersistTerraformingWorkerInventory(
                     zdo,
                     preparationInventory);
 
                 ModLog.Debug(
-                    "[TerritoryTerraforming] Leveling step applied from ward height. target: " +
+                    "[TerritoryTerraforming] Smooth leveling step applied. target: " +
                     targetHeight +
                     ", point: " +
                     point +
-                    ", delta: " +
-                    delta);
+                    ", netDelta: " +
+                    evaluation.NetDelta +
+                    ", workScore: " +
+                    evaluation.WorkScore);
 
                 return true;
             }
@@ -801,38 +852,54 @@ namespace ClanTerritory.Features.Territory.Services
                    IsHoe(inventory.GetItemAt(1, 0));
         }
 
-        private static bool HasLevelingFuel(Inventory inventory)
+        private static bool HasLevelingFuel(
+            Inventory inventory,
+            int amount)
         {
-            return FindPreparationRowItem(
+            return CountPreparationRowItems(
                        inventory,
                        1,
-                       IsFuel) != null;
+                       IsFuel) >= Mathf.Max(
+                       1,
+                       amount);
         }
 
-        private static bool HasLevelingStone(Inventory inventory)
+        private static bool HasLevelingStone(
+            Inventory inventory,
+            int amount)
         {
-            return FindPreparationRowItem(
+            return CountPreparationRowItems(
                        inventory,
                        2,
-                       IsStone) != null;
+                       IsStone) >= Mathf.Max(
+                       1,
+                       amount);
         }
 
-        private static bool ConsumeLevelingFuel(Inventory inventory)
+        private static bool ConsumeLevelingFuel(
+            Inventory inventory,
+            int amount)
         {
             return ConsumePreparationRowItem(
                 inventory,
                 1,
                 IsFuel,
-                LevelingFuelCost);
+                Mathf.Max(
+                    LevelingFuelCost,
+                    amount));
         }
 
-        private static bool ConsumeLevelingStone(Inventory inventory)
+        private static bool ConsumeLevelingStone(
+            Inventory inventory,
+            int amount)
         {
             return ConsumePreparationRowItem(
                 inventory,
                 2,
                 IsStone,
-                LevelingStoneCostWhenRaising);
+                Mathf.Max(
+                    LevelingStoneCostWhenRaising,
+                    amount));
         }
 
         private static ItemDrop.ItemData FindPreparationRowItem(
@@ -857,36 +924,164 @@ namespace ClanTerritory.Features.Territory.Services
             return null;
         }
 
+        private static int CountPreparationRowItems(
+            Inventory inventory,
+            int row,
+            System.Predicate<ItemDrop.ItemData> predicate)
+        {
+            if (inventory == null || predicate == null)
+                return 0;
+
+            int total = 0;
+
+            for (int x = 0; x < PreparationChestWidth; x++)
+            {
+                ItemDrop.ItemData item = inventory.GetItemAt(x, row);
+
+                if (item == null || item.m_stack <= 0)
+                    continue;
+
+                if (predicate(item))
+                    total += item.m_stack;
+            }
+
+            return total;
+        }
+
         private static bool ConsumePreparationRowItem(
             Inventory inventory,
             int row,
             System.Predicate<ItemDrop.ItemData> predicate,
             int amount)
         {
-            if (inventory == null || amount <= 0)
+            if (inventory == null || amount <= 0 || predicate == null)
                 return false;
 
-            ItemDrop.ItemData item = FindPreparationRowItem(
-                inventory,
-                row,
-                predicate);
+            int remaining = amount;
+            bool changed = false;
 
-            if (item == null)
+            for (int x = 0; x < PreparationChestWidth && remaining > 0; x++)
+            {
+                ItemDrop.ItemData item = inventory.GetItemAt(x, row);
+
+                if (item == null || item.m_stack <= 0)
+                    continue;
+
+                if (!predicate(item))
+                    continue;
+
+                int consumed = Mathf.Min(
+                    remaining,
+                    item.m_stack);
+
+                if (consumed <= 0)
+                    continue;
+
+                item.m_stack -= consumed;
+                remaining -= consumed;
+                changed = true;
+
+                if (item.m_stack <= 0)
+                    inventory.RemoveItem(item);
+            }
+
+            if (changed)
+                InvokeInventoryChanged(inventory);
+
+            return remaining <= 0;
+        }
+
+        private static bool TryEvaluateLevelingPoint(
+            Vector3 point,
+            float targetHeight,
+            out LevelingEvaluation evaluation)
+        {
+            evaluation = new LevelingEvaluation();
+
+            int sampleCount = Mathf.Max(
+                1,
+                CountPointsInSpiral(
+                    LevelingSampleRadius,
+                    LevelingLocalSampleSpacing));
+
+            float raiseAmount = 0f;
+            float lowerAmount = 0f;
+            float workScore = 0f;
+            int validSamples = 0;
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float angle;
+                float sampleRadius;
+
+                PolarPointOnSpiral(
+                    i,
+                    LevelingLocalSampleSpacing,
+                    out angle,
+                    out sampleRadius);
+
+                Vector3 samplePoint =
+                    point +
+                    new Vector3(
+                        Mathf.Sin(angle) * sampleRadius,
+                        0f,
+                        Mathf.Cos(angle) * sampleRadius);
+
+                float groundHeight;
+
+                if (!TryGetGroundHeight(
+                        samplePoint,
+                        out groundHeight))
+                {
+                    continue;
+                }
+
+                validSamples++;
+
+                float difference = targetHeight - groundHeight;
+
+                if (Mathf.Abs(difference) <= LevelingTolerance)
+                    continue;
+
+                float amount = Mathf.Abs(difference) * 0.25f;
+                float weight =
+                    Mathf.Pow(
+                        Mathf.Clamp01(
+                            1f - sampleRadius / LevelingSampleRadius),
+                        0.3f);
+
+                workScore += amount * weight;
+
+                if (difference > 0f)
+                    raiseAmount += amount;
+                else
+                    lowerAmount += amount;
+            }
+
+            if (validSamples <= 0)
                 return false;
 
-            int consumed = Mathf.Min(
-                amount,
-                item.m_stack);
+            float netDelta = raiseAmount - lowerAmount;
 
-            if (consumed <= 0)
+            if (Mathf.Abs(netDelta) <= LevelingTolerance)
                 return false;
 
-            item.m_stack -= consumed;
+            if (workScore <= LevelingWorkThreshold)
+                return false;
 
-            if (item.m_stack <= 0)
-                inventory.RemoveItem(item);
+            evaluation.ShouldApply = true;
+            evaluation.Raising = netDelta > 0f;
+            evaluation.NetDelta = netDelta;
+            evaluation.WorkScore = workScore;
+            evaluation.FuelCost = Mathf.Max(
+                1,
+                Mathf.CeilToInt(workScore * 0.5f));
+            evaluation.StoneCost = evaluation.Raising
+                ? Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(raiseAmount * 0.5f))
+                : 0;
 
-            InvokeInventoryChanged(inventory);
             return true;
         }
 
@@ -999,6 +1194,8 @@ namespace ClanTerritory.Features.Territory.Services
 
             try
             {
+                _wardHeightLevelingOperationActive = true;
+
                 TerrainCompDoOperationMethod.Invoke(
                     terrainComp,
                     new object[]
@@ -1016,6 +1213,120 @@ namespace ClanTerritory.Features.Territory.Services
                     exception.Message);
                 return false;
             }
+            finally
+            {
+                _wardHeightLevelingOperationActive = false;
+            }
+        }
+
+        public static bool ShouldUseWardHeightFalloffLeveling()
+        {
+            return _wardHeightLevelingOperationActive;
+        }
+
+        public static bool TryApplyWardHeightFalloffLevelTerrain(
+            TerrainComp terrainComp,
+            Vector3 worldPos,
+            float radius,
+            bool square)
+        {
+            if (terrainComp == null ||
+                TerrainCompHeightmapField == null ||
+                TerrainCompWidthField == null ||
+                TerrainCompModifiedHeightField == null ||
+                TerrainCompLevelDeltaField == null ||
+                TerrainCompSmoothDeltaField == null)
+            {
+                return false;
+            }
+
+            Heightmap heightmap =
+                TerrainCompHeightmapField.GetValue(terrainComp) as Heightmap;
+
+            if (heightmap == null)
+                return false;
+
+            int width = (int)TerrainCompWidthField.GetValue(terrainComp);
+            bool[] modifiedHeight =
+                TerrainCompModifiedHeightField.GetValue(terrainComp) as bool[];
+            float[] levelDelta =
+                TerrainCompLevelDeltaField.GetValue(terrainComp) as float[];
+            float[] smoothDelta =
+                TerrainCompSmoothDeltaField.GetValue(terrainComp) as float[];
+
+            if (modifiedHeight == null ||
+                levelDelta == null ||
+                smoothDelta == null)
+            {
+                return false;
+            }
+
+            int vertexX;
+            int vertexY;
+
+            heightmap.WorldToVertex(
+                worldPos,
+                out vertexX,
+                out vertexY);
+
+            Vector3 localTarget =
+                worldPos -
+                terrainComp.transform.position;
+
+            float scaledRadius = radius / heightmap.m_scale;
+            int radiusInVertices = Mathf.CeilToInt(scaledRadius);
+            int vertexWidth = width + 1;
+            Vector2 center =
+                new Vector2(
+                    vertexX,
+                    vertexY);
+
+            for (int y = vertexY - radiusInVertices; y <= vertexY + radiusInVertices; y++)
+            {
+                for (int x = vertexX - radiusInVertices; x <= vertexX + radiusInVertices; x++)
+                {
+                    float distance =
+                        Vector2.Distance(
+                            center,
+                            new Vector2(
+                                x,
+                                y));
+
+                    if ((!square && distance > scaledRadius) ||
+                        x < 0 ||
+                        y < 0 ||
+                        x >= vertexWidth ||
+                        y >= vertexWidth)
+                    {
+                        continue;
+                    }
+
+                    float weight = 1f - distance / scaledRadius;
+                    weight = weight > 0.5f
+                        ? 1f
+                        : weight / 0.5f;
+
+                    float height = heightmap.GetHeight(
+                        x,
+                        y);
+
+                    int index = y * vertexWidth + x;
+                    float delta =
+                        (localTarget.y - height) *
+                        Mathf.Clamp01(weight);
+
+                    delta += smoothDelta[index];
+                    smoothDelta[index] = 0f;
+                    levelDelta[index] += delta;
+                    levelDelta[index] = Mathf.Clamp(
+                        levelDelta[index],
+                        -8f,
+                        8f);
+                    modifiedHeight[index] = true;
+                }
+            }
+
+            return true;
         }
 
         private static TerrainOp.Settings CreateWardLevelingSettings()
