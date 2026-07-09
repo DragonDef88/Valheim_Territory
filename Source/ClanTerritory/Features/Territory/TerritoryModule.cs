@@ -440,6 +440,7 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingTreeHitRadius = 0.75f;
         private const float ResourceAbsorbInterval = 2f;
         private const int ResourceAbsorbMaxItemsPerWard = 32;
+        private const int ResourceAbsorbMaxContainersPerWard = 64;
         private const int TreasuryFallbackWidth = 8;
         private const int TreasuryFallbackHeight = 4;
 
@@ -623,6 +624,10 @@ namespace ClanTerritory.Features.Territory.Services
             bool preparationChanged = false;
             bool treasuryChanged = false;
             int absorbedItems = 0;
+            int realContainerAbsorbedItems = 0;
+
+            List<Container> territoryContainers =
+                GetRealContainersInTerritory(privateArea);
 
             ItemDrop[] drops = Object.FindObjectsOfType<ItemDrop>();
 
@@ -656,6 +661,15 @@ namespace ClanTerritory.Features.Territory.Services
                     treasuryChanged = true;
                 }
 
+                if (absorbed <= 0 &&
+                    TryAbsorbIntoRealTerritoryContainers(
+                        territoryContainers,
+                        drop.m_itemData,
+                        out absorbed))
+                {
+                    realContainerAbsorbedItems++;
+                }
+
                 if (absorbed <= 0)
                     continue;
 
@@ -685,7 +699,9 @@ namespace ClanTerritory.Features.Territory.Services
             {
                 ModLog.Debug(
                     "[TerritoryResources] Absorbed ground item stacks: " +
-                    absorbedItems);
+                    absorbedItems +
+                    ", real containers: " +
+                    realContainerAbsorbedItems);
             }
         }
 
@@ -780,34 +796,29 @@ namespace ClanTerritory.Features.Territory.Services
             if (inventory == null || groundItem == null)
                 return false;
 
-            List<ItemDrop.ItemData> items = inventory.GetAllItems();
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                ItemDrop.ItemData existing = items[i];
-
-                if (existing == null)
-                    continue;
-
-                if (!IsSameItemStack(existing, groundItem))
-                    continue;
-
-                if (!IsAllowedPreparationItemAtSlot(existing, existing.m_gridPos))
-                    continue;
-
-                int capacity = GetPreparationSlotCapacity(existing.m_gridPos);
-                int moved = MoveGroundStackIntoExistingStack(
-                    existing,
+            if (!HasMatchingStack(
+                    inventory,
                     groundItem,
-                    capacity);
+                    IsAllowedPreparationItemAtSlot))
+            {
+                return false;
+            }
 
-                if (moved <= 0)
-                    continue;
+            absorbed += MoveGroundStackIntoMatchingStacks(
+                inventory,
+                groundItem,
+                IsAllowedPreparationItemAtSlot,
+                GetPreparationSlotCapacity,
+                true);
 
-                absorbed += moved;
-
-                if (groundItem.m_stack <= 0)
-                    break;
+            if (groundItem.m_stack > 0)
+            {
+                absorbed += MoveGroundStackIntoFreeSlots(
+                    inventory,
+                    groundItem,
+                    IsAllowedPreparationItemAtSlot,
+                    GetPreparationSlotCapacity,
+                    true);
             }
 
             if (absorbed > 0)
@@ -826,30 +837,29 @@ namespace ClanTerritory.Features.Territory.Services
             if (inventory == null || groundItem == null)
                 return false;
 
-            List<ItemDrop.ItemData> items = inventory.GetAllItems();
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                ItemDrop.ItemData existing = items[i];
-
-                if (existing == null)
-                    continue;
-
-                if (!IsSameItemStack(existing, groundItem))
-                    continue;
-
-                int moved = MoveGroundStackIntoExistingStack(
-                    existing,
+            if (!HasMatchingStack(
+                    inventory,
                     groundItem,
-                    TreasurySlotCapacity);
+                    IsAnyTreasurySlotAllowed))
+            {
+                return false;
+            }
 
-                if (moved <= 0)
-                    continue;
+            absorbed += MoveGroundStackIntoMatchingStacks(
+                inventory,
+                groundItem,
+                IsAnyTreasurySlotAllowed,
+                GetTreasurySlotCapacity,
+                true);
 
-                absorbed += moved;
-
-                if (groundItem.m_stack <= 0)
-                    break;
+            if (groundItem.m_stack > 0)
+            {
+                absorbed += MoveGroundStackIntoFreeSlots(
+                    inventory,
+                    groundItem,
+                    IsAnyTreasurySlotAllowed,
+                    GetTreasurySlotCapacity,
+                    true);
             }
 
             if (absorbed > 0)
@@ -858,17 +868,293 @@ namespace ClanTerritory.Features.Territory.Services
             return absorbed > 0;
         }
 
+        private static bool TryAbsorbIntoRealTerritoryContainers(
+            List<Container> containers,
+            ItemDrop.ItemData groundItem,
+            out int absorbed)
+        {
+            absorbed = 0;
+
+            if (containers == null || groundItem == null)
+                return false;
+
+            for (int i = 0; i < containers.Count && groundItem.m_stack > 0; i++)
+            {
+                Container container = containers[i];
+
+                if (container == null)
+                    continue;
+
+                Inventory inventory = container.GetInventory();
+
+                if (inventory == null)
+                    continue;
+
+                if (!HasMatchingStack(
+                        inventory,
+                        groundItem,
+                        IsAnyRealContainerSlotAllowed))
+                {
+                    continue;
+                }
+
+                int moved = 0;
+
+                moved += MoveGroundStackIntoMatchingStacks(
+                    inventory,
+                    groundItem,
+                    IsAnyRealContainerSlotAllowed,
+                    GetRealContainerSlotCapacity,
+                    false);
+
+                if (groundItem.m_stack > 0)
+                {
+                    moved += MoveGroundStackIntoFreeSlots(
+                        inventory,
+                        groundItem,
+                        IsAnyRealContainerSlotAllowed,
+                        GetRealContainerSlotCapacity,
+                        false);
+                }
+
+                if (moved <= 0)
+                    continue;
+
+                absorbed += moved;
+                InvokeInventoryChanged(inventory);
+            }
+
+            return absorbed > 0;
+        }
+
+        private static List<Container> GetRealContainersInTerritory(
+            PrivateArea privateArea)
+        {
+            List<Container> result = new List<Container>();
+
+            if (privateArea == null)
+                return result;
+
+            Container[] containers = Object.FindObjectsOfType<Container>();
+
+            for (int i = 0; i < containers.Length && result.Count < ResourceAbsorbMaxContainersPerWard; i++)
+            {
+                Container container = containers[i];
+
+                if (!IsRealAbsorbTargetContainer(
+                        container,
+                        privateArea))
+                {
+                    continue;
+                }
+
+                result.Add(container);
+            }
+
+            return result;
+        }
+
+        private static bool IsRealAbsorbTargetContainer(
+            Container container,
+            PrivateArea privateArea)
+        {
+            if (container == null || privateArea == null)
+                return false;
+
+            if (!container.gameObject.activeInHierarchy)
+                return false;
+
+            Inventory inventory = container.GetInventory();
+
+            if (inventory == null)
+                return false;
+
+            if (VirtualContainerBindings.ContainsKey(inventory))
+                return false;
+
+            if (PreparationContainerByInventory.ContainsKey(inventory) ||
+                TreasuryContainerByInventory.ContainsKey(inventory))
+            {
+                return false;
+            }
+
+            if (!container.IsOwner())
+                return false;
+
+            if (container.IsInUse())
+                return false;
+
+            return global::Utils.DistanceXZ(
+                       privateArea.transform.position,
+                       container.transform.position) <= privateArea.m_radius;
+        }
+
+        private static bool HasMatchingStack(
+            Inventory inventory,
+            ItemDrop.ItemData groundItem,
+            System.Func<ItemDrop.ItemData, Vector2i, bool> slotRule)
+        {
+            if (inventory == null || groundItem == null || slotRule == null)
+                return false;
+
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (item == null)
+                    continue;
+
+                if (!IsSameItemStack(
+                        item,
+                        groundItem))
+                {
+                    continue;
+                }
+
+                if (!slotRule(
+                        item,
+                        item.m_gridPos))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int MoveGroundStackIntoMatchingStacks(
+            Inventory inventory,
+            ItemDrop.ItemData groundItem,
+            System.Func<ItemDrop.ItemData, Vector2i, bool> slotRule,
+            System.Func<ItemDrop.ItemData, Vector2i, int> capacityProvider,
+            bool applyVirtualStackLimit)
+        {
+            if (inventory == null ||
+                groundItem == null ||
+                slotRule == null ||
+                capacityProvider == null)
+            {
+                return 0;
+            }
+
+            int absorbed = 0;
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count && groundItem.m_stack > 0; i++)
+            {
+                ItemDrop.ItemData existing = items[i];
+
+                if (existing == null)
+                    continue;
+
+                if (!IsSameItemStack(
+                        existing,
+                        groundItem))
+                {
+                    continue;
+                }
+
+                if (!slotRule(
+                        existing,
+                        existing.m_gridPos))
+                {
+                    continue;
+                }
+
+                int moved = MoveGroundStackIntoExistingStack(
+                    existing,
+                    groundItem,
+                    capacityProvider(existing, existing.m_gridPos),
+                    applyVirtualStackLimit);
+
+                absorbed += moved;
+            }
+
+            return absorbed;
+        }
+
+        private static int MoveGroundStackIntoFreeSlots(
+            Inventory inventory,
+            ItemDrop.ItemData groundItem,
+            System.Func<ItemDrop.ItemData, Vector2i, bool> slotRule,
+            System.Func<ItemDrop.ItemData, Vector2i, int> capacityProvider,
+            bool applyVirtualStackLimit)
+        {
+            if (inventory == null ||
+                groundItem == null ||
+                slotRule == null ||
+                capacityProvider == null)
+            {
+                return 0;
+            }
+
+            int absorbed = 0;
+            int width = inventory.GetWidth();
+            int height = inventory.GetHeight();
+
+            for (int y = 0; y < height && groundItem.m_stack > 0; y++)
+            {
+                for (int x = 0; x < width && groundItem.m_stack > 0; x++)
+                {
+                    if (inventory.GetItemAt(x, y) != null)
+                        continue;
+
+                    Vector2i slot = new Vector2i(x, y);
+
+                    if (!slotRule(
+                            groundItem,
+                            slot))
+                    {
+                        continue;
+                    }
+
+                    int capacity = capacityProvider(groundItem, slot);
+                    int moved = Mathf.Min(
+                        capacity,
+                        groundItem.m_stack);
+
+                    if (moved <= 0)
+                        continue;
+
+                    ItemDrop.ItemData clone = groundItem.Clone();
+                    clone.m_stack = moved;
+                    clone.m_gridPos = slot;
+
+                    if (applyVirtualStackLimit)
+                    {
+                        ApplyVirtualStackLimit(
+                            clone,
+                            capacity);
+                    }
+
+                    inventory.GetAllItems().Add(clone);
+                    groundItem.m_stack -= moved;
+                    absorbed += moved;
+                }
+            }
+
+            return absorbed;
+        }
+
         private static int MoveGroundStackIntoExistingStack(
             ItemDrop.ItemData existing,
             ItemDrop.ItemData groundItem,
-            int capacity)
+            int capacity,
+            bool applyVirtualStackLimit)
         {
             if (existing == null || groundItem == null)
                 return 0;
 
-            ApplyVirtualStackLimit(
-                existing,
-                capacity);
+            if (applyVirtualStackLimit)
+            {
+                ApplyVirtualStackLimit(
+                    existing,
+                    capacity);
+            }
 
             int space = Mathf.Max(
                 0,
@@ -888,6 +1174,40 @@ namespace ClanTerritory.Features.Territory.Services
             groundItem.m_stack -= moved;
             return moved;
         }
+
+        private static bool IsAnyTreasurySlotAllowed(
+            ItemDrop.ItemData item,
+            Vector2i slot)
+        {
+            return item != null;
+        }
+
+        private static bool IsAnyRealContainerSlotAllowed(
+            ItemDrop.ItemData item,
+            Vector2i slot)
+        {
+            return item != null &&
+                   item.m_shared != null &&
+                   item.m_shared.m_maxStackSize > 1;
+        }
+
+        private static int GetTreasurySlotCapacity(ItemDrop.ItemData item, Vector2i slot)
+        {
+            return TreasurySlotCapacity;
+        }
+
+        private static int GetRealContainerSlotCapacity(
+            ItemDrop.ItemData item,
+            Vector2i slot)
+        {
+            if (item == null || item.m_shared == null)
+                return 1;
+
+            return Mathf.Max(
+                1,
+                item.m_shared.m_maxStackSize);
+        }
+
 
         private static void ApplyGroundItemAbsorb(
             ItemDrop drop,
@@ -2044,7 +2364,7 @@ namespace ClanTerritory.Features.Territory.Services
             {
                 TreeBase tree = trees[i];
 
-                if (tree == null || !tree.gameObject.activeInHierarchy)
+                if (!IsFullyGrownTreeBase(tree))
                     continue;
 
                 Collider collider = FindNearestActiveCollider(
@@ -2138,6 +2458,23 @@ namespace ClanTerritory.Features.Territory.Services
             }
 
             return false;
+        }
+
+        private static bool IsFullyGrownTreeBase(TreeBase tree)
+        {
+            if (tree == null || !tree.gameObject.activeInHierarchy)
+                return false;
+
+            if (tree.GetComponent<Growup>() != null)
+                return false;
+
+            if (tree.m_logPrefab == null)
+                return false;
+
+            if (tree.m_trunk == null || !tree.m_trunk.activeInHierarchy)
+                return false;
+
+            return true;
         }
 
         private static bool TryMineRockAtPoint(
@@ -4476,13 +4813,21 @@ namespace ClanTerritory.Features.Territory.Services
             return false;
         }
 
-        private static int GetPreparationSlotCapacity(Vector2i slot)
+        private static int GetPreparationSlotCapacity(ItemDrop.ItemData item, Vector2i slot)
         {
             if (slot.y == 0)
                 return 1;
 
             return 500;
         }
+
+        private static int GetPreparationSlotCapacity(Vector2i slot)
+        {
+            return GetPreparationSlotCapacity(
+                null,
+                slot);
+        }
+
 
         private static bool IsSameItemStack(
             ItemDrop.ItemData left,
