@@ -278,7 +278,10 @@ namespace ClanTerritory.Features.Territory
             }
         }
     }
+}
 
+namespace ClanTerritory.Features.Territory.Services
+{
     internal sealed class TerritoryTerraformingService
     {
         private const string PreparationChestPrefabName = "piece_chest_wood";
