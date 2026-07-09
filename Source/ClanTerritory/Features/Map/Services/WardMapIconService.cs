@@ -22,6 +22,9 @@ namespace ClanTerritory.Features.Map.Services
         private readonly TerritoryZdoService _zdoService;
         private readonly TerritoryRegistry _territoryRegistry;
 
+        private static readonly System.Reflection.FieldInfo MinimapPinsField =
+            AccessTools.Field(typeof(Minimap), "m_pins");
+
         private readonly Dictionary<string, Minimap.PinData> _pins =
             new Dictionary<string, Minimap.PinData>();
 
@@ -261,10 +264,11 @@ namespace ClanTerritory.Features.Map.Services
             if (pin == null || Minimap.instance == null)
                 return false;
 
+            if (MinimapPinsField == null)
+                return false;
+
             List<Minimap.PinData> minimapPins =
-                AccessTools
-                    .Field(typeof(Minimap), "m_pins")
-                    .GetValue(Minimap.instance) as List<Minimap.PinData>;
+                MinimapPinsField.GetValue(Minimap.instance) as List<Minimap.PinData>;
 
             if (minimapPins == null)
                 return false;

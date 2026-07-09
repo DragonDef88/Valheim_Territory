@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ClanTerritory.Features.WardMenu.Models;
+using ClanTerritory.Localization;
 using Jotunn.Managers;
 using UnityEngine;
 using UnityEngine.UI;
@@ -416,11 +417,14 @@ namespace ClanTerritory.Features.WardMenu.UI
                 model.Ward == null ||
                 string.IsNullOrEmpty(model.Ward.CreatorGuildName))
             {
-                return "Territory";
+                return CtLocalization.Get("ct.menu.title.default");
             }
 
-            return model.Ward.CreatorGuildName + " Territory";
+            return CtLocalization.Format(
+                "ct.menu.title.guild",
+                model.Ward.CreatorGuildName);
         }
+
 
         private void ApplyModel(WardMenuModel model)
         {
@@ -431,45 +435,50 @@ namespace ClanTerritory.Features.WardMenu.UI
             bool selfPermissionMode = !ownerMode && !model.Ward.Enabled;
 
             _titleText.text = BuildMenuTitle(model);
-            _subtitleText.text =
-                "Territory radius: " + radiusText + " m   |   Protection: " + protectionText;
+            _subtitleText.text = CtLocalization.Format(
+                "ct.menu.subtitle",
+                radiusText,
+                protectionText);
 
             _overviewText.text =
-                "Overview\n\n" +
-                "Territory:\n" + model.Territory.Name + "\n\n" +
-                "Ward ID:\n" + model.Ward.WardId + "\n\n" +
-                "Owner:\n" + model.Ward.OwnerName + "\n\n" +
-                "Territory radius:\n" + radiusText + " m\n\n" +
-                "Protection:\n" + protectionText + "\n\n" +
-                "Your access:\n" + FormatCurrentAccess(model) + "\n\n" +
-                "Doors:\n" + doorText + "\n\n" +
-                "Structures:\n" + (model.Territory.StructureDamageProtectionEnabled ? "Protected" : "Vulnerable");
+                CtLocalization.Get("ct.menu.overview.title") + "\n\n" +
+                CtLocalization.Get("ct.menu.field.territory") + ":\n" + model.Territory.Name + "\n\n" +
+                CtLocalization.Get("ct.menu.field.ward_id") + ":\n" + model.Ward.WardId + "\n\n" +
+                CtLocalization.Get("ct.menu.field.owner") + ":\n" + model.Ward.OwnerName + "\n\n" +
+                CtLocalization.Get("ct.menu.field.radius") + ":\n" + radiusText + " m\n\n" +
+                CtLocalization.Get("ct.menu.field.protection") + ":\n" + protectionText + "\n\n" +
+                CtLocalization.Get("ct.menu.field.your_access") + ":\n" + FormatCurrentAccess(model) + "\n\n" +
+                CtLocalization.Get("ct.menu.field.doors") + ":\n" + doorText + "\n\n" +
+                CtLocalization.Get("ct.menu.field.structures") + ":\n" + FormatStructures(model.Territory.StructureDamageProtectionEnabled);
 
             _wardText.text =
-                "Ward Access\n\n" +
-                "Protection: " + protectionText + "\n" +
-                "Territory radius: " + radiusText + " m\n" +
-                "Permitted players: " + model.Ward.PermittedPlayers.Count + "\n" +
-                "Your access: " + FormatCurrentAccess(model);
+                CtLocalization.Get("ct.menu.ward.title") + "\n\n" +
+                CtLocalization.Get("ct.menu.field.protection") + ": " + protectionText + "\n" +
+                CtLocalization.Get("ct.menu.field.radius") + ": " + radiusText + " m\n" +
+                CtLocalization.Get("ct.menu.field.permitted_players") + ": " + model.Ward.PermittedPlayers.Count + "\n" +
+                CtLocalization.Get("ct.menu.field.your_access") + ": " + FormatCurrentAccess(model);
 
             _territoryText.text =
-                "Territory Settings\n\n" +
-                "Name:\n" + model.Territory.Name + "\n\n" +
-                "Doors: " + doorText + "\n" +
-                "Structures: " + (model.Territory.StructureDamageProtectionEnabled ? "Protected" : "Vulnerable") + "\n\n" +
-                "Guild access: " + (model.Territory.GuildAccessEnabled ? "Enabled" : "Disabled") + "\n" +
-                "Group access: " + (model.Territory.GroupAccessEnabled ? "Enabled" : "Disabled");
+                CtLocalization.Get("ct.menu.territory.title") + "\n\n" +
+                CtLocalization.Get("ct.menu.field.name") + ":\n" + model.Territory.Name + "\n\n" +
+                CtLocalization.Get("ct.menu.field.doors") + ": " + doorText + "\n" +
+                CtLocalization.Get("ct.menu.field.structures") + ": " + FormatStructures(model.Territory.StructureDamageProtectionEnabled) + "\n\n" +
+                CtLocalization.Get("ct.menu.field.guild_access") + ": " + FormatEnabled(model.Territory.GuildAccessEnabled) + "\n" +
+                CtLocalization.Get("ct.menu.field.group_access") + ": " + FormatEnabled(model.Territory.GroupAccessEnabled);
 
             _terraformingText.text =
-                "Territory Leveling\n\n" +
-                "Status: " + model.Terraforming.Status + "\n" +
-                "Target: ward height (" + FormatHeight(model.Terraforming.TargetHeight) + ")\n" +
-                "Work radius: " + FormatRadius(model.Terraforming.Radius) + " m\n" +
-                "Tools: " + FormatSlot(model.Terraforming.HoeStored, "Hoe") + " / " + FormatSlot(model.Terraforming.PickaxeStored, "Pickaxe") + " / " + FormatSlot(model.Terraforming.AxeStored, "Axe") + "\n" +
-                "Fuel: " + model.Terraforming.FuelStored + " / 2500\n" +
-                "Stone: " + model.Terraforming.StoneStored + " / 2500\n" +
-                "Scan: " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex + "\n\n" +
-                "Preparation opens a real piece_chest_wood container.";
+                CtLocalization.Get("ct.menu.leveling.title") + "\n\n" +
+                CtLocalization.Get("ct.menu.field.status") + ": " + FormatTerraformingStatus(model.Terraforming.Status) + "\n" +
+                CtLocalization.Get("ct.menu.field.target") + ": " + CtLocalization.Format("ct.menu.value.ward_height", FormatHeight(model.Terraforming.TargetHeight)) + "\n" +
+                CtLocalization.Get("ct.menu.field.work_radius") + ": " + FormatRadius(model.Terraforming.Radius) + " m\n" +
+                CtLocalization.Get("ct.menu.field.tools") + ": " +
+                    FormatSlot(model.Terraforming.HoeStored, CtLocalization.Get("ct.menu.tool.hoe")) + " / " +
+                    FormatSlot(model.Terraforming.PickaxeStored, CtLocalization.Get("ct.menu.tool.pickaxe")) + " / " +
+                    FormatSlot(model.Terraforming.AxeStored, CtLocalization.Get("ct.menu.tool.axe")) + "\n" +
+                CtLocalization.Get("ct.menu.field.fuel") + ": " + model.Terraforming.FuelStored + " / 2500\n" +
+                CtLocalization.Get("ct.menu.field.stone") + ": " + model.Terraforming.StoneStored + " / 2500\n" +
+                CtLocalization.Get("ct.menu.field.scan") + ": " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex + "\n\n" +
+                CtLocalization.Get("ct.menu.preparation.note");
 
             if (_radiusValueText != null)
                 _radiusValueText.text = radiusText + " m";
@@ -482,37 +491,55 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             SetButtonText(
                 _toggleProtectionButton,
-                model.Ward.Enabled ? "Disable Protection" : "Enable Protection");
+                model.Ward.Enabled
+                    ? CtLocalization.Get("ct.menu.button.disable_protection")
+                    : CtLocalization.Get("ct.menu.button.enable_protection"));
 
             SetButtonText(
                 _toggleSelfPermissionButton,
                 model.Ward.IsCurrentPlayerPermitted
-                    ? "Remove Me"
-                    : "Add Me");
+                    ? CtLocalization.Get("ct.menu.button.remove_me")
+                    : CtLocalization.Get("ct.menu.button.add_me"));
 
             SetButtonText(
                 _toggleDoorLockButton,
                 model.Territory.DoorLockEnabled
-                    ? "Unlock Doors"
-                    : "Lock Doors");
+                    ? CtLocalization.Get("ct.menu.button.unlock_doors")
+                    : CtLocalization.Get("ct.menu.button.lock_doors"));
 
             SetButtonText(
                 _toggleStructureDamageProtectionButton,
                 model.Territory.StructureDamageProtectionEnabled
-                    ? "Disable Structure Protection"
-                    : "Enable Structure Protection");
+                    ? CtLocalization.Get("ct.menu.button.disable_structure_protection")
+                    : CtLocalization.Get("ct.menu.button.enable_structure_protection"));
 
             SetButtonText(_decreaseRadiusButton, "-5");
             SetButtonText(_increaseRadiusButton, "+5");
             SetButtonText(_decreaseDoorAutoCloseButton, "-1");
             SetButtonText(_increaseDoorAutoCloseButton, "+1");
-            SetButtonText(_toggleTerraformingButton, model.Terraforming.Enabled ? "Disable Leveling" : "Enable Leveling");
-            SetButtonText(_toggleTerraformingRunningButton, model.Terraforming.Running ? "Stop Leveling" : "Start Leveling");
-            SetButtonText(_openTerraformingPreparationButton, "Open Preparation Chest");
+            SetButtonText(
+                _toggleTerraformingButton,
+                model.Terraforming.Enabled
+                    ? CtLocalization.Get("ct.menu.button.disable_leveling")
+                    : CtLocalization.Get("ct.menu.button.enable_leveling"));
+            SetButtonText(
+                _toggleTerraformingRunningButton,
+                model.Terraforming.Running
+                    ? CtLocalization.Get("ct.menu.button.stop_leveling")
+                    : CtLocalization.Get("ct.menu.button.start_leveling"));
+            SetButtonText(_openTerraformingPreparationButton, CtLocalization.Get("ct.menu.button.open_preparation"));
             SetButtonText(_decreaseTerraformingRadiusButton, "-2");
             SetButtonText(_increaseTerraformingRadiusButton, "+2");
-            SetButtonText(_storeTerraformingHoeButton, model.Terraforming.HoeStored ? "Hoe: Set" : "Hoe Slot");
-            SetButtonText(_storeTerraformingPickaxeButton, model.Terraforming.PickaxeStored ? "Pickaxe: Set" : "Pickaxe Slot");
+            SetButtonText(
+                _storeTerraformingHoeButton,
+                model.Terraforming.HoeStored
+                    ? CtLocalization.Get("ct.menu.button.hoe_set")
+                    : CtLocalization.Get("ct.menu.button.hoe_slot"));
+            SetButtonText(
+                _storeTerraformingPickaxeButton,
+                model.Terraforming.PickaxeStored
+                    ? CtLocalization.Get("ct.menu.button.pickaxe_set")
+                    : CtLocalization.Get("ct.menu.button.pickaxe_slot"));
             UpdateTerraformingStorageSlots(model);
 
             SetButtonActive(_toggleProtectionButton, ownerMode);
@@ -540,6 +567,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 model,
                 ownerMode);
         }
+
 
         private void EnsureCreated()
         {
@@ -589,7 +617,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _panel.name = "ClanTerritory_JotunnWardPanel";
 
             _titleText = CreateLabel(
-                "Territory",
+                CtLocalization.Get("ct.menu.title.default"),
                 new Vector2(0f, 240f),
                 30,
                 700f,
@@ -608,12 +636,12 @@ namespace ClanTerritory.Features.WardMenu.UI
                 gui.AveriaSerif,
                 gui.ValheimBeige);
 
-            _openTreasuryButton = CreateButton("Treasury", new Vector2(0f, 178f), 180f, 30f);
+            _openTreasuryButton = CreateButton(CtLocalization.Get("ct.menu.button.treasury"), new Vector2(0f, 178f), 180f, 30f);
 
-            _overviewButton = CreateButton("Overview", new Vector2(-300f, 138f), 160f, 38f);
-            _wardButton = CreateButton("Ward", new Vector2(-100f, 138f), 160f, 38f);
-            _territoryButton = CreateButton("Territory", new Vector2(100f, 138f), 160f, 38f);
-            _terraformingButton = CreateButton("Terraforming", new Vector2(300f, 138f), 160f, 38f);
+            _overviewButton = CreateButton(CtLocalization.Get("ct.menu.tab.overview"), new Vector2(-300f, 138f), 160f, 38f);
+            _wardButton = CreateButton(CtLocalization.Get("ct.menu.tab.ward"), new Vector2(-100f, 138f), 160f, 38f);
+            _territoryButton = CreateButton(CtLocalization.Get("ct.menu.tab.territory"), new Vector2(100f, 138f), 160f, 38f);
+            _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(300f, 138f), 160f, 38f);
 
             _overviewPanel = CreatePanelRoot("OverviewPanel");
             _wardPanel = CreatePanelRoot("WardPanel");
@@ -645,8 +673,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _wardText.transform.SetParent(_wardPanel.transform, false);
 
-            _toggleProtectionButton = CreateButton(_wardPanel.transform, "Toggle Protection", new Vector2(0f, -115f), 240f, 38f);
-            _toggleSelfPermissionButton = CreateButton(_wardPanel.transform, "Add Me", new Vector2(0f, -115f), 240f, 38f);
+            _toggleProtectionButton = CreateButton(_wardPanel.transform, CtLocalization.Get("ct.menu.button.toggle_protection"), new Vector2(0f, -115f), 240f, 38f);
+            _toggleSelfPermissionButton = CreateButton(_wardPanel.transform, CtLocalization.Get("ct.menu.button.add_me"), new Vector2(0f, -115f), 240f, 38f);
             _decreaseRadiusButton = CreateButton(_wardPanel.transform, "-5", new Vector2(-130f, -160f), 110f, 38f);
 
             _radiusValueText = CreateLabel(
@@ -675,7 +703,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _territoryText.transform.SetParent(_territoryPanel.transform, false);
 
-            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, "Lock Doors", new Vector2(0f, -62f), 280f, 30f);
+            _toggleDoorLockButton = CreateButton(_territoryPanel.transform, CtLocalization.Get("ct.menu.button.lock_doors"), new Vector2(0f, -62f), 280f, 30f);
             _decreaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "-1", new Vector2(-104f, -96f), 76f, 28f);
 
             _doorAutoCloseValueText = CreateLabel(
@@ -691,8 +719,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             _doorAutoCloseValueText.transform.SetParent(_territoryPanel.transform, false);
 
             _increaseDoorAutoCloseButton = CreateButton(_territoryPanel.transform, "+1", new Vector2(104f, -96f), 76f, 28f);
-            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, "Enable Structure Protection", new Vector2(0f, -132f), 280f, 30f);
-            _renameTerritoryButton = CreateButton(_territoryPanel.transform, "Rename Territory", new Vector2(0f, -168f), 280f, 30f);
+            _toggleStructureDamageProtectionButton = CreateButton(_territoryPanel.transform, CtLocalization.Get("ct.menu.button.enable_structure_protection"), new Vector2(0f, -132f), 280f, 30f);
+            _renameTerritoryButton = CreateButton(_territoryPanel.transform, CtLocalization.Get("ct.menu.button.rename_territory"), new Vector2(0f, -168f), 280f, 30f);
 
             _terraformingText = CreateLabel(
                 "",
@@ -706,9 +734,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _terraformingText.transform.SetParent(_terraformingPanel.transform, false);
 
-            _toggleTerraformingButton = CreateButton(_terraformingPanel.transform, "Enable Leveling", new Vector2(-190f, -82f), 220f, 30f);
-            _toggleTerraformingRunningButton = CreateButton(_terraformingPanel.transform, "Start Leveling", new Vector2(190f, -82f), 220f, 30f);
-            _openTerraformingPreparationButton = CreateButton(_terraformingPanel.transform, "Open Preparation Chest", new Vector2(0f, -120f), 280f, 30f);
+            _toggleTerraformingButton = CreateButton(_terraformingPanel.transform, CtLocalization.Get("ct.menu.button.enable_leveling"), new Vector2(-190f, -82f), 220f, 30f);
+            _toggleTerraformingRunningButton = CreateButton(_terraformingPanel.transform, CtLocalization.Get("ct.menu.button.start_leveling"), new Vector2(190f, -82f), 220f, 30f);
+            _openTerraformingPreparationButton = CreateButton(_terraformingPanel.transform, CtLocalization.Get("ct.menu.button.open_preparation"), new Vector2(0f, -120f), 280f, 30f);
 
             _decreaseTerraformingRadiusButton = CreateButton(_terraformingPanel.transform, "-2", new Vector2(-150f, -158f), 76f, 28f);
 
@@ -728,7 +756,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             BuildTerraformingPreparationChest(gui);
 
-            _closeButton = CreateButton("Close", new Vector2(0f, -265f), 180f, 34f);
+            _closeButton = CreateButton(CtLocalization.Get("ct.menu.button.close"), new Vector2(0f, -265f), 180f, 34f);
 
             _overviewButton.onClick.AddListener(RequestShowOverview);
             _wardButton.onClick.AddListener(RequestShowWard);
@@ -763,7 +791,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 return;
 
             Text title = CreateLabel(
-                "Leveling Preparation Chest",
+                CtLocalization.Get("ct.menu.preparation.title"),
                 new Vector2(0f, 105f),
                 20,
                 620f,
@@ -775,7 +803,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             title.transform.SetParent(_terraformingStoragePanel.transform, false);
 
             Text toolsLabel = CreateLabel(
-                "Tools",
+                CtLocalization.Get("ct.menu.preparation.tools"),
                 new Vector2(-300f, 67f),
                 16,
                 120f,
@@ -786,11 +814,11 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             toolsLabel.transform.SetParent(_terraformingStoragePanel.transform, false);
 
-            _storeTerraformingHoeButton = CreateButton(_terraformingStoragePanel.transform, "Hoe Slot", new Vector2(-75f, 67f), 155f, 34f);
-            _storeTerraformingPickaxeButton = CreateButton(_terraformingStoragePanel.transform, "Pickaxe Slot", new Vector2(105f, 67f), 155f, 34f);
+            _storeTerraformingHoeButton = CreateButton(_terraformingStoragePanel.transform, CtLocalization.Get("ct.menu.button.hoe_slot"), new Vector2(-75f, 67f), 155f, 34f);
+            _storeTerraformingPickaxeButton = CreateButton(_terraformingStoragePanel.transform, CtLocalization.Get("ct.menu.button.pickaxe_slot"), new Vector2(105f, 67f), 155f, 34f);
 
             Text fuelLabel = CreateLabel(
-                "Fuel slots, 500 each",
+                CtLocalization.Get("ct.menu.preparation.fuel_slots"),
                 new Vector2(-245f, 23f),
                 15,
                 220f,
@@ -806,7 +834,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 int capturedIndex = i;
                 _terraformingFuelSlotButtons[i] = CreateButton(
                     _terraformingStoragePanel.transform,
-                    "Fuel " + (i + 1),
+                    CtLocalization.Format("ct.menu.storage.fuel.short", i + 1),
                     new Vector2(-240f + i * 120f, -15f),
                     108f,
                     34f);
@@ -819,7 +847,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             }
 
             Text stoneLabel = CreateLabel(
-                "Stone slots, 500 each",
+                CtLocalization.Get("ct.menu.preparation.stone_slots"),
                 new Vector2(-245f, -61f),
                 15,
                 220f,
@@ -835,7 +863,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 int capturedIndex = i;
                 _terraformingStoneSlotButtons[i] = CreateButton(
                     _terraformingStoragePanel.transform,
-                    "Stone " + (i + 1),
+                    CtLocalization.Format("ct.menu.storage.stone.short", i + 1),
                     new Vector2(-240f + i * 120f, -99f),
                     108f,
                     34f);
@@ -847,7 +875,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                     });
             }
 
-            _closeTerraformingPreparationButton = CreateButton(_terraformingStoragePanel.transform, "Back", new Vector2(0f, -145f), 140f, 30f);
+            _closeTerraformingPreparationButton = CreateButton(_terraformingStoragePanel.transform, CtLocalization.Get("ct.menu.button.back"), new Vector2(0f, -145f), 140f, 30f);
             _closeTerraformingPreparationButton.onClick.AddListener(RequestCloseTerraformingPreparationChest);
             _storeTerraformingHoeButton.onClick.AddListener(RequestStoreTerraformingHoe);
             _storeTerraformingPickaxeButton.onClick.AddListener(RequestStoreTerraformingPickaxe);
@@ -987,7 +1015,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 if (!allowRemove)
                     continue;
 
-                Button removeButton = CreateButton(_wardPanel.transform, "Remove", new Vector2(235f, y), 115f, 28f);
+                Button removeButton = CreateButton(_wardPanel.transform, CtLocalization.Get("ct.menu.button.remove"), new Vector2(235f, y), 115f, 28f);
 
                 long capturedPlayerId = player.PlayerId;
 
@@ -1006,7 +1034,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 float y = startY - visibleCount * rowSpacing;
 
                 Text overflowText = CreateLabel(
-                    "... and " + remainingCount + " more",
+                    CtLocalization.Format("ct.menu.more_players", remainingCount),
                     new Vector2(allowRemove ? -115f : 0f, y),
                     16,
                     allowRemove ? 390f : 620f,
@@ -1044,7 +1072,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
                 SetButtonText(
                     _terraformingFuelSlotButtons[i],
-                    "Fuel " + (i + 1) + "\n" + value + "/500");
+                    CtLocalization.Format("ct.menu.storage.fuel.value", i + 1, value));
             }
 
             for (int i = 0; i < _terraformingStoneSlotButtons.Length; i++)
@@ -1053,7 +1081,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
                 SetButtonText(
                     _terraformingStoneSlotButtons[i],
-                    "Stone " + (i + 1) + "\n" + value + "/500");
+                    CtLocalization.Format("ct.menu.storage.stone.value", i + 1, value));
             }
         }
 
@@ -1081,15 +1109,48 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private static string FormatProtection(bool enabled)
         {
-            return enabled ? "Enabled" : "Disabled";
+            return FormatEnabled(enabled);
+        }
+
+        private static string FormatEnabled(bool enabled)
+        {
+            return enabled
+                ? CtLocalization.Get("ct.menu.value.enabled")
+                : CtLocalization.Get("ct.menu.value.disabled");
         }
 
         private static string FormatDoorLock(WardMenuModel model)
         {
             if (!model.Territory.DoorLockEnabled)
-                return "Unlocked";
+                return CtLocalization.Get("ct.menu.value.unlocked");
 
-            return "Locked, auto-close " + model.Territory.DoorAutoCloseSeconds + "s";
+            return CtLocalization.Format(
+                "ct.menu.value.locked_auto_close",
+                model.Territory.DoorAutoCloseSeconds);
+        }
+
+        private static string FormatStructures(bool protectedStructures)
+        {
+            return protectedStructures
+                ? CtLocalization.Get("ct.menu.value.protected")
+                : CtLocalization.Get("ct.menu.value.vulnerable");
+        }
+
+        private static string FormatTerraformingStatus(string status)
+        {
+            if (string.Equals(status, "Disabled", StringComparison.OrdinalIgnoreCase))
+                return CtLocalization.Get("ct.menu.value.disabled");
+
+            if (string.Equals(status, "Running", StringComparison.OrdinalIgnoreCase))
+                return CtLocalization.Get("ct.menu.value.running");
+
+            if (string.Equals(status, "Ready", StringComparison.OrdinalIgnoreCase))
+                return CtLocalization.Get("ct.menu.value.ready");
+
+            if (string.Equals(status, "Terraforming service unavailable", StringComparison.OrdinalIgnoreCase))
+                return CtLocalization.Get("ct.status.terraforming_unavailable");
+
+            return status ?? "";
         }
 
         private static string FormatHeight(float height)
@@ -1104,19 +1165,23 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private static string FormatSlot(bool stored, string name)
         {
-            return stored ? name : "Empty";
+            return stored
+                ? name
+                : CtLocalization.Get("ct.menu.value.empty");
         }
 
         private static string FormatCurrentAccess(WardMenuModel model)
         {
             if (model.Ward.IsCurrentPlayerCreator)
-                return "Owner";
+                return CtLocalization.Get("ct.menu.value.owner");
 
             if (model.Ward.IsCurrentPlayerPermitted)
-                return "Permitted";
+                return CtLocalization.Get("ct.menu.value.permitted");
 
-            return "Guest";
+            return CtLocalization.Get("ct.menu.value.guest");
         }
+
+
 
         private static void SetButtonText(Button button, string text)
         {

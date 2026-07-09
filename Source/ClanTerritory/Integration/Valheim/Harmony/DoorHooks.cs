@@ -1,6 +1,7 @@
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Integration.Guilds;
+using ClanTerritory.Localization;
 using HarmonyLib;
 using UnityEngine;
 
@@ -120,7 +121,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             {
                 user.Message(
                     MessageHud.MessageType.Center,
-                    "Territory doors are locked.");
+                    CtLocalization.Get("ct.message.doors_locked"));
             }
         }
     }
