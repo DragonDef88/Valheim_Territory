@@ -1,201 +1,286 @@
 # Clan Territory
 
-> **Persistent Living World Framework for Valheim**
+**Clan Territory** — мод для Valheim, который превращает ward/защитный тотем в центр живой территории: доступ, правила, карта, казна, подготовка работ, автоматическое выравнивание земли, рубка деревьев и интеграция с Guilds.
 
-Clan Territory is an open-source framework for building persistent gameplay systems for Valheim.
-
-The project introduces a Living World Runtime that separates persistent world state from Unity runtime objects, providing a solid foundation for territory management and future gameplay systems.
-
-The Territory System is the first gameplay subsystem built on top of the Living World Runtime.
+Проект построен вокруг идеи: **состояние мира хранится отдельно от Unity-объектов**. Runtime находит ward в мире, восстанавливает территории, синхронизирует состояние через ZDO/сервисы и даёт другим системам стабильную основу.
 
 ---
 
-# Mission
+## Что уже готово
 
-> **We do not manage Unity objects.**
->
-> **We manage persistent world state.**
+### Территории и ward runtime
 
-Clan Territory is designed around long-term architecture rather than short-term implementation.
+- Автоматическое обнаружение ward в загруженном мире.
+- Runtime registry для активных территорий.
+- Восстановление территорий после загрузки мира.
+- Territory radius на базе ward radius.
+- Защита от пересечения территорий.
+- Валидация размещения ward.
+- События входа и выхода с территории.
+- Локализованные сообщения входа/выхода с территории.
 
-The goal of the project is to provide a reliable runtime capable of supporting complex gameplay systems while remaining modular, maintainable and extensible.
+### Ward menu
 
----
+- Удобное меню управления территорией через ward.
+- Вкладки:
+  - Overview;
+  - Ward;
+  - Territory;
+  - Terraforming.
+- Отображение владельца, radius, статуса защиты, правил и доступа.
+- Название меню учитывает Guilds-гильдию создателя ward.
+- Если guild у ward нет, используется стандартное название территории.
+- Переименование территории.
+- Управление permitted players.
+- Управление правилами территории.
 
-# Current Features
+### Правила территории
 
-## Living World Runtime
+- Включение/выключение защиты ward.
+- Door lock для дверей внутри территории.
+- Auto-close для locked doors.
+- Защита построек от урона.
+- Проверка доступа через owner/permitted/guild.
+- Guild members могут пользоваться territory controls, если ward привязан к их guild.
 
-- ✅ Runtime State Machine
-- ✅ Runtime Orchestrator
-- ✅ Runtime Discovery
-- ✅ Runtime Infrastructure
-- ✅ Runtime Registry
+### Treasury и preparation storage
 
-## Territory System
+- Виртуальная казна территории.
+- Виртуальный сундук подготовки для terraforming/leveling worker.
+- Большие stack limits для ресурсов:
+  - treasury stack capacity до 9999;
+  - fuel/stone slots до 500.
+- Хранение содержимого в ZDO ward.
+- Открытие контейнеров без обязательного постоянного world chest.
+- Автоматическое поглощение подходящих ресурсов с земли и из territory chests.
+- Реальные сундуки внутри территории не используются как vacuum, если предметов такого типа в них ещё нет.
+- Открытые контейнеры не трогаются.
 
-- ✅ Territory Registration
-- ✅ Territory Lifecycle
-- ✅ Ward Detection
-- ✅ Territory Persistence
-- ✅ Territory Overlap Protection
-- ✅ Ward Placement Validation
+### Terraforming / leveling worker
 
-## Persistence
+- Автоматическое выравнивание земли по высоте ward.
+- Отдельный radius работ для terraforming.
+- Спиральный scan от ward наружу.
+- Spirit marker показывает текущую точку работ.
+- Scan больше не сбрасывается постоянно при повторном running RPC.
+- Radius change намеренно сбрасывает scan.
+- Fuel расходуется через work-meter, а не на каждый frame.
+- Stone используется для поднятия земли.
+- При срезании земли stone может возвращаться в storage.
+- Поддержка hoe/pickaxe/axe из preparation chest.
+- Отсутствие hoe/pickaxe больше не останавливает отдельную рубку деревьев.
 
-- ✅ World-based Save Files
-- ✅ JSON Serialization
-- ✅ Versioned Save Schema
+### Камни, деревья и пни
 
-## Architecture
+- Mining rocks внутри территории через Valheim damage path.
+- Рубка взрослых деревьев.
+- Молодые деревья/Growup не рубятся.
+- Рубка TreeLog.
+- Рубка stump/stub через Destructible damage path.
+- Tree worker отделён от terraforming scan и работает по территории, а не только возле текущей точки terraforming.
 
-- ✅ Event-Driven Communication
-- ✅ Modular Subsystems
-- ✅ Dependency Injection
-- ✅ Service-Oriented Design
+### Map markers
 
----
+- Ward map pins для найденных территорий.
+- Название marker может использовать Guilds guild name.
+- Если ward привязан к Guilds-гильдии, marker использует Guilds icon через Guilds API.
+- Если guild нет, используется стандартный marker.
+- Reflection lookup для Minimap pins закеширован.
 
-# Architecture Overview
+### Guilds integration
 
+- Подключение к Guilds без compile-time ссылки на `Guilds.dll`.
+- Runtime reflection к публичному Guilds API.
+- Используется:
+  - `API.GetPlayerGuild(Player)`;
+  - `API.GetGuild(string)`;
+  - `API.GetGuildIcon(Guild)`;
+  - `API.GetGuildLeader(Guild)` при необходимости.
+- Ward сохраняет:
+  - guild id;
+  - guild name;
+  - guild color.
+- Создатель ward, находясь в guild, может привязать ward к своей guild через открытие territory menu.
+- Если создатель без guild, guild-привязка очищается.
+- Guild members получают доступ к поддерживаемым territory actions.
+
+### Groups integration
+
+- Интеграционный слой Groups уже присутствует.
+- Groups остаётся отдельным optional integration path рядом с Guilds.
+
+### Локализация
+
+- Базовая локализация на двух языках:
+  - English;
+  - Русский.
+- Конфиг:
+
+```ini
+[Localization]
+Language = auto
 ```
-                     Gameplay Subsystems
-                              ▲
-                              │
-      Territory │ Map │ Clans │ Future Systems
-                              ▲
-                              │
-                 Living World Runtime
-                              ▲
-                              │
-          Runtime Registry ◄──► Persistence
-                              ▲
-                              │
-                        Valheim World
+
+- `auto` определяет язык Valheim-клиента, а не только язык операционной системы.
+- Fallback: Valheim Localization → PlayerPrefs → Unity `Application.systemLanguage`.
+- Language packs создаются при первом запуске:
+
+```text
+BepInEx/plugins/ClanTerritory/Localization/en.txt
+BepInEx/plugins/ClanTerritory/Localization/ru.txt
+BepInEx/plugins/ClanTerritory/Localization/README.txt
 ```
 
-The Runtime synchronizes loaded Unity objects with the persistent world state.
-
-Gameplay systems communicate with the Runtime rather than directly with Unity objects.
+- Добавление нового языка:
+  1. Скопировать `en.txt` или `ru.txt`.
+  2. Переименовать, например, в `de.txt`.
+  3. Перевести значения.
+  4. Поставить `Localization.Language=de`.
+  5. Перезапустить игру.
 
 ---
 
-# Current Status
+## Установка
 
+1. Установить BepInEx для Valheim.
+2. Установить зависимости, которые используются сборкой проекта.
+3. Скопировать собранный `ClanTerritory.dll` в папку BepInEx plugins.
+4. Запустить игру один раз, чтобы создался конфиг.
+5. Настроить параметры в BepInEx config при необходимости.
+
+Рекомендуемая структура:
+
+```text
+BepInEx/plugins/ClanTerritory/ClanTerritory.dll
+BepInEx/plugins/ClanTerritory/Localization/en.txt
+BepInEx/plugins/ClanTerritory/Localization/ru.txt
 ```
-Foundation                 ✅ Completed
 
-Persistence                ✅ Completed
-
-Living World Runtime v1    ✅ Completed
-
-Living World Runtime v2    ✅ Completed
-
-Territory Gameplay         🚧 In Progress
-
-Clan Foundation            ⏳ Planned
-
-Public API                 ⏳ Planned
-
-Version 1.0                ⏳ Planned
-```
+Guilds и Groups являются optional integrations: Clan Territory не должен падать, если эти моды не установлены.
 
 ---
 
-# Current Development Focus
+## Быстрый тест после установки
 
-**Sprint 4 — Living World Runtime 2.0**
+1. Зайти в мир.
+2. Поставить ward.
+3. Открыть territory menu.
+4. Проверить map marker.
+5. Проверить вход/выход с территории.
+6. Включить/выключить protection.
+7. Проверить door lock и auto-close.
+8. Открыть treasury/preparation.
+9. Положить fuel/stone/tools в preparation.
+10. Включить terraforming running.
+11. Проверить:
+    - spirit marker;
+    - leveling terrain;
+    - mining rocks;
+    - chopping trees/logs/stumps.
 
-Current objectives:
+Для проверки Guilds:
 
-- Runtime Registry
-- Territory Synchronizer
-- Runtime Events
-- Territory Map Integration
+1. Создать или вступить в Guilds-гильдию.
+2. Создатель ward открывает territory menu.
+3. Ward сохраняет guild id/name/color.
+4. Второй участник той же guild проверяет доступ к меню, дверям, treasury/preparation и terraforming.
+5. Map marker должен использовать guild name/icon.
 
 ---
 
-# Engineering Principles
+## Конфигурация
 
-The project follows a small set of architectural principles.
+Основные параметры:
 
-- World First
-- Persistence is the Source of Truth
-- Runtime before Gameplay
-- Architecture before Implementation
-- Event-Driven Systems
-- Small Independent Subsystems
-- Documentation evolves together with implementation
+```ini
+[Territory]
+Radius = 100
+AllowOverlap = false
+DoorAutoCloseSeconds = 5
 
----
+[Localization]
+Language = auto
 
-# Repository Structure
-
+[Debug]
+Enabled = false
 ```
-Source/
+
+`Debug.Enabled=true` включает расширенные debug-логи.
+
+---
+
+## Структура проекта
+
+```text
+Source/ClanTerritory/
+  Config/
+  Core/
+  Domain/
+  Events/
+  Features/
+    Diagnostics/
+    Map/
+    Persistence/
+    Runtime/
+    Territory/
+    TerritoryInteraction/
+    TerritoryNaming/
+    WardDetection/
+    WardInteraction/
+    WardMenu/
+  Integration/
+    Guilds/
+    Groups/
+    Valheim/Harmony/
+  Utils/
+
 Docs/
-Assets/
-LICENSE
-README.md
+  Research/
+  Localization/
 ```
 
-The source code is organized into independent feature subsystems with clearly defined responsibilities.
+---
+
+## Текущий статус
+
+```text
+Living World Runtime             ✅ готово
+Territory registry               ✅ готово
+Ward menu                        ✅ готово
+Territory rules                  ✅ готово
+Treasury / preparation storage   ✅ готово
+Terraforming worker              ✅ готово
+Tree / rock / stump workers      ✅ готово
+Map markers                      ✅ готово
+Guilds integration               ✅ готово
+Groups integration layer         ✅ есть
+EN/RU localization               ✅ готово
+External language packs          ✅ готово
+```
 
 ---
 
-# Documentation
+## Документация разработки
 
-Project documentation is located in the `/Docs` directory.
+Исследования и история решений находятся в:
 
-Planned documentation includes:
+```text
+Docs/Research/Valheim/
+```
 
-- Vision
-- Architecture
-- Runtime
-- Development Guide
-- Roadmap
-- RFC
-- ADR
+Каждый крупный шаг разработки фиксируется отдельным документом, чтобы было понятно:
 
----
-
-# Roadmap
-
-Current milestone:
-
-**Living World Runtime 2.0**
-
-Next milestones:
-
-- Territory Synchronizer
-- Runtime Events
-- Territory Map Runtime
-- Clan Foundation
-- Public API
+- какую проблему решали;
+- какие Valheim классы изучались;
+- почему выбран текущий подход;
+- какие ограничения остались.
 
 ---
 
-# Contributing
+## Основной принцип
 
-Contributions are welcome.
-
-Before implementing major functionality:
-
-- understand the project architecture;
-- discuss significant architectural changes;
-- keep documentation synchronized with implementation;
-- prefer small, focused commits.
-
----
-
-# License
-
-This project is licensed under the **DragonDef88 Valheim Mod License (DVML) v2.0**.
-
-See the **LICENSE** file for complete license information.
-
----
-
-> **We do not program objects.**
+> Мы не управляем случайными Unity-объектами.
 >
-> **We build worlds.**
+> Мы управляем состоянием мира.
+
+Clan Territory развивается как модульная gameplay-платформа для территорий, guild-aware правил, persistent storage и автоматизированных world workers в Valheim.
