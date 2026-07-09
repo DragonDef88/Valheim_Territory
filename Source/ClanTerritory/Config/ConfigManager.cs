@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using ClanTerritory.Utils;
@@ -180,12 +181,619 @@ namespace ClanTerritory.Localization
             if (!string.IsNullOrEmpty(configured) &&
                 !string.Equals(configured, "auto", StringComparison.OrdinalIgnoreCase))
             {
-                return configured.ToLowerInvariant();
+                return NormalizeLanguageCode(configured);
             }
 
-            return Application.systemLanguage == SystemLanguage.Russian
-                ? RussianLanguage
+            string detectedLanguage;
+            string normalizedLanguage;
+
+            if (TryResolveValheimLanguage(out detectedLanguage))
+            {
+                normalizedLanguage = NormalizeLanguageCode(detectedLanguage);
+
+                if (!string.IsNullOrEmpty(normalizedLanguage))
+                    return normalizedLanguage;
+            }
+
+            if (TryResolvePlayerPrefsLanguage(out detectedLanguage))
+            {
+                normalizedLanguage = NormalizeLanguageCode(detectedLanguage);
+
+                if (!string.IsNullOrEmpty(normalizedLanguage))
+                    return normalizedLanguage;
+            }
+
+            normalizedLanguage = NormalizeLanguageCode(
+                Application.systemLanguage.ToString());
+
+            return !string.IsNullOrEmpty(normalizedLanguage)
+                ? normalizedLanguage
                 : DefaultLanguage;
+        }
+
+        private static bool TryResolveValheimLanguage(out string language)
+        {
+            language = null;
+
+            try
+            {
+                Type localizationType = FindLoadedType("Localization");
+
+                if (localizationType == null)
+                    return false;
+
+                object instance = GetStaticMemberValue(
+                    localizationType,
+                    "instance");
+
+                if (TryInvokeLanguageMethod(
+                        localizationType,
+                        instance,
+                        "GetSelectedLanguage",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryInvokeLanguageMethod(
+                        localizationType,
+                        instance,
+                        "GetCurrentLanguage",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryInvokeLanguageMethod(
+                        localizationType,
+                        instance,
+                        "GetLanguage",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryReadLanguageMember(
+                        localizationType,
+                        instance,
+                        "m_selectedLanguage",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryReadLanguageMember(
+                        localizationType,
+                        instance,
+                        "m_currentLanguage",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryReadLanguageMember(
+                        localizationType,
+                        instance,
+                        "m_language",
+                        out language))
+                {
+                    return true;
+                }
+
+                if (TryReadLanguageMember(
+                        localizationType,
+                        instance,
+                        "m_languageName",
+                        out language))
+                {
+                    return true;
+                }
+            }
+            catch (Exception exception)
+            {
+                ModLog.Debug("[Localization] Valheim language detection failed: " + exception.Message);
+            }
+
+            return false;
+        }
+
+        private static bool TryResolvePlayerPrefsLanguage(out string language)
+        {
+            language = null;
+
+            try
+            {
+                string[] keys =
+                {
+                    "language",
+                    "Language",
+                    "selected_language",
+                    "SelectedLanguage",
+                    "localization_language",
+                    "LocalizationLanguage"
+                };
+
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    string key = keys[i];
+
+                    if (!PlayerPrefs.HasKey(key))
+                        continue;
+
+                    string value = PlayerPrefs.GetString(key, "");
+
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        language = value;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                ModLog.Debug("[Localization] PlayerPrefs language detection failed: " + exception.Message);
+            }
+
+            return false;
+        }
+
+        private static Type FindLoadedType(string typeName)
+        {
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                Assembly assembly = assemblies[i];
+
+                if (assembly == null)
+                    continue;
+
+                Type type = assembly.GetType(typeName);
+
+                if (type != null)
+                    return type;
+            }
+
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                Assembly assembly = assemblies[i];
+
+                if (assembly == null)
+                    continue;
+
+                Type[] types = GetSafeTypes(assembly);
+
+                for (int t = 0; t < types.Length; t++)
+                {
+                    Type type = types[t];
+
+                    if (type == null)
+                        continue;
+
+                    if (string.Equals(
+                            type.Name,
+                            typeName,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return type;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static Type[] GetSafeTypes(Assembly assembly)
+        {
+            if (assembly == null)
+                return new Type[0];
+
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException exception)
+            {
+                List<Type> types = new List<Type>();
+
+                if (exception.Types != null)
+                {
+                    for (int i = 0; i < exception.Types.Length; i++)
+                    {
+                        if (exception.Types[i] != null)
+                            types.Add(exception.Types[i]);
+                    }
+                }
+
+                return types.ToArray();
+            }
+            catch
+            {
+                return new Type[0];
+            }
+        }
+
+        private static object GetStaticMemberValue(
+            Type type,
+            string name)
+        {
+            if (type == null || string.IsNullOrEmpty(name))
+                return null;
+
+            BindingFlags flags =
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static;
+
+            PropertyInfo property = type.GetProperty(
+                name,
+                flags);
+
+            if (property != null)
+            {
+                try
+                {
+                    return property.GetValue(null, null);
+                }
+                catch
+                {
+                }
+            }
+
+            FieldInfo field = type.GetField(
+                name,
+                flags);
+
+            if (field != null)
+            {
+                try
+                {
+                    return field.GetValue(null);
+                }
+                catch
+                {
+                }
+            }
+
+            return null;
+        }
+
+        private static bool TryInvokeLanguageMethod(
+            Type type,
+            object instance,
+            string methodName,
+            out string language)
+        {
+            language = null;
+
+            if (type == null || string.IsNullOrEmpty(methodName))
+                return false;
+
+            BindingFlags flags =
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static |
+                BindingFlags.Instance;
+
+            MethodInfo method = type.GetMethod(
+                methodName,
+                flags,
+                null,
+                Type.EmptyTypes,
+                null);
+
+            if (method == null)
+                return false;
+
+            object target = method.IsStatic
+                ? null
+                : instance;
+
+            if (target == null && !method.IsStatic)
+                return false;
+
+            try
+            {
+                object raw = method.Invoke(
+                    target,
+                    null);
+
+                return TryExtractLanguageString(
+                    raw,
+                    out language);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool TryReadLanguageMember(
+            Type type,
+            object instance,
+            string memberName,
+            out string language)
+        {
+            language = null;
+
+            if (type == null || string.IsNullOrEmpty(memberName))
+                return false;
+
+            BindingFlags flags =
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static |
+                BindingFlags.Instance;
+
+            PropertyInfo property = type.GetProperty(
+                memberName,
+                flags);
+
+            if (property != null)
+            {
+                try
+                {
+                    MethodInfo getter = property.GetGetMethod(true);
+                    object target = getter != null && getter.IsStatic
+                        ? null
+                        : instance;
+
+                    if (target != null || getter == null || getter.IsStatic)
+                    {
+                        object raw = property.GetValue(
+                            target,
+                            null);
+
+                        if (TryExtractLanguageString(
+                                raw,
+                                out language))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            FieldInfo field = type.GetField(
+                memberName,
+                flags);
+
+            if (field != null)
+            {
+                try
+                {
+                    object target = field.IsStatic
+                        ? null
+                        : instance;
+
+                    if (target != null || field.IsStatic)
+                    {
+                        object raw = field.GetValue(target);
+
+                        if (TryExtractLanguageString(
+                                raw,
+                                out language))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryExtractLanguageString(
+            object value,
+            out string language)
+        {
+            language = null;
+
+            if (value == null)
+                return false;
+
+            string direct = value as string;
+
+            if (!string.IsNullOrEmpty(direct))
+            {
+                language = direct;
+                return true;
+            }
+
+            Type type = value.GetType();
+
+            string[] memberNames =
+            {
+                "Name",
+                "name",
+                "m_name",
+                "Language",
+                "language",
+                "m_language",
+                "Id",
+                "id",
+                "m_id"
+            };
+
+            for (int i = 0; i < memberNames.Length; i++)
+            {
+                if (TryReadSimpleStringMember(
+                        type,
+                        value,
+                        memberNames[i],
+                        out language))
+                {
+                    return true;
+                }
+            }
+
+            language = value.ToString();
+            return !string.IsNullOrEmpty(language);
+        }
+
+        private static bool TryReadSimpleStringMember(
+            Type type,
+            object instance,
+            string memberName,
+            out string value)
+        {
+            value = null;
+
+            if (type == null || instance == null || string.IsNullOrEmpty(memberName))
+                return false;
+
+            BindingFlags flags =
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance;
+
+            PropertyInfo property = type.GetProperty(
+                memberName,
+                flags);
+
+            if (property != null)
+            {
+                try
+                {
+                    object raw = property.GetValue(instance, null);
+
+                    if (raw != null)
+                    {
+                        value = raw.ToString();
+                        return !string.IsNullOrEmpty(value);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            FieldInfo field = type.GetField(
+                memberName,
+                flags);
+
+            if (field != null)
+            {
+                try
+                {
+                    object raw = field.GetValue(instance);
+
+                    if (raw != null)
+                    {
+                        value = raw.ToString();
+                        return !string.IsNullOrEmpty(value);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            return false;
+        }
+
+        private static string NormalizeLanguageCode(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return DefaultLanguage;
+
+            string normalized = value
+                .Trim()
+                .Trim('$')
+                .Replace('_', '-')
+                .ToLowerInvariant();
+
+            if (normalized.StartsWith("settings-language-", StringComparison.Ordinal))
+                normalized = normalized.Substring("settings-language-".Length);
+
+            if (normalized.StartsWith("language-", StringComparison.Ordinal))
+                normalized = normalized.Substring("language-".Length);
+
+            if (normalized == "ru" ||
+                normalized.StartsWith("ru-", StringComparison.Ordinal) ||
+                normalized.Contains("russian") ||
+                normalized.Contains("рус") ||
+                normalized.Contains("russki"))
+            {
+                return RussianLanguage;
+            }
+
+            if (normalized == "en" ||
+                normalized.StartsWith("en-", StringComparison.Ordinal) ||
+                normalized.Contains("english") ||
+                normalized.Contains("англ"))
+            {
+                return DefaultLanguage;
+            }
+
+            if (normalized.Contains("german") || normalized.Contains("deutsch"))
+                return "de";
+
+            if (normalized.Contains("french") || normalized.Contains("franc"))
+                return "fr";
+
+            if (normalized.Contains("spanish") || normalized.Contains("espan") || normalized.Contains("españ"))
+                return "es";
+
+            if (normalized.Contains("portuguese") || normalized.Contains("portug"))
+                return "pt";
+
+            if (normalized.Contains("polish") || normalized.Contains("polski"))
+                return "pl";
+
+            if (normalized.Contains("czech") || normalized.Contains("cesk") || normalized.Contains("česk"))
+                return "cs";
+
+            if (normalized.Contains("turkish") || normalized.Contains("turk"))
+                return "tr";
+
+            if (normalized.Contains("chinese") || normalized.Contains("zh"))
+                return "zh";
+
+            if (normalized.Contains("japanese") || normalized.Contains("japan"))
+                return "ja";
+
+            if (normalized.Contains("korean") || normalized.Contains("korea"))
+                return "ko";
+
+            int separator = normalized.IndexOf('-');
+
+            if (separator > 0)
+                normalized = normalized.Substring(0, separator);
+
+            return SanitizeLanguageCode(normalized);
+        }
+
+        private static string SanitizeLanguageCode(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return DefaultLanguage;
+
+            char[] buffer = value.ToCharArray();
+            int length = 0;
+
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                char c = buffer[i];
+
+                if ((c >= 'a' && c <= 'z') ||
+                    (c >= '0' && c <= '9'))
+                {
+                    buffer[length] = c;
+                    length++;
+                }
+            }
+
+            if (length <= 0)
+                return DefaultLanguage;
+
+            return new string(buffer, 0, length);
         }
 
         private static void EnsureDefaultLanguageFiles()
