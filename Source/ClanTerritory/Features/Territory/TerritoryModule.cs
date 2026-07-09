@@ -803,7 +803,7 @@ namespace ClanTerritory.Features.Territory.Services
             float groundHeight = position.y;
 
             if (ZoneSystem.instance != null &&
-                ZoneSystem.instance.GetGroundHeight(position, ref groundHeight))
+                ZoneSystem.instance.GetGroundHeight(position, out groundHeight))
             {
                 position.y = groundHeight;
             }
