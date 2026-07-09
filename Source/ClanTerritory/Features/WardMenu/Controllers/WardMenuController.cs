@@ -230,9 +230,16 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public void RequestOpenTerraformingPreparationChest()
         {
-            RefreshIfActionStarted(
-                _territoryActions.OpenTerraformingPreparationChest(_currentWardId, _currentPrivateArea, _currentPlayer),
-                "OpenTerraformingPreparationChest");
+            _view.Hide();
+
+            bool actionStarted =
+                _territoryActions.OpenTerraformingPreparationChest(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer);
+
+            if (actionStarted && _closeAction != null)
+                _closeAction("OpenTerraformingPreparationChest");
         }
 
         public void RequestDecreaseTerraformingRadius()

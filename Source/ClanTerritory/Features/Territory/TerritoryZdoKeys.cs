@@ -35,5 +35,7 @@ namespace ClanTerritory.Features.Territory
         public const string TerraformingChestZdoUser = "ct_territory_terraforming_chest_zdo_user";
 
         public const string TerraformingChestZdoId = "ct_territory_terraforming_chest_zdo_id";
+
+        public const string TerraformingChestMarker = "ct_territory_terraforming_chest_marker";
     }
 }

@@ -317,6 +317,14 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Inventory),
                 "m_height");
 
+        private static readonly MethodInfo InventoryChangedMethod =
+            AccessTools.Method(
+                typeof(Inventory),
+                "Changed");
+
+        private static readonly Dictionary<Inventory, Container> PreparationContainerByInventory =
+            new Dictionary<Inventory, Container>();
+
         private const string SetEnabledRpc = "CT_SetTerraformingEnabled";
         private const string SetRunningRpc = "CT_SetTerraformingRunning";
         private const string SetRadiusRpc = "CT_SetTerraformingRadius";
@@ -742,6 +750,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (wardZdo != null && chestZdo != null)
             {
+                chestZdo.Set(TerritoryZdoKeys.TerraformingChestMarker, true);
                 wardZdo.Set(TerritoryZdoKeys.TerraformingChestZdoUser, chestZdo.m_uid.UserID);
                 wardZdo.Set(TerritoryZdoKeys.TerraformingChestZdoId, (int)chestZdo.m_uid.ID);
             }
@@ -827,6 +836,11 @@ namespace ClanTerritory.Features.Territory.Services
             container.m_checkGuardStone = false;
             container.m_autoDestroyEmpty = false;
 
+            ZNetView zNetView = container.GetComponent<ZNetView>();
+
+            if (zNetView != null && zNetView.IsValid())
+                zNetView.GetZDO().Set(TerritoryZdoKeys.TerraformingChestMarker, true);
+
             Inventory inventory = container.GetInventory();
 
             if (inventory == null)
@@ -837,6 +851,379 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (InventoryHeightField != null)
                 InventoryHeightField.SetValue(inventory, PreparationChestHeight);
+
+            PreparationContainerByInventory[inventory] = container;
+            NormalizePreparationChestInventory(inventory);
+        }
+
+        public static bool IsPreparationChestInventory(Inventory inventory)
+        {
+            if (inventory == null)
+                return false;
+
+            return PreparationContainerByInventory.ContainsKey(inventory);
+        }
+
+        public static bool TryMoveItemToPreparationSlot(
+            Inventory targetInventory,
+            Inventory sourceInventory,
+            ItemDrop.ItemData item,
+            int amount,
+            Vector2i slot,
+            out bool result)
+        {
+            result = false;
+
+            if (!IsPreparationChestInventory(targetInventory))
+                return false;
+
+            if (sourceInventory == null || item == null)
+                return true;
+
+            if (!IsAllowedPreparationItemAtSlot(item, slot))
+            {
+                ShowPreparationSlotMessage(slot);
+                return true;
+            }
+
+            if (sourceInventory == targetInventory)
+            {
+                ItemDrop.ItemData existing = targetInventory.GetItemAt(slot.x, slot.y);
+
+                if (existing != null && existing != item)
+                {
+                    PlayerMessage("Preparation slot is occupied");
+                    return true;
+                }
+
+                item.m_gridPos = slot;
+                InvokeInventoryChanged(targetInventory);
+                result = true;
+                return true;
+            }
+
+            int capacity = GetPreparationSlotCapacity(slot);
+            ItemDrop.ItemData targetItem = targetInventory.GetItemAt(slot.x, slot.y);
+
+            if (targetItem != null && !IsSameItemStack(targetItem, item))
+            {
+                PlayerMessage("Preparation slot already contains another item");
+                return true;
+            }
+
+            int space = capacity - (targetItem != null ? targetItem.m_stack : 0);
+
+            if (space <= 0)
+            {
+                PlayerMessage("Preparation slot is full");
+                return true;
+            }
+
+            int moved = Mathf.Min(
+                Mathf.Min(item.m_stack, Mathf.Max(1, amount)),
+                space);
+
+            if (moved <= 0)
+                return true;
+
+            if (targetItem != null)
+            {
+                targetItem.m_stack += moved;
+            }
+            else
+            {
+                ItemDrop.ItemData clone = item.Clone();
+                clone.m_stack = moved;
+                clone.m_gridPos = slot;
+                targetInventory.GetAllItems().Add(clone);
+            }
+
+            sourceInventory.RemoveItem(item, moved);
+            InvokeInventoryChanged(targetInventory);
+            InvokeInventoryChanged(sourceInventory);
+            result = true;
+            return true;
+        }
+
+        public static bool TryAutoMoveItemToPreparationChest(
+            Inventory targetInventory,
+            Inventory sourceInventory,
+            ItemDrop.ItemData item)
+        {
+            if (!IsPreparationChestInventory(targetInventory))
+                return false;
+
+            if (sourceInventory == null || item == null)
+                return true;
+
+            Vector2i slot;
+
+            if (!TryFindPreparationSlotForItem(targetInventory, item, out slot))
+            {
+                PlayerMessage("No valid preparation slot for this item");
+                return true;
+            }
+
+            bool moved;
+            TryMoveItemToPreparationSlot(
+                targetInventory,
+                sourceInventory,
+                item,
+                item.m_stack,
+                slot,
+                out moved);
+
+            return true;
+        }
+
+        private static void NormalizePreparationChestInventory(Inventory inventory)
+        {
+            if (inventory == null)
+                return;
+
+            List<ItemDrop.ItemData> items =
+                new List<ItemDrop.ItemData>(inventory.GetAllItems());
+
+            bool changed = false;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData item = items[i];
+
+                if (item == null)
+                    continue;
+
+                if (IsAllowedPreparationItemAtSlot(item, item.m_gridPos) &&
+                    item.m_stack <= GetPreparationSlotCapacity(item.m_gridPos))
+                {
+                    continue;
+                }
+
+                Vector2i slot;
+
+                if (TryFindPreparationSlotForItem(inventory, item, out slot))
+                {
+                    item.m_gridPos = slot;
+                    item.m_stack = Mathf.Min(
+                        item.m_stack,
+                        GetPreparationSlotCapacity(slot));
+
+                    changed = true;
+                    continue;
+                }
+
+                inventory.RemoveItem(item);
+                changed = true;
+            }
+
+            if (changed)
+                InvokeInventoryChanged(inventory);
+        }
+
+        private static bool TryFindPreparationSlotForItem(
+            Inventory inventory,
+            ItemDrop.ItemData item,
+            out Vector2i slot)
+        {
+            slot = new Vector2i(-1, -1);
+
+            if (inventory == null || item == null)
+                return false;
+
+            for (int y = 0; y < PreparationChestHeight; y++)
+            {
+                for (int x = 0; x < PreparationChestWidth; x++)
+                {
+                    Vector2i candidate = new Vector2i(x, y);
+
+                    if (!IsAllowedPreparationItemAtSlot(item, candidate))
+                        continue;
+
+                    ItemDrop.ItemData existing = inventory.GetItemAt(x, y);
+
+                    if (existing == null)
+                    {
+                        slot = candidate;
+                        return true;
+                    }
+
+                    if (!IsSameItemStack(existing, item))
+                        continue;
+
+                    if (existing.m_stack >= GetPreparationSlotCapacity(candidate))
+                        continue;
+
+                    slot = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsAllowedPreparationItemAtSlot(
+            ItemDrop.ItemData item,
+            Vector2i slot)
+        {
+            if (item == null)
+                return false;
+
+            if (slot.y == 0)
+            {
+                if (slot.x == 0)
+                    return IsPickaxe(item);
+
+                if (slot.x == 1)
+                    return IsHoe(item);
+
+                return false;
+            }
+
+            if (slot.y == 1)
+                return IsFuel(item);
+
+            if (slot.y == 2)
+                return IsStone(item);
+
+            return false;
+        }
+
+        private static int GetPreparationSlotCapacity(Vector2i slot)
+        {
+            if (slot.y == 0)
+                return 1;
+
+            return 500;
+        }
+
+        private static bool IsSameItemStack(
+            ItemDrop.ItemData left,
+            ItemDrop.ItemData right)
+        {
+            if (left == null || right == null)
+                return false;
+
+            if (left.m_shared == null || right.m_shared == null)
+                return false;
+
+            return left.m_shared.m_name == right.m_shared.m_name &&
+                   left.m_quality == right.m_quality &&
+                   left.m_worldLevel == right.m_worldLevel;
+        }
+
+        private static bool IsPickaxe(ItemDrop.ItemData item)
+        {
+            string prefabName = GetItemPrefabName(item);
+            string sharedName = GetItemSharedName(item);
+
+            return ContainsIgnoreCase(prefabName, "Pickaxe") ||
+                   ContainsIgnoreCase(sharedName, "pickaxe");
+        }
+
+        private static bool IsHoe(ItemDrop.ItemData item)
+        {
+            string prefabName = GetItemPrefabName(item);
+            string sharedName = GetItemSharedName(item);
+
+            return EqualsIgnoreCase(prefabName, "Hoe") ||
+                   ContainsIgnoreCase(sharedName, "hoe");
+        }
+
+        private static bool IsFuel(ItemDrop.ItemData item)
+        {
+            string prefabName = GetItemPrefabName(item);
+
+            return EqualsIgnoreCase(prefabName, "Wood") ||
+                   EqualsIgnoreCase(prefabName, "Coal") ||
+                   EqualsIgnoreCase(prefabName, "Resin");
+        }
+
+        private static bool IsStone(ItemDrop.ItemData item)
+        {
+            return EqualsIgnoreCase(GetItemPrefabName(item), "Stone");
+        }
+
+        private static string GetItemPrefabName(ItemDrop.ItemData item)
+        {
+            if (item == null || item.m_dropPrefab == null)
+                return "";
+
+            return global::Utils.GetPrefabName(item.m_dropPrefab.name);
+        }
+
+        private static string GetItemSharedName(ItemDrop.ItemData item)
+        {
+            if (item == null || item.m_shared == null)
+                return "";
+
+            return item.m_shared.m_name ?? "";
+        }
+
+        private static bool EqualsIgnoreCase(string value, string expected)
+        {
+            return string.Equals(
+                value,
+                expected,
+                System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ContainsIgnoreCase(string value, string expectedPart)
+        {
+            if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(expectedPart))
+                return false;
+
+            return value.IndexOf(
+                       expectedPart,
+                       System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void ShowPreparationSlotMessage(Vector2i slot)
+        {
+            if (slot.y == 0 && slot.x == 0)
+            {
+                PlayerMessage("Only pickaxe can be placed in this slot");
+                return;
+            }
+
+            if (slot.y == 0 && slot.x == 1)
+            {
+                PlayerMessage("Only hoe can be placed in this slot");
+                return;
+            }
+
+            if (slot.y == 1)
+            {
+                PlayerMessage("Only fuel can be placed in this row");
+                return;
+            }
+
+            if (slot.y == 2)
+            {
+                PlayerMessage("Only stone can be placed in this row");
+                return;
+            }
+
+            PlayerMessage("This preparation slot is reserved");
+        }
+
+        private static void PlayerMessage(string message)
+        {
+            if (Player.m_localPlayer == null)
+                return;
+
+            Player.m_localPlayer.Message(
+                MessageHud.MessageType.Center,
+                message);
+        }
+
+        private static void InvokeInventoryChanged(Inventory inventory)
+        {
+            if (inventory == null || InventoryChangedMethod == null)
+                return;
+
+            InventoryChangedMethod.Invoke(
+                inventory,
+                null);
         }
 
         private bool RequestSetEnabled(

@@ -1,3 +1,4 @@
+using System.Reflection;
 using HarmonyLib;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.WorldDiscovery.Scanners;
@@ -85,4 +86,68 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             return false;
         }
     }
+
+    [HarmonyPatch(typeof(InventoryGrid))]
+    internal static class InventoryGridDropItemHook
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("DropItem")]
+        private static bool DropItemPrefix(
+            InventoryGrid __instance,
+            Inventory fromInventory,
+            ItemDrop.ItemData item,
+            int amount,
+            Vector2i pos,
+            ref bool __result)
+        {
+            if (__instance == null)
+                return true;
+
+            Inventory targetInventory = __instance.GetInventory();
+
+            bool handled =
+                TerritoryTerraformingService.TryMoveItemToPreparationSlot(
+                    targetInventory,
+                    fromInventory,
+                    item,
+                    amount,
+                    pos,
+                    out __result);
+
+            return !handled;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class InventoryMoveItemToPreparationChestHook
+    {
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(Inventory),
+                "MoveItemToThis",
+                new[]
+                {
+                    typeof(Inventory),
+                    typeof(ItemDrop.ItemData)
+                });
+        }
+
+        private static bool Prefix(
+            Inventory __instance,
+            Inventory fromInventory,
+            ItemDrop.ItemData item)
+        {
+            if (!TerritoryTerraformingService.IsPreparationChestInventory(__instance))
+                return true;
+
+            TerritoryTerraformingService.TryAutoMoveItemToPreparationChest(
+                __instance,
+                fromInventory,
+                item);
+
+            return false;
+        }
+    }
+
 }
