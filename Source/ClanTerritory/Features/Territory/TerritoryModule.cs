@@ -335,6 +335,21 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(object),
                 "MemberwiseClone");
 
+        private static readonly FieldInfo AllPrivateAreasField =
+            AccessTools.Field(
+                typeof(PrivateArea),
+                "m_allAreas");
+
+        private static readonly MethodInfo TerrainCompDoOperationMethod =
+            AccessTools.Method(
+                typeof(TerrainComp),
+                "DoOperation");
+
+        private static readonly MethodInfo HeightmapGetAndCreateTerrainCompilerMethod =
+            AccessTools.Method(
+                typeof(Heightmap),
+                "GetAndCreateTerrainCompiler");
+
         private static readonly FieldInfo InventoryGridElementsField =
             AccessTools.Field(
                 typeof(InventoryGrid),
@@ -364,6 +379,14 @@ namespace ClanTerritory.Features.Territory.Services
         private const int SlotCapacity = 500;
         private const int FuelSlotCount = 5;
         private const int StoneSlotCount = 5;
+        private const float LevelingWorkerInterval = 0.35f;
+        private const int LevelingMaxScanStepsPerTick = 12;
+        private const float LevelingSampleSpacing = 2.6f;
+        private const float LevelingOperationRadius = 2f;
+        private const float LevelingTolerance = 0.15f;
+        private const int LevelingFuelCost = 1;
+        private const int LevelingStoneCostWhenRaising = 1;
+
 
         private static readonly string[] FuelPrefabNames =
         {
@@ -379,6 +402,8 @@ namespace ClanTerritory.Features.Territory.Services
             "PickaxeIron",
             "PickaxeBlackMetal"
         };
+
+        private float _nextLevelingWorkerTime;
 
         private sealed class VirtualContainerBinding
         {
@@ -466,8 +491,567 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
-            // The terrain worker will use the ward height as the fixed target height.
-            // This package establishes the preparation chest and storage rules first.
+            if (Time.time < _nextLevelingWorkerTime)
+                return;
+
+            _nextLevelingWorkerTime = Time.time + LevelingWorkerInterval;
+            ProcessLevelingWorkers();
+        }
+
+        private void ProcessLevelingWorkers()
+        {
+            List<PrivateArea> privateAreas = GetPrivateAreas();
+
+            for (int i = 0; i < privateAreas.Count; i++)
+            {
+                if (TryProcessLevelingWorker(privateAreas[i]))
+                    return;
+            }
+        }
+
+        private bool TryProcessLevelingWorker(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return false;
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid() || !zNetView.IsOwner())
+                return false;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return false;
+
+            if (!zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false) ||
+                !zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false))
+            {
+                return false;
+            }
+
+            if (ObjectDB.instance == null || ZoneSystem.instance == null)
+                return true;
+
+            EnsureDefaults(privateArea);
+
+            Inventory preparationInventory = CreateTerraformingWorkerInventory(zdo);
+
+            if (!HasRequiredLevelingTools(preparationInventory))
+            {
+                PauseLevelingWorker(
+                    zdo,
+                    "missing pickaxe or hoe in preparation chest");
+                return true;
+            }
+
+            float radius = Mathf.Min(
+                NormalizeRadius(zdo.GetFloat(TerritoryZdoKeys.TerraformingRadius, DefaultRadius)),
+                Mathf.Max(0f, privateArea.m_radius));
+
+            if (radius <= 0f)
+            {
+                PauseLevelingWorker(
+                    zdo,
+                    "invalid radius");
+                return true;
+            }
+
+            Vector3 center = privateArea.transform.position;
+            float targetHeight = center.y;
+            int pointCount = Mathf.Max(
+                1,
+                CountPointsInSpiral(
+                    radius + LevelingSampleSpacing,
+                    LevelingSampleSpacing));
+
+            int scanIndex = Mathf.Clamp(
+                zdo.GetInt(TerritoryZdoKeys.TerraformingScanIndex, 0),
+                0,
+                Mathf.Max(0, pointCount - 1));
+
+            for (int attempt = 0; attempt < LevelingMaxScanStepsPerTick; attempt++)
+            {
+                if (scanIndex >= pointCount)
+                    scanIndex = 0;
+
+                Vector3 point = GetLevelingSpiralPoint(
+                    center,
+                    scanIndex,
+                    radius);
+
+                scanIndex++;
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingScanIndex,
+                    scanIndex);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingScanProgress,
+                    (float)scanIndex);
+
+                if (!IsInsideTerraformingRadius(center, point, radius))
+                    continue;
+
+                float groundHeight;
+
+                if (!TryGetGroundHeight(point, out groundHeight))
+                    continue;
+
+                float delta = targetHeight - groundHeight;
+
+                if (Mathf.Abs(delta) <= LevelingTolerance)
+                    continue;
+
+                bool raising = delta > 0f;
+
+                if (!HasLevelingFuel(preparationInventory))
+                {
+                    PersistTerraformingWorkerInventory(
+                        zdo,
+                        preparationInventory);
+
+                    PauseLevelingWorker(
+                        zdo,
+                        "fuel is empty");
+                    return true;
+                }
+
+                if (raising && !HasLevelingStone(preparationInventory))
+                {
+                    PersistTerraformingWorkerInventory(
+                        zdo,
+                        preparationInventory);
+
+                    PauseLevelingWorker(
+                        zdo,
+                        "stone is empty");
+                    return true;
+                }
+
+                if (!ApplyWardHeightLevelingOperation(
+                        point,
+                        targetHeight))
+                {
+                    continue;
+                }
+
+                ConsumeLevelingFuel(preparationInventory);
+
+                if (raising)
+                    ConsumeLevelingStone(preparationInventory);
+
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                ModLog.Debug(
+                    "[TerritoryTerraforming] Leveling step applied from ward height. target: " +
+                    targetHeight +
+                    ", point: " +
+                    point +
+                    ", delta: " +
+                    delta);
+
+                return true;
+            }
+
+            PersistTerraformingWorkerInventory(
+                zdo,
+                preparationInventory);
+
+            return true;
+        }
+
+        private static List<PrivateArea> GetPrivateAreas()
+        {
+            if (AllPrivateAreasField == null)
+                return new List<PrivateArea>();
+
+            List<PrivateArea> privateAreas =
+                AllPrivateAreasField.GetValue(null) as List<PrivateArea>;
+
+            if (privateAreas == null)
+                return new List<PrivateArea>();
+
+            return privateAreas;
+        }
+
+        private static Inventory CreateTerraformingWorkerInventory(ZDO zdo)
+        {
+            Inventory inventory = new Inventory(
+                "Territory Leveling Chest",
+                null,
+                PreparationChestWidth,
+                PreparationChestHeight);
+
+            if (zdo == null)
+                return inventory;
+
+            string serializedItems = zdo.GetString(
+                TerritoryZdoKeys.TerraformingChestItems,
+                "");
+
+            if (!string.IsNullOrEmpty(serializedItems))
+            {
+                try
+                {
+                    LoadVirtualInventoryPackage(
+                        inventory,
+                        TerritoryZdoKeys.TerraformingChestItems,
+                        new ZPackage(serializedItems));
+                }
+                catch (System.Exception exception)
+                {
+                    ModLog.Debug(
+                        "[TerritoryTerraforming] Worker inventory load failed: " +
+                        exception.Message);
+                }
+            }
+
+            NormalizePreparationChestInventory(inventory);
+            SyncPreparationInventoryToZdo(
+                zdo,
+                inventory);
+
+            return inventory;
+        }
+
+        private static void PersistTerraformingWorkerInventory(
+            ZDO zdo,
+            Inventory inventory)
+        {
+            if (zdo == null || inventory == null)
+                return;
+
+            ZPackage package = new ZPackage();
+            inventory.Save(package);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingChestItems,
+                package.GetBase64());
+
+            SyncPreparationInventoryToZdo(
+                zdo,
+                inventory);
+        }
+
+        private static void SyncPreparationInventoryToZdo(
+            ZDO zdo,
+            Inventory inventory)
+        {
+            if (zdo == null || inventory == null)
+                return;
+
+            int fuelTotal = 0;
+            int stoneTotal = 0;
+
+            for (int x = 0; x < FuelSlotCount; x++)
+            {
+                ItemDrop.ItemData fuelItem = inventory.GetItemAt(x, 1);
+                int fuelAmount = fuelItem != null && IsFuel(fuelItem)
+                    ? Mathf.Clamp(fuelItem.m_stack, 0, SlotCapacity)
+                    : 0;
+
+                SetSlot(
+                    zdo,
+                    TerritoryZdoKeys.TerraformingFuelSlotPrefix,
+                    x,
+                    fuelAmount);
+
+                fuelTotal += fuelAmount;
+
+                ItemDrop.ItemData stoneItem = inventory.GetItemAt(x, 2);
+                int stoneAmount = stoneItem != null && IsStone(stoneItem)
+                    ? Mathf.Clamp(stoneItem.m_stack, 0, SlotCapacity)
+                    : 0;
+
+                SetSlot(
+                    zdo,
+                    TerritoryZdoKeys.TerraformingStoneSlotPrefix,
+                    x,
+                    stoneAmount);
+
+                stoneTotal += stoneAmount;
+            }
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingFuelStored,
+                (float)fuelTotal);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingStoneStored,
+                (float)stoneTotal);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingPickaxeStored,
+                IsPickaxe(inventory.GetItemAt(0, 0)));
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingHoeStored,
+                IsHoe(inventory.GetItemAt(1, 0)));
+        }
+
+        private static bool HasRequiredLevelingTools(Inventory inventory)
+        {
+            if (inventory == null)
+                return false;
+
+            return IsPickaxe(inventory.GetItemAt(0, 0)) &&
+                   IsHoe(inventory.GetItemAt(1, 0));
+        }
+
+        private static bool HasLevelingFuel(Inventory inventory)
+        {
+            return FindPreparationRowItem(
+                       inventory,
+                       1,
+                       IsFuel) != null;
+        }
+
+        private static bool HasLevelingStone(Inventory inventory)
+        {
+            return FindPreparationRowItem(
+                       inventory,
+                       2,
+                       IsStone) != null;
+        }
+
+        private static bool ConsumeLevelingFuel(Inventory inventory)
+        {
+            return ConsumePreparationRowItem(
+                inventory,
+                1,
+                IsFuel,
+                LevelingFuelCost);
+        }
+
+        private static bool ConsumeLevelingStone(Inventory inventory)
+        {
+            return ConsumePreparationRowItem(
+                inventory,
+                2,
+                IsStone,
+                LevelingStoneCostWhenRaising);
+        }
+
+        private static ItemDrop.ItemData FindPreparationRowItem(
+            Inventory inventory,
+            int row,
+            System.Predicate<ItemDrop.ItemData> predicate)
+        {
+            if (inventory == null || predicate == null)
+                return null;
+
+            for (int x = 0; x < PreparationChestWidth; x++)
+            {
+                ItemDrop.ItemData item = inventory.GetItemAt(x, row);
+
+                if (item == null || item.m_stack <= 0)
+                    continue;
+
+                if (predicate(item))
+                    return item;
+            }
+
+            return null;
+        }
+
+        private static bool ConsumePreparationRowItem(
+            Inventory inventory,
+            int row,
+            System.Predicate<ItemDrop.ItemData> predicate,
+            int amount)
+        {
+            if (inventory == null || amount <= 0)
+                return false;
+
+            ItemDrop.ItemData item = FindPreparationRowItem(
+                inventory,
+                row,
+                predicate);
+
+            if (item == null)
+                return false;
+
+            int consumed = Mathf.Min(
+                amount,
+                item.m_stack);
+
+            if (consumed <= 0)
+                return false;
+
+            item.m_stack -= consumed;
+
+            if (item.m_stack <= 0)
+                inventory.RemoveItem(item);
+
+            InvokeInventoryChanged(inventory);
+            return true;
+        }
+
+        private static bool IsInsideTerraformingRadius(
+            Vector3 center,
+            Vector3 point,
+            float radius)
+        {
+            return global::Utils.DistanceXZ(
+                       center,
+                       point) <= radius;
+        }
+
+        private static bool TryGetGroundHeight(
+            Vector3 point,
+            out float groundHeight)
+        {
+            groundHeight = point.y;
+
+            if (ZoneSystem.instance == null)
+                return false;
+
+            return ZoneSystem.instance.GetGroundHeight(
+                point,
+                out groundHeight);
+        }
+
+        private static Vector3 GetLevelingSpiralPoint(
+            Vector3 center,
+            int scanIndex,
+            float radius)
+        {
+            float angle;
+            float spiralRadius;
+
+            PolarPointOnSpiral(
+                scanIndex,
+                LevelingSampleSpacing,
+                out angle,
+                out spiralRadius);
+
+            float distance = Mathf.Min(
+                spiralRadius,
+                radius);
+
+            return center +
+                   new Vector3(
+                       Mathf.Sin(angle) * distance,
+                       0f,
+                       Mathf.Cos(angle) * distance);
+        }
+
+        private static void PolarPointOnSpiral(
+            float t,
+            float spacing,
+            out float angle,
+            out float radius)
+        {
+            angle = Mathf.Sqrt(t) * 3.542f;
+            radius = angle * spacing / (Mathf.PI * 2f);
+        }
+
+        private static int CountPointsInSpiral(
+            float radius,
+            float spacing)
+        {
+            float normalized = radius / spacing;
+            return Mathf.CeilToInt(
+                normalized *
+                normalized *
+                3.146755f);
+        }
+
+        private static bool ApplyWardHeightLevelingOperation(
+            Vector3 point,
+            float targetHeight)
+        {
+            TerrainComp terrainComp = TerrainComp.FindTerrainCompiler(point);
+
+            if (terrainComp == null)
+            {
+                Heightmap heightmap = Heightmap.FindHeightmap(point);
+
+                if (heightmap == null)
+                    return false;
+
+                if (HeightmapGetAndCreateTerrainCompilerMethod != null)
+                {
+                    terrainComp =
+                        HeightmapGetAndCreateTerrainCompilerMethod.Invoke(
+                            heightmap,
+                            null) as TerrainComp;
+                }
+            }
+
+            if (terrainComp == null)
+                return false;
+
+            if (TerrainCompDoOperationMethod == null)
+            {
+                ModLog.Debug("[TerritoryTerraforming] TerrainComp.DoOperation reflection missing.");
+                return false;
+            }
+
+            TerrainOp.Settings settings = CreateWardLevelingSettings();
+            Vector3 operationPoint = new Vector3(
+                point.x,
+                targetHeight,
+                point.z);
+
+            try
+            {
+                TerrainCompDoOperationMethod.Invoke(
+                    terrainComp,
+                    new object[]
+                    {
+                        operationPoint,
+                        settings
+                    });
+
+                return true;
+            }
+            catch (System.Exception exception)
+            {
+                ModLog.Debug(
+                    "[TerritoryTerraforming] Terrain leveling operation failed: " +
+                    exception.Message);
+                return false;
+            }
+        }
+
+        private static TerrainOp.Settings CreateWardLevelingSettings()
+        {
+            TerrainOp.Settings settings = new TerrainOp.Settings();
+            settings.m_levelOffset = 0f;
+            settings.m_level = true;
+            settings.m_levelRadius = LevelingOperationRadius;
+            settings.m_square = false;
+            settings.m_raise = false;
+            settings.m_raiseRadius = 0f;
+            settings.m_raisePower = 0f;
+            settings.m_raiseDelta = 0f;
+            settings.m_smooth = false;
+            settings.m_smoothRadius = 0f;
+            settings.m_smoothPower = 0f;
+            settings.m_paintCleared = false;
+            settings.m_paintHeightCheck = false;
+            settings.m_paintRadius = 0f;
+            return settings;
+        }
+
+        private static void PauseLevelingWorker(
+            ZDO zdo,
+            string reason)
+        {
+            if (zdo == null)
+                return;
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingRunning,
+                false);
+
+            ModLog.Info(
+                "[TerritoryTerraforming] Worker paused: " +
+                reason);
         }
 
         public TerraformingState GetState(PrivateArea privateArea)
@@ -1173,6 +1757,13 @@ namespace ClanTerritory.Features.Territory.Services
             ZPackage package = new ZPackage();
             inventory.Save(package);
             binding.WardZdo.Set(binding.ItemKey, package.GetBase64());
+
+            if (binding.ItemKey == TerritoryZdoKeys.TerraformingChestItems)
+            {
+                SyncPreparationInventoryToZdo(
+                    binding.WardZdo,
+                    inventory);
+            }
         }
 
         private static void SetInventoryName(
