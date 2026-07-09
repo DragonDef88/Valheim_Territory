@@ -438,6 +438,7 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingTreeFuelWork = 0.5f;
         private const float LevelingTreeRadius = 3f;
         private const float LevelingTreeHitRadius = 0.75f;
+        private const float LevelingTreeWorkerInterval = 1.0f;
         private const float ResourceAbsorbInterval = 2f;
         private const int ResourceAbsorbMaxItemsPerWard = 32;
         private const int ResourceAbsorbMaxContainersPerWard = 64;
@@ -476,6 +477,8 @@ namespace ClanTerritory.Features.Territory.Services
         private static bool _wardHeightLevelingOperationActive;
 
         private float _nextResourceAbsorbTime;
+
+        private float _nextTreeWorkerTime;
 
         private struct LevelingEvaluation
         {
@@ -1244,7 +1247,9 @@ namespace ClanTerritory.Features.Territory.Services
         private void ProcessLevelingWorkers()
         {
             List<PrivateArea> privateAreas = GetPrivateAreas();
-            bool activeWorkerProcessed = false;
+            bool activeTerrainWorkerProcessed = false;
+            bool treeWorkerAttempted = false;
+            bool treeWorkerAllowed = Time.time >= _nextTreeWorkerTime;
 
             for (int i = 0; i < privateAreas.Count; i++)
             {
@@ -1255,9 +1260,15 @@ namespace ClanTerritory.Features.Territory.Services
 
                 if (IsLevelingWorkerRunning(privateArea))
                 {
-                    if (!activeWorkerProcessed)
+                    if (treeWorkerAllowed && !treeWorkerAttempted)
                     {
-                        activeWorkerProcessed = TryProcessLevelingWorker(privateArea);
+                        treeWorkerAttempted = true;
+                        TryProcessTreeWorker(privateArea);
+                    }
+
+                    if (!activeTerrainWorkerProcessed)
+                    {
+                        activeTerrainWorkerProcessed = TryProcessLevelingWorker(privateArea);
                     }
                     else
                     {
@@ -1275,6 +1286,9 @@ namespace ClanTerritory.Features.Territory.Services
                         false);
                 }
             }
+
+            if (treeWorkerAttempted)
+                _nextTreeWorkerTime = Time.time + LevelingTreeWorkerInterval;
         }
 
         private bool IsLevelingWorkerRunning(PrivateArea privateArea)
@@ -1286,6 +1300,80 @@ namespace ClanTerritory.Features.Territory.Services
 
             return zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false) &&
                    zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false);
+        }
+
+        private bool TryProcessTreeWorker(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return false;
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid() || !zNetView.IsOwner())
+                return false;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return false;
+
+            if (!zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false) ||
+                !zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false))
+            {
+                return false;
+            }
+
+            if (ObjectDB.instance == null)
+                return false;
+
+            EnsureDefaults(privateArea);
+
+            Inventory preparationInventory = CreateTerraformingWorkerInventory(zdo);
+
+            if (!HasTreeWorkerTool(preparationInventory))
+                return false;
+
+            if (!HasLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingTreeFuelWork))
+            {
+                return false;
+            }
+
+            Vector3 center = privateArea.transform.position;
+            float territoryRadius = Mathf.Max(
+                0f,
+                privateArea.m_radius);
+
+            if (territoryRadius <= 0f)
+                return false;
+
+            if (!TryChopTreeInTerritory(
+                    center,
+                    territoryRadius,
+                    preparationInventory))
+            {
+                return false;
+            }
+
+            if (!SpendLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingTreeFuelWork))
+            {
+                return false;
+            }
+
+            PersistTerraformingWorkerInventory(
+                zdo,
+                preparationInventory);
+
+            ModLog.Debug(
+                "[TerritoryTerraforming] Tree chopping worker hit applied in territory radius: " +
+                territoryRadius);
+
+            return true;
         }
 
         private bool TryProcessLevelingWorker(PrivateArea privateArea)
@@ -1323,16 +1411,12 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (!HasRequiredLevelingTools(preparationInventory))
             {
-                PauseLevelingWorker(
-                    zdo,
-                    "missing pickaxe or hoe in preparation chest");
-
                 UpdateLevelingSpirit(
                     privateArea,
                     privateArea.transform.position,
                     false);
 
-                return true;
+                return false;
             }
 
             float radius = Mathf.Min(
@@ -1426,47 +1510,6 @@ namespace ClanTerritory.Features.Territory.Services
                     scanProgress,
                     pointCount,
                     false);
-
-                return true;
-            }
-
-            if (HasLevelingFuelForWork(
-                    zdo,
-                    preparationInventory,
-                    LevelingTreeFuelWork) &&
-                TryChopTreeAtPoint(
-                    point,
-                    center,
-                    radius,
-                    preparationInventory))
-            {
-                SpendLevelingFuelForWork(
-                    zdo,
-                    preparationInventory,
-                    LevelingTreeFuelWork);
-
-                PersistTerraformingWorkerInventory(
-                    zdo,
-                    preparationInventory);
-
-                zdo.Set(
-                    TerritoryZdoKeys.TerraformingPendingScanIndex,
-                    -1);
-
-                zdo.Set(
-                    TerritoryZdoKeys.TerraformingVerifyCount,
-                    0);
-
-                AdvanceLevelingScan(
-                    zdo,
-                    scanIndex,
-                    scanProgress,
-                    pointCount,
-                    true);
-
-                ModLog.Debug(
-                    "[TerritoryTerraforming] Tree chopping hit applied near scan point: " +
-                    point);
 
                 return true;
             }
@@ -2014,6 +2057,15 @@ namespace ClanTerritory.Features.Territory.Services
                    IsHoe(inventory.GetItemAt(1, 0));
         }
 
+
+        private static bool HasTreeWorkerTool(Inventory inventory)
+        {
+            if (inventory == null)
+                return false;
+
+            return IsAxe(inventory.GetItemAt(2, 0));
+        }
+
         private static bool HasAnyLevelingFuel(Inventory inventory)
         {
             return CountPreparationRowItems(
@@ -2340,8 +2392,7 @@ namespace ClanTerritory.Features.Territory.Services
             return remaining <= 0;
         }
 
-        private static bool TryChopTreeAtPoint(
-            Vector3 point,
+        private static bool TryChopTreeInTerritory(
             Vector3 center,
             float territoryRadius,
             Inventory preparationInventory)
@@ -2369,8 +2420,8 @@ namespace ClanTerritory.Features.Territory.Services
 
                 Collider collider = FindNearestActiveCollider(
                     tree.gameObject,
-                    point,
-                    LevelingTreeRadius);
+                    center,
+                    territoryRadius + LevelingTreeRadius);
 
                 if (collider == null)
                     continue;
@@ -2385,8 +2436,8 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
                 }
 
-                float distance = Vector3.Distance(
-                    point,
+                float distance = global::Utils.DistanceXZ(
+                    center,
                     colliderPoint);
 
                 if (distance < bestDistance)
@@ -2409,8 +2460,8 @@ namespace ClanTerritory.Features.Territory.Services
 
                 Collider collider = FindNearestActiveCollider(
                     log.gameObject,
-                    point,
-                    LevelingTreeRadius);
+                    center,
+                    territoryRadius + LevelingTreeRadius);
 
                 if (collider == null)
                     continue;
@@ -2425,8 +2476,8 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
                 }
 
-                float distance = Vector3.Distance(
-                    point,
+                float distance = global::Utils.DistanceXZ(
+                    center,
                     colliderPoint);
 
                 if (distance < bestDistance)
@@ -3101,6 +3152,18 @@ namespace ClanTerritory.Features.Territory.Services
             settings.m_paintHeightCheck = false;
             settings.m_paintRadius = 0f;
             return settings;
+        }
+
+        private static void ResetLevelingScan(ZDO zdo)
+        {
+            if (zdo == null)
+                return;
+
+            zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
+            zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
+            zdo.Set(TerritoryZdoKeys.TerraformingScanSpeed, 1f / LevelingScanTime);
+            zdo.Set(TerritoryZdoKeys.TerraformingPendingScanIndex, -1);
+            zdo.Set(TerritoryZdoKeys.TerraformingVerifyCount, 0);
         }
 
         private static void PauseLevelingWorker(
@@ -5176,7 +5239,12 @@ namespace ClanTerritory.Features.Territory.Services
 
             zdo.Set(TerritoryZdoKeys.TerraformingRunning, running);
 
-            if (!running)
+            if (running)
+            {
+                ResetLevelingScan(zdo);
+                DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
+            }
+            else
             {
                 DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
                 zdo.Set(TerritoryZdoKeys.TerraformingFuelWorkProgress, 0f);
@@ -5195,11 +5263,7 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
 
             zdo.Set(TerritoryZdoKeys.TerraformingRadius, NormalizeRadius(radius));
-            zdo.Set(TerritoryZdoKeys.TerraformingScanProgress, 0f);
-            zdo.Set(TerritoryZdoKeys.TerraformingScanIndex, 0);
-            zdo.Set(TerritoryZdoKeys.TerraformingScanSpeed, 1f / LevelingScanTime);
-            zdo.Set(TerritoryZdoKeys.TerraformingPendingScanIndex, -1);
-            zdo.Set(TerritoryZdoKeys.TerraformingVerifyCount, 0);
+            ResetLevelingScan(zdo);
             ModLog.Info("[TerritoryTerraforming] Radius saved: " + NormalizeRadius(radius));
         }
 
