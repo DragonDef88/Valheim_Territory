@@ -330,6 +330,11 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Inventory),
                 "Changed");
 
+        private static readonly MethodInfo MemberwiseCloneMethod =
+            AccessTools.Method(
+                typeof(object),
+                "MemberwiseClone");
+
         private static readonly FieldInfo InventoryGridElementsField =
             AccessTools.Field(
                 typeof(InventoryGrid),
@@ -955,12 +960,201 @@ namespace ClanTerritory.Features.Territory.Services
             try
             {
                 ZPackage package = new ZPackage(serializedItems);
-                inventory.Load(package);
+                LoadVirtualInventoryPackage(
+                    inventory,
+                    itemKey,
+                    package);
             }
             catch (System.Exception exception)
             {
                 ModLog.Debug("[TerritoryContainers] Failed to load virtual container inventory: " + exception.Message);
             }
+        }
+
+        private static void LoadVirtualInventoryPackage(
+            Inventory inventory,
+            string itemKey,
+            ZPackage package)
+        {
+            if (inventory == null || package == null)
+                return;
+
+            int version = package.ReadInt();
+            int count = package.ReadInt();
+
+            inventory.GetAllItems().Clear();
+
+            for (int i = 0; i < count; i++)
+            {
+                string prefabName = package.ReadString();
+                int stack = package.ReadInt();
+                float durability = package.ReadSingle();
+                Vector2i gridPosition = package.ReadVector2i();
+                bool equipped = package.ReadBool();
+
+                int quality = 1;
+                int variant = 0;
+                long crafterId = 0L;
+                string crafterName = "";
+                Dictionary<string, string> customData = new Dictionary<string, string>();
+                int worldLevel = 0;
+                bool pickedUp = false;
+
+                if (version >= 101)
+                    quality = package.ReadInt();
+
+                if (version >= 102)
+                    variant = package.ReadInt();
+
+                if (version >= 103)
+                {
+                    crafterId = package.ReadLong();
+                    crafterName = package.ReadString();
+                }
+
+                if (version >= 104)
+                {
+                    int customDataCount = package.ReadInt();
+
+                    for (int dataIndex = 0; dataIndex < customDataCount; dataIndex++)
+                    {
+                        customData[package.ReadString()] = package.ReadString();
+                    }
+                }
+
+                if (version >= 105)
+                    worldLevel = package.ReadInt();
+
+                if (version >= 106)
+                    pickedUp = package.ReadBool();
+
+                if (string.IsNullOrEmpty(prefabName))
+                    continue;
+
+                ItemDrop.ItemData itemData = CreateVirtualItemData(
+                    prefabName,
+                    stack,
+                    durability,
+                    gridPosition,
+                    equipped,
+                    quality,
+                    variant,
+                    crafterId,
+                    crafterName,
+                    customData,
+                    worldLevel,
+                    pickedUp,
+                    GetVirtualSlotCapacity(
+                        itemKey,
+                        gridPosition));
+
+                if (itemData == null)
+                    continue;
+
+                inventory.GetAllItems().Add(itemData);
+            }
+
+            InvokeInventoryChanged(inventory);
+        }
+
+        private static int GetVirtualSlotCapacity(
+            string itemKey,
+            Vector2i slot)
+        {
+            if (itemKey == TerritoryZdoKeys.TreasuryChestItems)
+                return TreasurySlotCapacity;
+
+            if (itemKey == TerritoryZdoKeys.TerraformingChestItems)
+                return GetPreparationSlotCapacity(slot);
+
+            return 1;
+        }
+
+        private static void ApplyVirtualStackLimit(
+            ItemDrop.ItemData item,
+            int stackLimit)
+        {
+            if (item == null || item.m_shared == null)
+                return;
+
+            int limit = Mathf.Max(1, stackLimit);
+
+            if (item.m_shared.m_maxStackSize >= limit)
+                return;
+
+            ItemDrop.ItemData.SharedData clonedShared =
+                CloneSharedData(item.m_shared);
+
+            if (clonedShared == null)
+                return;
+
+            clonedShared.m_maxStackSize = limit;
+            item.m_shared = clonedShared;
+        }
+
+        private static ItemDrop.ItemData.SharedData CloneSharedData(
+            ItemDrop.ItemData.SharedData sharedData)
+        {
+            if (sharedData == null || MemberwiseCloneMethod == null)
+                return null;
+
+            return MemberwiseCloneMethod.Invoke(
+                       sharedData,
+                       null) as ItemDrop.ItemData.SharedData;
+        }
+
+        private static ItemDrop.ItemData CreateVirtualItemData(
+            string prefabName,
+            int stack,
+            float durability,
+            Vector2i gridPosition,
+            bool equipped,
+            int quality,
+            int variant,
+            long crafterId,
+            string crafterName,
+            Dictionary<string, string> customData,
+            int worldLevel,
+            bool pickedUp,
+            int stackLimit)
+        {
+            if (ObjectDB.instance == null)
+                return null;
+
+            GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(prefabName);
+
+            if (itemPrefab == null)
+            {
+                ModLog.Debug("[TerritoryContainers] Virtual item prefab not found: " + prefabName);
+                return null;
+            }
+
+            ItemDrop itemDrop = itemPrefab.GetComponent<ItemDrop>();
+
+            if (itemDrop == null)
+                return null;
+
+            ItemDrop.ItemData itemData = itemDrop.m_itemData.Clone();
+            itemData.m_dropPrefab = itemPrefab;
+            itemData.m_stack = Mathf.Clamp(stack, 1, Mathf.Max(1, stackLimit));
+            itemData.m_durability = durability;
+            itemData.m_gridPos = gridPosition;
+            itemData.m_equipped = equipped;
+            itemData.m_quality = quality;
+            itemData.m_variant = variant;
+            itemData.m_crafterID = crafterId;
+            itemData.m_crafterName = crafterName;
+            itemData.m_customData = customData != null
+                ? new Dictionary<string, string>(customData)
+                : new Dictionary<string, string>();
+            itemData.m_worldLevel = worldLevel;
+            itemData.m_pickedUp = pickedUp;
+
+            ApplyVirtualStackLimit(
+                itemData,
+                stackLimit);
+
+            return itemData;
         }
 
         private static void PersistVirtualInventory(Inventory inventory)
@@ -1570,6 +1764,15 @@ namespace ClanTerritory.Features.Territory.Services
             int capacity = GetPreparationSlotCapacity(slot);
             ItemDrop.ItemData targetItem = targetInventory.GetItemAt(slot.x, slot.y);
 
+            ApplyVirtualStackLimit(
+                item,
+                capacity);
+
+            if (targetItem != null)
+                ApplyVirtualStackLimit(
+                    targetItem,
+                    capacity);
+
             if (targetItem != null && !IsSameItemStack(targetItem, item))
             {
                 PlayerMessage("Preparation slot already contains another item");
@@ -1600,6 +1803,9 @@ namespace ClanTerritory.Features.Territory.Services
                 ItemDrop.ItemData clone = item.Clone();
                 clone.m_stack = moved;
                 clone.m_gridPos = slot;
+                ApplyVirtualStackLimit(
+                    clone,
+                    capacity);
                 targetInventory.GetAllItems().Add(clone);
             }
 
@@ -1655,6 +1861,15 @@ namespace ClanTerritory.Features.Territory.Services
             ItemDrop.ItemData targetItem = targetInventory.GetItemAt(slot.x, slot.y);
             int requestedAmount = amount > 0 ? amount : item.m_stack;
 
+            ApplyVirtualStackLimit(
+                item,
+                capacity);
+
+            if (targetItem != null)
+                ApplyVirtualStackLimit(
+                    targetItem,
+                    capacity);
+
             if (sourceInventory == targetInventory)
             {
                 if (targetItem == item)
@@ -1667,6 +1882,9 @@ namespace ClanTerritory.Features.Territory.Services
                         ItemDrop.ItemData clone = item.Clone();
                         clone.m_stack = requestedAmount;
                         clone.m_gridPos = slot;
+                        ApplyVirtualStackLimit(
+                            clone,
+                            capacity);
                         targetInventory.GetAllItems().Add(clone);
                         item.m_stack -= requestedAmount;
                         InvokeInventoryChanged(targetInventory);
@@ -1744,6 +1962,9 @@ namespace ClanTerritory.Features.Territory.Services
                 ItemDrop.ItemData clone = item.Clone();
                 clone.m_stack = movedAmount;
                 clone.m_gridPos = slot;
+                ApplyVirtualStackLimit(
+                    clone,
+                    capacity);
                 targetInventory.GetAllItems().Add(clone);
             }
 
@@ -1821,6 +2042,9 @@ namespace ClanTerritory.Features.Territory.Services
                 if (IsAllowedPreparationItemAtSlot(item, item.m_gridPos) &&
                     item.m_stack <= GetPreparationSlotCapacity(item.m_gridPos))
                 {
+                    ApplyVirtualStackLimit(
+                        item,
+                        GetPreparationSlotCapacity(item.m_gridPos));
                     continue;
                 }
 
@@ -1829,9 +2053,13 @@ namespace ClanTerritory.Features.Territory.Services
                 if (TryFindPreparationSlotForItem(inventory, item, out slot))
                 {
                     item.m_gridPos = slot;
+                    int capacity = GetPreparationSlotCapacity(slot);
                     item.m_stack = Mathf.Min(
                         item.m_stack,
-                        GetPreparationSlotCapacity(slot));
+                        capacity);
+                    ApplyVirtualStackLimit(
+                        item,
+                        capacity);
 
                     changed = true;
                     continue;
