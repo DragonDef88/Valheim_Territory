@@ -6026,12 +6026,14 @@ namespace ClanTerritory.Features.BiomeDominion
         private readonly PersistenceFileSystem _fileSystem =
             new PersistenceFileSystem();
 
+        private string _loadedWorldName = "";
+
         private bool _commandsRegistered;
 
         public void Initialize()
         {
             _fileSystem.EnsureDirectories();
-            Load();
+            EnsureLoadedForCurrentWorld();
 
             if (!_commandsRegistered)
             {
@@ -6053,6 +6055,8 @@ namespace ClanTerritory.Features.BiomeDominion
 
         public void Update()
         {
+            EnsureLoadedForCurrentWorld();
+
             if (_scheduledDoorClosures.Count <= 0)
                 return;
 
@@ -6081,6 +6085,8 @@ namespace ClanTerritory.Features.BiomeDominion
         public bool TryGetDominionAt(Vector3 position, out BiomeDominionRecord record)
         {
             record = null;
+            EnsureLoadedForCurrentWorld();
+
             string biomeName = GetBiomeName(position);
 
             if (string.IsNullOrEmpty(biomeName))
@@ -6707,10 +6713,35 @@ namespace ClanTerritory.Features.BiomeDominion
             ModLog.Debug("[BiomeDominion] Biome door auto-closed: " + zdo.m_uid);
         }
 
-        private void Load()
+        private void EnsureLoadedForCurrentWorld()
+        {
+            string worldName = GetCurrentWorldName();
+
+            if (IsUnknownWorldName(worldName))
+            {
+                if (string.IsNullOrEmpty(_loadedWorldName))
+                    ModLog.Debug("[BiomeDominion] Load deferred until world name is known.");
+
+                return;
+            }
+
+            if (string.Equals(
+                    _loadedWorldName,
+                    worldName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            Load(worldName);
+        }
+
+        private void Load(string worldName)
         {
             _recordsByBiome.Clear();
-            string path = GetSavePath();
+            _loadedWorldName = worldName;
+
+            string path = GetSavePath(worldName);
 
             if (!File.Exists(path))
             {
@@ -6718,7 +6749,9 @@ namespace ClanTerritory.Features.BiomeDominion
                 return;
             }
 
+            string currentSection = "";
             BiomeDominionRecord current = null;
+
             string[] lines = File.ReadAllLines(path, Encoding.UTF8);
 
             for (int i = 0; i < lines.Length; i++)
@@ -6730,16 +6763,27 @@ namespace ClanTerritory.Features.BiomeDominion
 
                 string line = rawLine.Trim();
 
-                if (line.StartsWith("#", StringComparison.Ordinal) || line.StartsWith("//", StringComparison.Ordinal))
-                    continue;
-
-                if (line.StartsWith("[Biome:", StringComparison.OrdinalIgnoreCase) && line.EndsWith("]", StringComparison.Ordinal))
+                if (line.StartsWith("#", StringComparison.Ordinal) ||
+                    line.StartsWith("//", StringComparison.Ordinal))
                 {
-                    if (current != null && !string.IsNullOrEmpty(current.BiomeName))
+                    continue;
+                }
+
+                if (line.StartsWith("[Biome:", StringComparison.OrdinalIgnoreCase) &&
+                    line.EndsWith("]", StringComparison.Ordinal))
+                {
+                    if (current != null &&
+                        !string.IsNullOrEmpty(current.BiomeName))
+                    {
                         _recordsByBiome[current.BiomeName] = current;
+                    }
+
+                    currentSection = line.Substring(
+                        "[Biome:".Length,
+                        line.Length - "[Biome:".Length - 1);
 
                     current = new BiomeDominionRecord();
-                    current.BiomeName = Unescape(line.Substring("[Biome:".Length, line.Length - "[Biome:".Length - 1));
+                    current.BiomeName = currentSection;
                     current.DoorAutoCloseSeconds = ClanTerritory.Config.ConfigValues.DoorAutoCloseSeconds;
                     continue;
                 }
@@ -6748,26 +6792,49 @@ namespace ClanTerritory.Features.BiomeDominion
                     continue;
 
                 int separator = line.IndexOf('=');
+
                 if (separator <= 0)
                     continue;
 
                 string key = line.Substring(0, separator).Trim();
                 string value = Unescape(line.Substring(separator + 1).Trim());
-                ApplyLoadedValue(current, key, value);
+
+                ApplyLoadedValue(
+                    current,
+                    key,
+                    value);
             }
 
-            if (current != null && !string.IsNullOrEmpty(current.BiomeName))
+            if (current != null &&
+                !string.IsNullOrEmpty(current.BiomeName))
+            {
                 _recordsByBiome[current.BiomeName] = current;
+            }
 
-            ModLog.Info("[BiomeDominion] Biome dominions loaded. Count: " + _recordsByBiome.Count);
+            ModLog.Info(
+                "[BiomeDominion] Biome dominions loaded. World: " +
+                worldName +
+                ", count: " +
+                _recordsByBiome.Count);
         }
+
 
         private void Save()
         {
             try
             {
                 _fileSystem.EnsureDirectories();
-                string path = GetSavePath();
+                string worldName = GetCurrentWorldName();
+
+                if (IsUnknownWorldName(worldName))
+                {
+                    ModLog.Info("[BiomeDominion] Save skipped: world name is not known.");
+                    return;
+                }
+
+                _loadedWorldName = worldName;
+
+                string path = GetSavePath(worldName);
                 StringBuilder builder = new StringBuilder();
                 builder.AppendLine("# Clan Territory biome dominions");
                 builder.AppendLine("# One claimed biome per section.");
@@ -6797,19 +6864,43 @@ namespace ClanTerritory.Features.BiomeDominion
             }
         }
 
-        private string GetSavePath()
+        private string GetSavePath(string worldName)
+        {
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return Path.Combine(
+                _fileSystem.WorldsDirectory,
+                worldName + FileSuffix);
+        }
+
+        private string GetCurrentWorldName()
         {
             string worldName = "Unknown";
+
             IWorldInfoService worldInfoService;
 
-            if (ServiceContainer.TryGet<IWorldInfoService>(out worldInfoService) && worldInfoService != null)
+            if (ServiceContainer.TryGet<IWorldInfoService>(out worldInfoService) &&
+                worldInfoService != null)
+            {
                 worldName = worldInfoService.GetWorldName();
+            }
 
             if (string.IsNullOrWhiteSpace(worldName))
                 worldName = "Unknown";
 
-            return Path.Combine(_fileSystem.WorldsDirectory, worldName + FileSuffix);
+            return worldName;
         }
+
+        private static bool IsUnknownWorldName(string worldName)
+        {
+            return string.IsNullOrWhiteSpace(worldName) ||
+                   string.Equals(
+                       worldName,
+                       "Unknown",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
 
         private static void ApplyLoadedValue(BiomeDominionRecord record, string key, string value)
         {
