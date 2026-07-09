@@ -419,8 +419,9 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingLocalSampleSpacing = 0.5f;
         private const float LevelingWorkThreshold = 0.45f;
         private const int LevelingVerifyPasses = 3;
-        private const float LevelingScanTime = 1.8f;
-        private const float LevelingFlatteningTime = 4.5f;
+        private const float LevelingScanTime = 0.55f;
+        private const float LevelingFlatteningTime = 1.8f;
+        private const float LevelingVerifyDelay = 0.75f;
         private const float LevelingStonePerLower = 0.05f;
         private const float LevelingTolerance = 0.25f;
         private const int LevelingFuelCost = 1;
@@ -1467,11 +1468,17 @@ namespace ClanTerritory.Features.Territory.Services
                 scanProgress = 0f;
                 scanIndex = 0;
                 zdo.Set(
+                    TerritoryZdoKeys.TerraformingScanIndex,
+                    0);
+                zdo.Set(
                     TerritoryZdoKeys.TerraformingPendingScanIndex,
                     -1);
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingVerifyCount,
                     0);
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    0f);
             }
 
             Vector3 spiritPoint = GetLevelingSpiralPoint(
@@ -1540,6 +1547,10 @@ namespace ClanTerritory.Features.Territory.Services
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingVerifyCount,
                     0);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    0f);
 
                 AdvanceLevelingScan(
                     zdo,
@@ -1637,6 +1648,16 @@ namespace ClanTerritory.Features.Territory.Services
                 TerritoryZdoKeys.TerraformingVerifyCount,
                 0);
 
+            if (pendingIndex == scanIndex && verifyCount > 0)
+            {
+                float nextVerifyTime = zdo.GetFloat(
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    0f);
+
+                if (nextVerifyTime > 0f && Time.time < nextVerifyTime)
+                    return true;
+            }
+
             if (pendingIndex == scanIndex)
                 verifyCount++;
             else
@@ -1653,10 +1674,8 @@ namespace ClanTerritory.Features.Territory.Services
             if (verifyCount < LevelingVerifyPasses)
             {
                 zdo.Set(
-                    TerritoryZdoKeys.TerraformingScanProgress,
-                    Mathf.Max(
-                        scanProgress,
-                        (float)scanIndex + 0.15f));
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    Time.time + LevelingVerifyDelay);
 
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingScanSpeed,
@@ -1664,6 +1683,10 @@ namespace ClanTerritory.Features.Territory.Services
 
                 return true;
             }
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingNextVerifyTime,
+                0f);
 
             if (!ApplyWardHeightLevelingOperation(
                     point,
@@ -1725,6 +1748,10 @@ namespace ClanTerritory.Features.Territory.Services
                 TerritoryZdoKeys.TerraformingVerifyCount,
                 0);
 
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingNextVerifyTime,
+                0f);
+
             AdvanceLevelingScan(
                 zdo,
                 scanIndex,
@@ -1764,12 +1791,6 @@ namespace ClanTerritory.Features.Territory.Services
                 nextIndex = 0;
                 scanProgress = 0f;
             }
-            else
-            {
-                scanProgress = Mathf.Max(
-                    scanProgress,
-                    (float)nextIndex);
-            }
 
             zdo.Set(
                 TerritoryZdoKeys.TerraformingScanIndex,
@@ -1794,6 +1815,10 @@ namespace ClanTerritory.Features.Territory.Services
                 zdo.Set(
                     TerritoryZdoKeys.TerraformingVerifyCount,
                     0);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    0f);
             }
         }
 
@@ -2406,6 +2431,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             TreeBase bestTree = null;
             TreeLog bestLog = null;
+            Destructible bestStump = null;
             Collider bestCollider = null;
             float bestDistance = float.MaxValue;
 
@@ -2446,6 +2472,7 @@ namespace ClanTerritory.Features.Territory.Services
                     bestCollider = collider;
                     bestTree = tree;
                     bestLog = null;
+                    bestStump = null;
                 }
             }
 
@@ -2486,6 +2513,48 @@ namespace ClanTerritory.Features.Territory.Services
                     bestCollider = collider;
                     bestTree = null;
                     bestLog = log;
+                    bestStump = null;
+                }
+            }
+
+            Destructible[] destructibles = Object.FindObjectsOfType<Destructible>();
+
+            for (int i = 0; i < destructibles.Length; i++)
+            {
+                Destructible destructible = destructibles[i];
+
+                if (!IsTreeStumpDestructible(destructible))
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    destructible.gameObject,
+                    center,
+                    territoryRadius + LevelingTreeRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius))
+                {
+                    continue;
+                }
+
+                float distance = global::Utils.DistanceXZ(
+                    center,
+                    colliderPoint);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestCollider = collider;
+                    bestTree = null;
+                    bestLog = null;
+                    bestStump = destructible;
                 }
             }
 
@@ -2508,6 +2577,12 @@ namespace ClanTerritory.Features.Territory.Services
                 return true;
             }
 
+            if (bestStump != null)
+            {
+                bestStump.Damage(hit);
+                return true;
+            }
+
             return false;
         }
 
@@ -2526,6 +2601,31 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
 
             return true;
+        }
+
+        private static bool IsTreeStumpDestructible(Destructible destructible)
+        {
+            if (destructible == null || !destructible.gameObject.activeInHierarchy)
+                return false;
+
+            if (destructible.GetComponent<TreeBase>() != null ||
+                destructible.GetComponent<TreeLog>() != null ||
+                destructible.GetComponent<MineRock>() != null ||
+                destructible.GetComponent<MineRock5>() != null ||
+                destructible.GetComponent<Growup>() != null)
+            {
+                return false;
+            }
+
+            string prefabName = global::Utils.GetPrefabName(
+                destructible.gameObject.name);
+
+            return ContainsIgnoreCase(
+                       prefabName,
+                       "stump") ||
+                   ContainsIgnoreCase(
+                       prefabName,
+                       "stub");
         }
 
         private static bool TryMineRockAtPoint(
@@ -3164,6 +3264,7 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(TerritoryZdoKeys.TerraformingScanSpeed, 1f / LevelingScanTime);
             zdo.Set(TerritoryZdoKeys.TerraformingPendingScanIndex, -1);
             zdo.Set(TerritoryZdoKeys.TerraformingVerifyCount, 0);
+            zdo.Set(TerritoryZdoKeys.TerraformingNextVerifyTime, 0f);
         }
 
         private static void PauseLevelingWorker(
@@ -3187,6 +3288,10 @@ namespace ClanTerritory.Features.Territory.Services
 
             zdo.Set(
                 TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                0f);
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingNextVerifyTime,
                 0f);
 
             ModLog.Info(
@@ -5237,17 +5342,22 @@ namespace ClanTerritory.Features.Territory.Services
                 return;
             }
 
+            bool wasRunning = zdo.GetBool(
+                TerritoryZdoKeys.TerraformingRunning,
+                false);
+
             zdo.Set(TerritoryZdoKeys.TerraformingRunning, running);
 
-            if (running)
+            if (running && !wasRunning)
             {
                 ResetLevelingScan(zdo);
                 DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
             }
-            else
+            else if (!running)
             {
                 DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
                 zdo.Set(TerritoryZdoKeys.TerraformingFuelWorkProgress, 0f);
+                zdo.Set(TerritoryZdoKeys.TerraformingNextVerifyTime, 0f);
             }
 
             ModLog.Info("[TerritoryTerraforming] Running saved: " + running);

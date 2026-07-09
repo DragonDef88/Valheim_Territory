@@ -37,6 +37,7 @@ namespace ClanTerritory.Features.Territory
         public const string TerraformingPendingScanIndex = "ct_territory_terraforming_pending_scan_index";
 
         public const string TerraformingVerifyCount = "ct_territory_terraforming_verify_count";
+        public const string TerraformingNextVerifyTime = "ct_territory_terraforming_next_verify_time";
 
         public const string TerraformingFuelSlotPrefix = "ct_territory_terraforming_fuel_slot_";
 
