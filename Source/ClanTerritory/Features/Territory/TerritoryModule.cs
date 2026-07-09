@@ -406,7 +406,7 @@ namespace ClanTerritory.Features.Territory.Services
 
         private const float DefaultRadius = 12f;
         private const float MinimumRadius = 2f;
-        private const float MaximumRadius = 40f;
+        private const float MaximumRadius = 200f;
         private const float RadiusStep = 2f;
         private const int SlotCapacity = 500;
         private const int FuelSlotCount = 5;
@@ -419,8 +419,8 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingLocalSampleSpacing = 0.5f;
         private const float LevelingWorkThreshold = 0.45f;
         private const int LevelingVerifyPasses = 3;
-        private const float LevelingScanTime = 1.25f;
-        private const float LevelingFlatteningTime = 3.2f;
+        private const float LevelingScanTime = 1.8f;
+        private const float LevelingFlatteningTime = 4.5f;
         private const float LevelingStonePerLower = 0.05f;
         private const float LevelingTolerance = 0.25f;
         private const int LevelingFuelCost = 1;
@@ -431,6 +431,18 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingMineRockRadius = 2.5f;
         private const float LevelingMineRockHitRadius = 0.75f;
         private const float LevelingFallbackPickaxeDamage = 25f;
+        private const float LevelingFallbackAxeDamage = 25f;
+        private const float LevelingFuelWorkPerItem = 8f;
+        private const float LevelingTerrainFuelWorkMultiplier = 0.45f;
+        private const float LevelingRockFuelWork = 0.35f;
+        private const float LevelingTreeFuelWork = 0.5f;
+        private const float LevelingTreeRadius = 3f;
+        private const float LevelingTreeHitRadius = 0.75f;
+        private const float ResourceAbsorbInterval = 2f;
+        private const int ResourceAbsorbMaxItemsPerWard = 32;
+        private const int TreasuryFallbackWidth = 8;
+        private const int TreasuryFallbackHeight = 4;
+
 
 
 
@@ -449,7 +461,20 @@ namespace ClanTerritory.Features.Territory.Services
             "PickaxeBlackMetal"
         };
 
+        private static readonly string[] AxePrefabNames =
+        {
+            "AxeStone",
+            "AxeFlint",
+            "AxeBronze",
+            "AxeIron",
+            "AxeBlackMetal",
+            "Battleaxe",
+            "BattleaxeCrystal"
+        };
+
         private static bool _wardHeightLevelingOperationActive;
+
+        private float _nextResourceAbsorbTime;
 
         private struct LevelingEvaluation
         {
@@ -550,7 +575,350 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
+            if (Time.time >= _nextResourceAbsorbTime)
+            {
+                _nextResourceAbsorbTime = Time.time + ResourceAbsorbInterval;
+                ProcessGroundResourceAbsorption();
+            }
+
             ProcessLevelingWorkers();
+        }
+
+        private void ProcessGroundResourceAbsorption()
+        {
+            if (ObjectDB.instance == null)
+                return;
+
+            List<PrivateArea> privateAreas = GetPrivateAreas();
+
+            for (int i = 0; i < privateAreas.Count; i++)
+            {
+                TryAbsorbGroundItemsForArea(privateAreas[i]);
+            }
+        }
+
+        private static void TryAbsorbGroundItemsForArea(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return;
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid() || !zNetView.IsOwner())
+                return;
+
+            ZDO zdo = zNetView.GetZDO();
+
+            if (zdo == null)
+                return;
+
+            Inventory preparationInventory = CreateTerraformingWorkerInventory(zdo);
+            Inventory treasuryInventory = CreateVirtualStorageInventory(
+                "Territory Treasury",
+                TreasuryFallbackWidth,
+                TreasuryFallbackHeight,
+                zdo,
+                TerritoryZdoKeys.TreasuryChestItems);
+
+            bool preparationChanged = false;
+            bool treasuryChanged = false;
+            int absorbedItems = 0;
+
+            ItemDrop[] drops = Object.FindObjectsOfType<ItemDrop>();
+
+            for (int i = 0; i < drops.Length && absorbedItems < ResourceAbsorbMaxItemsPerWard; i++)
+            {
+                ItemDrop drop = drops[i];
+
+                if (!IsAbsorbableGroundItem(
+                        drop,
+                        privateArea))
+                {
+                    continue;
+                }
+
+                int absorbed = 0;
+
+                if (TryAbsorbIntoExistingPreparationStack(
+                        preparationInventory,
+                        drop.m_itemData,
+                        out absorbed))
+                {
+                    preparationChanged = true;
+                }
+
+                if (absorbed <= 0 &&
+                    TryAbsorbIntoExistingTreasuryStack(
+                        treasuryInventory,
+                        drop.m_itemData,
+                        out absorbed))
+                {
+                    treasuryChanged = true;
+                }
+
+                if (absorbed <= 0)
+                    continue;
+
+                ApplyGroundItemAbsorb(
+                    drop,
+                    absorbed);
+
+                absorbedItems++;
+            }
+
+            if (preparationChanged)
+            {
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+            }
+
+            if (treasuryChanged)
+            {
+                PersistVirtualInventoryToZdo(
+                    zdo,
+                    treasuryInventory,
+                    TerritoryZdoKeys.TreasuryChestItems);
+            }
+
+            if (absorbedItems > 0)
+            {
+                ModLog.Debug(
+                    "[TerritoryResources] Absorbed ground item stacks: " +
+                    absorbedItems);
+            }
+        }
+
+        private static bool IsAbsorbableGroundItem(
+            ItemDrop drop,
+            PrivateArea privateArea)
+        {
+            if (drop == null ||
+                drop.m_itemData == null ||
+                drop.m_itemData.m_stack <= 0)
+            {
+                return false;
+            }
+
+            if (drop.IsPiece())
+                return false;
+
+            if (!drop.CanPickup(false))
+            {
+                drop.RequestOwn();
+                return false;
+            }
+
+            return global::Utils.DistanceXZ(
+                       privateArea.transform.position,
+                       drop.transform.position) <= privateArea.m_radius;
+        }
+
+        private static Inventory CreateVirtualStorageInventory(
+            string name,
+            int width,
+            int height,
+            ZDO zdo,
+            string itemKey)
+        {
+            Inventory inventory = new Inventory(
+                name,
+                null,
+                width,
+                height);
+
+            if (zdo == null)
+                return inventory;
+
+            string serializedItems = zdo.GetString(
+                itemKey,
+                "");
+
+            if (string.IsNullOrEmpty(serializedItems))
+                return inventory;
+
+            try
+            {
+                LoadVirtualInventoryPackage(
+                    inventory,
+                    itemKey,
+                    new ZPackage(serializedItems));
+            }
+            catch (System.Exception exception)
+            {
+                ModLog.Debug(
+                    "[TerritoryResources] Virtual inventory load failed: " +
+                    exception.Message);
+            }
+
+            return inventory;
+        }
+
+        private static void PersistVirtualInventoryToZdo(
+            ZDO zdo,
+            Inventory inventory,
+            string itemKey)
+        {
+            if (zdo == null || inventory == null)
+                return;
+
+            ZPackage package = new ZPackage();
+            inventory.Save(package);
+
+            zdo.Set(
+                itemKey,
+                package.GetBase64());
+        }
+
+        private static bool TryAbsorbIntoExistingPreparationStack(
+            Inventory inventory,
+            ItemDrop.ItemData groundItem,
+            out int absorbed)
+        {
+            absorbed = 0;
+
+            if (inventory == null || groundItem == null)
+                return false;
+
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData existing = items[i];
+
+                if (existing == null)
+                    continue;
+
+                if (!IsSameItemStack(existing, groundItem))
+                    continue;
+
+                if (!IsAllowedPreparationItemAtSlot(existing, existing.m_gridPos))
+                    continue;
+
+                int capacity = GetPreparationSlotCapacity(existing.m_gridPos);
+                int moved = MoveGroundStackIntoExistingStack(
+                    existing,
+                    groundItem,
+                    capacity);
+
+                if (moved <= 0)
+                    continue;
+
+                absorbed += moved;
+
+                if (groundItem.m_stack <= 0)
+                    break;
+            }
+
+            if (absorbed > 0)
+                InvokeInventoryChanged(inventory);
+
+            return absorbed > 0;
+        }
+
+        private static bool TryAbsorbIntoExistingTreasuryStack(
+            Inventory inventory,
+            ItemDrop.ItemData groundItem,
+            out int absorbed)
+        {
+            absorbed = 0;
+
+            if (inventory == null || groundItem == null)
+                return false;
+
+            List<ItemDrop.ItemData> items = inventory.GetAllItems();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData existing = items[i];
+
+                if (existing == null)
+                    continue;
+
+                if (!IsSameItemStack(existing, groundItem))
+                    continue;
+
+                int moved = MoveGroundStackIntoExistingStack(
+                    existing,
+                    groundItem,
+                    TreasurySlotCapacity);
+
+                if (moved <= 0)
+                    continue;
+
+                absorbed += moved;
+
+                if (groundItem.m_stack <= 0)
+                    break;
+            }
+
+            if (absorbed > 0)
+                InvokeInventoryChanged(inventory);
+
+            return absorbed > 0;
+        }
+
+        private static int MoveGroundStackIntoExistingStack(
+            ItemDrop.ItemData existing,
+            ItemDrop.ItemData groundItem,
+            int capacity)
+        {
+            if (existing == null || groundItem == null)
+                return 0;
+
+            ApplyVirtualStackLimit(
+                existing,
+                capacity);
+
+            int space = Mathf.Max(
+                0,
+                capacity - existing.m_stack);
+
+            if (space <= 0)
+                return 0;
+
+            int moved = Mathf.Min(
+                space,
+                groundItem.m_stack);
+
+            if (moved <= 0)
+                return 0;
+
+            existing.m_stack += moved;
+            groundItem.m_stack -= moved;
+            return moved;
+        }
+
+        private static void ApplyGroundItemAbsorb(
+            ItemDrop drop,
+            int absorbed)
+        {
+            if (drop == null || absorbed <= 0)
+                return;
+
+            if (drop.m_itemData == null || drop.m_itemData.m_stack <= 0)
+            {
+                DestroyGroundItem(drop);
+                return;
+            }
+
+            drop.SetStack(drop.m_itemData.m_stack);
+        }
+
+        private static void DestroyGroundItem(ItemDrop drop)
+        {
+            if (drop == null)
+                return;
+
+            ZNetView zNetView = drop.GetComponent<ZNetView>();
+
+            if (zNetView != null && zNetView.IsValid() && zNetView.IsOwner())
+            {
+                zNetView.Destroy();
+                return;
+            }
+
+            Object.Destroy(drop.gameObject);
         }
 
         private void ProcessLevelingWorkers()
@@ -742,35 +1110,61 @@ namespace ClanTerritory.Features.Territory.Services
                 return true;
             }
 
-            if (TryMineRockAtPoint(
+            if (HasLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingTreeFuelWork) &&
+                TryChopTreeAtPoint(
                     point,
                     center,
                     radius,
                     preparationInventory))
             {
-                if (!HasLevelingFuel(
-                        preparationInventory,
-                        LevelingFuelCost))
-                {
-                    PersistTerraformingWorkerInventory(
-                        zdo,
-                        preparationInventory);
-
-                    PauseLevelingWorker(
-                        zdo,
-                        "fuel is empty");
-
-                    UpdateLevelingSpirit(
-                        privateArea,
-                        point,
-                        false);
-
-                    return true;
-                }
-
-                ConsumeLevelingFuel(
+                SpendLevelingFuelForWork(
+                    zdo,
                     preparationInventory,
-                    LevelingFuelCost);
+                    LevelingTreeFuelWork);
+
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingPendingScanIndex,
+                    -1);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingVerifyCount,
+                    0);
+
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    true);
+
+                ModLog.Debug(
+                    "[TerritoryTerraforming] Tree chopping hit applied near scan point: " +
+                    point);
+
+                return true;
+            }
+
+            if (HasLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingRockFuelWork) &&
+                TryMineRockAtPoint(
+                    point,
+                    center,
+                    radius,
+                    preparationInventory))
+            {
+                SpendLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingRockFuelWork);
 
                 PersistTerraformingWorkerInventory(
                     zdo,
@@ -815,9 +1209,10 @@ namespace ClanTerritory.Features.Territory.Services
                 return true;
             }
 
-            if (!HasLevelingFuel(
+            if (!HasLevelingFuelForWork(
+                    zdo,
                     preparationInventory,
-                    evaluation.FuelCost))
+                    evaluation.WorkScore * LevelingTerrainFuelWorkMultiplier))
             {
                 PersistTerraformingWorkerInventory(
                     zdo,
@@ -921,9 +1316,26 @@ namespace ClanTerritory.Features.Territory.Services
                 return true;
             }
 
-            ConsumeLevelingFuel(
-                preparationInventory,
-                evaluation.FuelCost);
+            if (!SpendLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    evaluation.WorkScore * LevelingTerrainFuelWorkMultiplier))
+            {
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                PauseLevelingWorker(
+                    zdo,
+                    "fuel is empty");
+
+                UpdateLevelingSpirit(
+                    privateArea,
+                    point,
+                    false);
+
+                return true;
+            }
 
             if (evaluation.Raising)
             {
@@ -1085,7 +1497,7 @@ namespace ClanTerritory.Features.Territory.Services
 
             spirit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             spirit.name = "ClanTerritory_LevelingSpirit_" + wardId;
-            spirit.transform.localScale = new Vector3(0.22f, 0.22f, 0.22f);
+            spirit.transform.localScale = new Vector3(0.45f, 0.45f, 0.45f);
 
             Collider collider = spirit.GetComponent<Collider>();
 
@@ -1096,13 +1508,18 @@ namespace ClanTerritory.Features.Territory.Services
 
             if (renderer != null)
             {
-                renderer.material.color = new Color(0.35f, 0.75f, 1f, 0.45f);
+                Material material = renderer.material;
+                material.color = new Color(0.15f, 0.95f, 1f, 1f);
+                material.EnableKeyword("_EMISSION");
+                material.SetColor(
+                    "_EmissionColor",
+                    new Color(0.15f, 0.95f, 1f, 1f));
             }
 
             Light light = spirit.AddComponent<Light>();
-            light.color = new Color(0.35f, 0.75f, 1f, 1f);
-            light.range = 3.2f;
-            light.intensity = 0.9f;
+            light.color = new Color(0.15f, 0.95f, 1f, 1f);
+            light.range = 5f;
+            light.intensity = 2.5f;
 
             LevelingSpiritByWardId[wardId] = spirit;
             return spirit;
@@ -1262,6 +1679,10 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(
                 TerritoryZdoKeys.TerraformingHoeStored,
                 IsHoe(inventory.GetItemAt(1, 0)));
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingAxeStored,
+                IsAxe(inventory.GetItemAt(2, 0)));
         }
 
         private static bool HasRequiredLevelingTools(Inventory inventory)
@@ -1271,6 +1692,89 @@ namespace ClanTerritory.Features.Territory.Services
 
             return IsPickaxe(inventory.GetItemAt(0, 0)) &&
                    IsHoe(inventory.GetItemAt(1, 0));
+        }
+
+        private static bool HasAnyLevelingFuel(Inventory inventory)
+        {
+            return CountPreparationRowItems(
+                       inventory,
+                       1,
+                       IsFuel) > 0;
+        }
+
+        private static bool HasLevelingFuelForWork(
+            ZDO zdo,
+            Inventory inventory,
+            float workUnits)
+        {
+            if (!HasAnyLevelingFuel(inventory))
+                return false;
+
+            if (zdo == null)
+                return true;
+
+            float progress =
+                zdo.GetFloat(
+                    TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                    0f) +
+                Mathf.Max(
+                    0f,
+                    workUnits);
+
+            int requiredFuel = Mathf.FloorToInt(
+                progress / LevelingFuelWorkPerItem);
+
+            if (requiredFuel <= 0)
+                return true;
+
+            return CountPreparationRowItems(
+                       inventory,
+                       1,
+                       IsFuel) >= requiredFuel;
+        }
+
+        private static bool SpendLevelingFuelForWork(
+            ZDO zdo,
+            Inventory inventory,
+            float workUnits)
+        {
+            if (zdo == null || inventory == null)
+                return false;
+
+            float progress =
+                zdo.GetFloat(
+                    TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                    0f) +
+                Mathf.Max(
+                    0f,
+                    workUnits);
+
+            int requiredFuel = Mathf.FloorToInt(
+                progress / LevelingFuelWorkPerItem);
+
+            if (requiredFuel <= 0)
+            {
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                    progress);
+
+                return true;
+            }
+
+            if (!ConsumePreparationRowItem(
+                    inventory,
+                    1,
+                    IsFuel,
+                    requiredFuel))
+            {
+                return false;
+            }
+
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                progress - requiredFuel * LevelingFuelWorkPerItem);
+
+            return true;
         }
 
         private static bool HasLevelingFuel(
@@ -1516,6 +2020,126 @@ namespace ClanTerritory.Features.Territory.Services
             return remaining <= 0;
         }
 
+        private static bool TryChopTreeAtPoint(
+            Vector3 point,
+            Vector3 center,
+            float territoryRadius,
+            Inventory preparationInventory)
+        {
+            ItemDrop.ItemData axe = preparationInventory != null
+                ? preparationInventory.GetItemAt(2, 0)
+                : null;
+
+            if (!IsAxe(axe))
+                return false;
+
+            TreeBase bestTree = null;
+            TreeLog bestLog = null;
+            Collider bestCollider = null;
+            float bestDistance = float.MaxValue;
+
+            TreeBase[] trees = Object.FindObjectsOfType<TreeBase>();
+
+            for (int i = 0; i < trees.Length; i++)
+            {
+                TreeBase tree = trees[i];
+
+                if (tree == null || !tree.gameObject.activeInHierarchy)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    tree.gameObject,
+                    point,
+                    LevelingTreeRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    point,
+                    colliderPoint);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestCollider = collider;
+                    bestTree = tree;
+                    bestLog = null;
+                }
+            }
+
+            TreeLog[] logs = Object.FindObjectsOfType<TreeLog>();
+
+            for (int i = 0; i < logs.Length; i++)
+            {
+                TreeLog log = logs[i];
+
+                if (log == null || !log.gameObject.activeInHierarchy)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    log.gameObject,
+                    point,
+                    LevelingTreeRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    point,
+                    colliderPoint);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestCollider = collider;
+                    bestTree = null;
+                    bestLog = log;
+                }
+            }
+
+            if (bestCollider == null)
+                return false;
+
+            HitData hit = CreateLevelingAxeHit(
+                axe,
+                bestCollider);
+
+            if (bestTree != null)
+            {
+                bestTree.Damage(hit);
+                return true;
+            }
+
+            if (bestLog != null)
+            {
+                bestLog.Damage(hit);
+                return true;
+            }
+
+            return false;
+        }
+
         private static bool TryMineRockAtPoint(
             Vector3 point,
             Vector3 center,
@@ -1696,6 +2320,49 @@ namespace ClanTerritory.Features.Territory.Services
             hit.m_hitType = HitData.HitType.Structural;
             hit.m_skill = Skills.SkillType.Pickaxes;
             return hit;
+        }
+
+        private static HitData CreateLevelingAxeHit(
+            ItemDrop.ItemData axe,
+            Collider collider)
+        {
+            HitData hit = new HitData();
+            hit.m_damage.m_chop = GetAxeDamage(axe);
+            hit.m_toolTier = (short)GetAxeToolTier(axe);
+            hit.m_point = GetColliderCenter(collider);
+            hit.m_dir = Vector3.down;
+            hit.m_radius = LevelingTreeHitRadius;
+            hit.m_hitCollider = collider;
+            hit.m_hitType = HitData.HitType.Structural;
+            hit.m_skill = Skills.SkillType.WoodCutting;
+            return hit;
+        }
+
+        private static float GetAxeDamage(ItemDrop.ItemData axe)
+        {
+            if (axe == null || axe.m_shared == null)
+                return LevelingFallbackAxeDamage;
+
+            float damage =
+                axe.m_shared.m_damages.m_chop +
+                axe.m_shared.m_damagesPerLevel.m_chop *
+                Mathf.Max(
+                    0,
+                    axe.m_quality - 1);
+
+            return Mathf.Max(
+                LevelingFallbackAxeDamage,
+                damage);
+        }
+
+        private static int GetAxeToolTier(ItemDrop.ItemData axe)
+        {
+            if (axe == null || axe.m_shared == null)
+                return 0;
+
+            return Mathf.Max(
+                0,
+                axe.m_shared.m_toolTier);
         }
 
         private static float GetPickaxeDamage(ItemDrop.ItemData pickaxe)
@@ -2118,6 +2785,10 @@ namespace ClanTerritory.Features.Territory.Services
                 TerritoryZdoKeys.TerraformingVerifyCount,
                 0);
 
+            zdo.Set(
+                TerritoryZdoKeys.TerraformingFuelWorkProgress,
+                0f);
+
             ModLog.Info(
                 "[TerritoryTerraforming] Worker paused: " +
                 reason);
@@ -2151,6 +2822,7 @@ namespace ClanTerritory.Features.Territory.Services
                 stoneSlots,
                 zdo.GetBool(TerritoryZdoKeys.TerraformingHoeStored, false),
                 zdo.GetBool(TerritoryZdoKeys.TerraformingPickaxeStored, false),
+                zdo.GetBool(TerritoryZdoKeys.TerraformingAxeStored, false),
                 Mathf.Max(0f, zdo.GetFloat(TerritoryZdoKeys.TerraformingScanProgress, 0f)),
                 Mathf.Max(0, zdo.GetInt(TerritoryZdoKeys.TerraformingScanIndex, 0)));
         }
@@ -3377,7 +4049,7 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
 
                 Vector2i position = (Vector2i)posField.GetValue(element);
-                bool hiddenReservedTopCell = position.y == 0 && position.x >= 2;
+                bool hiddenReservedTopCell = position.y == 0 && position.x >= 3;
 
                 gameObject.SetActive(!hiddenReservedTopCell);
             }
@@ -3789,6 +4461,9 @@ namespace ClanTerritory.Features.Territory.Services
                 if (slot.x == 1)
                     return IsHoe(item);
 
+                if (slot.x == 2)
+                    return IsAxe(item);
+
                 return false;
             }
 
@@ -3840,6 +4515,21 @@ namespace ClanTerritory.Features.Territory.Services
 
             return EqualsIgnoreCase(prefabName, "Hoe") ||
                    ContainsIgnoreCase(sharedName, "hoe");
+        }
+
+        private static bool IsAxe(ItemDrop.ItemData item)
+        {
+            string prefabName = GetItemPrefabName(item);
+            string sharedName = GetItemSharedName(item);
+
+            if (ContainsIgnoreCase(prefabName, "Pickaxe") ||
+                ContainsIgnoreCase(sharedName, "pickaxe"))
+            {
+                return false;
+            }
+
+            return ContainsIgnoreCase(prefabName, "Axe") ||
+                   ContainsIgnoreCase(sharedName, "axe");
         }
 
         private static bool IsFuel(ItemDrop.ItemData item)
@@ -3901,6 +4591,12 @@ namespace ClanTerritory.Features.Territory.Services
             if (slot.y == 0 && slot.x == 1)
             {
                 PlayerMessage("Only hoe can be placed in this slot");
+                return;
+            }
+
+            if (slot.y == 0 && slot.x == 2)
+            {
+                PlayerMessage("Only axe can be placed in this slot");
                 return;
             }
 
@@ -4136,7 +4832,10 @@ namespace ClanTerritory.Features.Territory.Services
             zdo.Set(TerritoryZdoKeys.TerraformingRunning, running);
 
             if (!running)
+            {
                 DestroyLevelingSpirit(GetWardRuntimeId(privateArea));
+                zdo.Set(TerritoryZdoKeys.TerraformingFuelWorkProgress, 0f);
+            }
 
             ModLog.Info("[TerritoryTerraforming] Running saved: " + running);
         }
@@ -4584,6 +5283,8 @@ namespace ClanTerritory.Features.Territory.Services
 
         public bool PickaxeStored { get; private set; }
 
+        public bool AxeStored { get; private set; }
+
         public float ScanProgress { get; private set; }
 
         public int ScanIndex { get; private set; }
@@ -4597,6 +5298,7 @@ namespace ClanTerritory.Features.Territory.Services
             int[] stoneSlots,
             bool hoeStored,
             bool pickaxeStored,
+            bool axeStored,
             float scanProgress,
             int scanIndex)
         {
@@ -4610,6 +5312,7 @@ namespace ClanTerritory.Features.Territory.Services
             StoneStored = Sum(StoneSlots);
             HoeStored = hoeStored;
             PickaxeStored = pickaxeStored;
+            AxeStored = axeStored;
             ScanProgress = scanProgress;
             ScanIndex = scanIndex;
         }
@@ -4623,6 +5326,7 @@ namespace ClanTerritory.Features.Territory.Services
                 0f,
                 new int[5],
                 new int[5],
+                false,
                 false,
                 false,
                 0f,

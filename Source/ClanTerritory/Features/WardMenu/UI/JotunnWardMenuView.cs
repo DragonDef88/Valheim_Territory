@@ -453,7 +453,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 "Status: " + model.Terraforming.Status + "\n" +
                 "Target: ward height (" + FormatHeight(model.Terraforming.TargetHeight) + ")\n" +
                 "Work radius: " + FormatRadius(model.Terraforming.Radius) + " m\n" +
-                "Tools: " + FormatSlot(model.Terraforming.HoeStored, "Hoe") + " / " + FormatSlot(model.Terraforming.PickaxeStored, "Pickaxe") + "\n" +
+                "Tools: " + FormatSlot(model.Terraforming.HoeStored, "Hoe") + " / " + FormatSlot(model.Terraforming.PickaxeStored, "Pickaxe") + " / " + FormatSlot(model.Terraforming.AxeStored, "Axe") + "\n" +
                 "Fuel: " + model.Terraforming.FuelStored + " / 2500\n" +
                 "Stone: " + model.Terraforming.StoneStored + " / 2500\n" +
                 "Scan: " + FormatAmount(model.Terraforming.ScanProgress) + " / index " + model.Terraforming.ScanIndex + "\n\n" +

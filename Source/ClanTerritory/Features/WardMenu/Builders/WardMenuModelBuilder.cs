@@ -120,6 +120,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 state.StoneSlots,
                 state.HoeStored,
                 state.PickaxeStored,
+                state.AxeStored,
                 state.ScanProgress,
                 state.ScanIndex,
                 BuildTerraformingStatus(state));

@@ -24,6 +24,10 @@ namespace ClanTerritory.Features.Territory
 
         public const string TerraformingPickaxeStored = "ct_territory_terraforming_pickaxe_stored";
 
+        public const string TerraformingAxeStored = "ct_territory_terraforming_axe_stored";
+
+        public const string TerraformingFuelWorkProgress = "ct_territory_terraforming_fuel_work_progress";
+
         public const string TerraformingScanProgress = "ct_territory_terraforming_scan_progress";
 
         public const string TerraformingScanIndex = "ct_territory_terraforming_scan_index";

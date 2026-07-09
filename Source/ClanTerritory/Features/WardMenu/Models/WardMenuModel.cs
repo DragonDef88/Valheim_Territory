@@ -123,6 +123,8 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public bool PickaxeStored { get; private set; }
 
+        public bool AxeStored { get; private set; }
+
         public float ScanProgress { get; private set; }
 
         public int ScanIndex { get; private set; }
@@ -140,6 +142,7 @@ namespace ClanTerritory.Features.WardMenu.Models
             int[] stoneSlots,
             bool hoeStored,
             bool pickaxeStored,
+            bool axeStored,
             float scanProgress,
             int scanIndex,
             string status)
@@ -154,6 +157,7 @@ namespace ClanTerritory.Features.WardMenu.Models
             StoneSlots = stoneSlots ?? new int[5];
             HoeStored = hoeStored;
             PickaxeStored = pickaxeStored;
+            AxeStored = axeStored;
             ScanProgress = scanProgress;
             ScanIndex = scanIndex;
             Status = status;
@@ -170,6 +174,7 @@ namespace ClanTerritory.Features.WardMenu.Models
                 0,
                 new int[5],
                 new int[5],
+                false,
                 false,
                 false,
                 0f,
