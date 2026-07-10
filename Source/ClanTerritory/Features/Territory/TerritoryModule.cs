@@ -7340,6 +7340,28 @@ namespace ClanTerritory.Features.Economy
         }
     }
 
+
+    internal sealed class EconomyMenuState
+    {
+        public bool Available;
+        public string StatusText;
+        public string GuildId;
+        public string GuildName;
+        public string TerritoryGuildName;
+        public long Balance;
+        public long DepositedTotal;
+        public long WithdrawnTotal;
+        public long UpkeepPaidTotal;
+        public long TributeReceivedTotal;
+        public long TransferSentTotal;
+        public long TransferReceivedTotal;
+        public bool CanDeposit;
+        public bool CanWithdraw;
+        public bool CanPayUpkeep;
+        public bool CanTransfer;
+        public int DefaultAmount;
+    }
+
     internal sealed class EconomyModule :
         IInitializable,
         IDisposableModule
@@ -7429,6 +7451,424 @@ namespace ClanTerritory.Features.Economy
             }
 
             return account.Balance;
+        }
+
+        public EconomyMenuState BuildMenuState(PrivateArea privateArea, Player player)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            EconomyMenuState state = new EconomyMenuState();
+            state.Available = false;
+            state.StatusText = "";
+            state.GuildId = "";
+            state.GuildName = "";
+            state.TerritoryGuildName = "";
+            state.DefaultAmount = DefaultTerritoryUpkeepCoins;
+
+            if (player == null)
+            {
+                state.StatusText = CtLocalization.Get("ct.economy.command.no_player");
+                return state;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                state.StatusText = CtLocalization.Get("ct.economy.command.no_guilds");
+                return state;
+            }
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+            string guildName;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) ||
+                string.IsNullOrEmpty(guildId))
+            {
+                state.StatusText = CtLocalization.Get("ct.economy.command.no_guild");
+                return state;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) ||
+                string.IsNullOrEmpty(guildName))
+            {
+                guildName = guildId;
+            }
+
+            EconomyAccount account = GetOrCreateAccount(guildId, guildName);
+
+            bool leader = guildService.IsPlayerGuildLeader(playerId);
+            string territoryGuildId;
+            string territoryGuildName;
+
+            bool territoryGuildKnown =
+                TryGetTerritoryGuild(
+                    privateArea,
+                    player,
+                    out territoryGuildId,
+                    out territoryGuildName);
+
+            state.Available = true;
+            state.GuildId = guildId;
+            state.GuildName = account.DisplayName;
+            state.TerritoryGuildName = territoryGuildKnown ? territoryGuildName : "";
+            state.Balance = account.Balance;
+            state.DepositedTotal = account.DepositedTotal;
+            state.WithdrawnTotal = account.WithdrawnTotal;
+            state.UpkeepPaidTotal = account.UpkeepPaidTotal;
+            state.TributeReceivedTotal = account.TributeReceivedTotal;
+            state.TransferSentTotal = account.TransferSentTotal;
+            state.TransferReceivedTotal = account.TransferReceivedTotal;
+            state.CanDeposit = true;
+            state.CanWithdraw = leader;
+            state.CanTransfer = leader;
+            state.CanPayUpkeep =
+                leader &&
+                territoryGuildKnown &&
+                string.Equals(
+                    territoryGuildId,
+                    guildId,
+                    StringComparison.OrdinalIgnoreCase);
+
+            return state;
+        }
+
+        public bool RequestDepositCoins(PrivateArea privateArea, Player player, int amount)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.server_only"));
+                return false;
+            }
+
+            if (!IsValidAmount(amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return false;
+            }
+
+            EconomyAccount account;
+
+            if (!TryGetPlayerEconomyAccount(player, false, out account))
+            {
+                ShowPlayerMessage(player, ResolveLastPlayerAccountError(player));
+                return false;
+            }
+
+            Inventory inventory = player != null ? player.GetInventory() : null;
+
+            if (!TryRemoveCoins(inventory, amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Format("ct.economy.command.not_enough_coins", amount));
+                return false;
+            }
+
+            account.Balance += amount;
+            account.DepositedTotal += amount;
+            account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.deposit_success",
+                    account.DisplayName,
+                    amount,
+                    account.Balance);
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Economy] UI deposit. Guild: " + account.DisplayName + ", amount: " + amount + ", balance: " + account.Balance);
+            return true;
+        }
+
+        public bool RequestWithdrawCoins(PrivateArea privateArea, Player player, int amount)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.server_only"));
+                return false;
+            }
+
+            if (!IsValidAmount(amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return false;
+            }
+
+            EconomyAccount account;
+
+            if (!TryGetPlayerEconomyAccount(player, true, out account))
+            {
+                ShowPlayerMessage(player, ResolveLastPlayerAccountError(player));
+                return false;
+            }
+
+            if (account.Balance < amount)
+            {
+                ShowPlayerMessage(
+                    player,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_balance",
+                        account.Balance,
+                        amount));
+
+                return false;
+            }
+
+            if (!TrySpawnCoinsForPlayer(player, amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.withdraw_failed"));
+                return false;
+            }
+
+            account.Balance -= amount;
+            account.WithdrawnTotal += amount;
+            account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.withdraw_success",
+                    account.DisplayName,
+                    amount,
+                    account.Balance);
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Economy] UI withdraw. Guild: " + account.DisplayName + ", amount: " + amount + ", balance: " + account.Balance);
+            return true;
+        }
+
+        public bool RequestPayCurrentTerritoryUpkeep(PrivateArea privateArea, Player player, int amount)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.server_only"));
+                return false;
+            }
+
+            if (!IsValidAmount(amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return false;
+            }
+
+            if (player == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_player"));
+                return false;
+            }
+
+            if (privateArea == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_current_territory"));
+                return false;
+            }
+
+            string territoryGuildId;
+            string territoryGuildName;
+
+            if (!TryGetTerritoryGuild(privateArea, player, out territoryGuildId, out territoryGuildName))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_territory_guild"));
+                return false;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_guilds"));
+                return false;
+            }
+
+            long playerId = player.GetPlayerID();
+            string playerGuildId;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out playerGuildId) ||
+                string.IsNullOrEmpty(playerGuildId) ||
+                !string.Equals(playerGuildId, territoryGuildId, StringComparison.OrdinalIgnoreCase))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.not_territory_guild_member"));
+                return false;
+            }
+
+            if (!guildService.IsPlayerGuildLeader(playerId))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.leader_only"));
+                return false;
+            }
+
+            EconomyAccount payerAccount =
+                GetOrCreateAccount(
+                    territoryGuildId,
+                    territoryGuildName);
+
+            if (payerAccount.Balance < amount)
+            {
+                ShowPlayerMessage(
+                    player,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_upkeep_balance",
+                        payerAccount.DisplayName,
+                        payerAccount.Balance,
+                        amount));
+
+                return false;
+            }
+
+            int tributeAmount = 0;
+            EconomyAccount tributeAccount = null;
+
+            BiomeDominionService biomeDominionService;
+            BiomeDominionRecord dominion;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService != null &&
+                biomeDominionService.TryGetVassalStatus(privateArea, out dominion) &&
+                dominion != null &&
+                !string.IsNullOrEmpty(dominion.GuildId) &&
+                !string.Equals(dominion.GuildId, territoryGuildId, StringComparison.OrdinalIgnoreCase))
+            {
+                tributeAmount =
+                    Mathf.Clamp(
+                        amount * VassalTributePercent / 100,
+                        0,
+                        amount);
+
+                if (tributeAmount > 0)
+                {
+                    tributeAccount =
+                        GetOrCreateAccount(
+                            dominion.GuildId,
+                            dominion.DisplayName);
+
+                    tributeAccount.Balance += tributeAmount;
+                    tributeAccount.TributeReceivedTotal += tributeAmount;
+                    tributeAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                }
+            }
+
+            payerAccount.Balance -= amount;
+            payerAccount.UpkeepPaidTotal += amount;
+            payerAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            if (tributeAccount != null && tributeAmount > 0)
+            {
+                string tributeMessage =
+                    CtLocalization.Format(
+                        "ct.economy.command.upkeep_vassal_success",
+                        payerAccount.DisplayName,
+                        amount,
+                        tributeAmount,
+                        tributeAccount.DisplayName,
+                        payerAccount.Balance,
+                        tributeAccount.Balance);
+
+                ShowPlayerMessage(player, tributeMessage);
+                ModLog.Info("[Economy] UI upkeep with tribute. Guild: " + payerAccount.DisplayName + ", amount: " + amount + ", tribute: " + tributeAmount);
+                return true;
+            }
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.upkeep_success",
+                    payerAccount.DisplayName,
+                    amount,
+                    payerAccount.Balance);
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Economy] UI upkeep. Guild: " + payerAccount.DisplayName + ", amount: " + amount + ", balance: " + payerAccount.Balance);
+            return true;
+        }
+
+        public bool RequestTransferToGuild(Player player, string targetGuildName, int amount)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.server_only"));
+                return false;
+            }
+
+            if (!IsValidAmount(amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetGuildName))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.transfer_usage"));
+                return false;
+            }
+
+            EconomyAccount senderAccount;
+
+            if (!TryGetPlayerEconomyAccount(player, true, out senderAccount))
+            {
+                ShowPlayerMessage(player, ResolveLastPlayerAccountError(player));
+                return false;
+            }
+
+            if (senderAccount.Balance < amount)
+            {
+                ShowPlayerMessage(
+                    player,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_balance",
+                        senderAccount.Balance,
+                        amount));
+
+                return false;
+            }
+
+            EconomyAccount targetAccount;
+
+            if (!TryFindAccountByNameOrId(targetGuildName, out targetAccount))
+            {
+                ShowPlayerMessage(
+                    player,
+                    CtLocalization.Format(
+                        "ct.economy.command.unknown_target_guild",
+                        targetGuildName));
+
+                return false;
+            }
+
+            if (string.Equals(
+                    senderAccount.GuildId,
+                    targetAccount.GuildId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.transfer_self"));
+                return false;
+            }
+
+            senderAccount.Balance -= amount;
+            senderAccount.TransferSentTotal += amount;
+            senderAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            targetAccount.Balance += amount;
+            targetAccount.TransferReceivedTotal += amount;
+            targetAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.transfer_success",
+                    senderAccount.DisplayName,
+                    targetAccount.DisplayName,
+                    amount,
+                    senderAccount.Balance,
+                    targetAccount.Balance);
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Economy] UI guild transfer. From: " + senderAccount.DisplayName + ", to: " + targetAccount.DisplayName + ", amount: " + amount);
+            return true;
         }
 
         private void RegisterCommands()
@@ -8201,6 +8641,53 @@ namespace ClanTerritory.Features.Economy
                 return null;
 
             return zNetView.GetZDO();
+        }
+
+        private bool TryGetTerritoryGuild(
+            PrivateArea privateArea,
+            Player player,
+            out string guildId,
+            out string guildName)
+        {
+            guildId = "";
+            guildName = "";
+
+            if (privateArea == null)
+                return false;
+
+            if (player != null)
+            {
+                TerritoryGuildAccess.SyncWardGuildFromPlayer(
+                    privateArea,
+                    player,
+                    true);
+            }
+
+            ZDO zdo = GetEconomyZdo(privateArea);
+
+            if (zdo == null)
+                return false;
+
+            string wardId = zdo.m_uid.ToString();
+
+            if (!TerritoryGuildAccess.TryGetWardGuildId(wardId, out guildId) ||
+                string.IsNullOrEmpty(guildId))
+            {
+                return false;
+            }
+
+            if (!TerritoryGuildAccess.TryGetWardGuildName(wardId, out guildName) ||
+                string.IsNullOrEmpty(guildName))
+            {
+                guildName = guildId;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidAmount(int amount)
+        {
+            return amount > 0 && amount <= 1000000;
         }
 
         private bool TryFindAccountByNameOrId(

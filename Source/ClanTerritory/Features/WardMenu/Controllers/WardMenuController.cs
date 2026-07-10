@@ -3,6 +3,7 @@ using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Features.WardMenu.Actions;
 using ClanTerritory.Features.WardMenu.Models;
 using ClanTerritory.Features.WardMenu.UI;
+using ClanTerritory.Localization;
 using ClanTerritory.Utils;
 
 namespace ClanTerritory.Features.WardMenu.Controllers
@@ -25,12 +26,24 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private Player _currentPlayer;
         private string _currentTerritoryName = "";
         private WardMenuTab _currentTab;
+        private TextInputMode _textInputMode;
+
+        private enum TextInputMode
+        {
+            None,
+            RenameTerritory,
+            EconomyDeposit,
+            EconomyWithdraw,
+            EconomyUpkeep,
+            EconomyTransfer
+        }
 
         private enum WardMenuTab
         {
             Overview,
             Ward,
             Territory,
+            Economy,
             BiomeDominion,
             Terraforming
         }
@@ -71,6 +84,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 ShowWard,
                 ShowTerritory,
                 ShowBiomeDominion,
+                ShowEconomy,
                 ShowTerraforming,
                 RequestOpenTreasuryChest,
                 RequestToggleProtection,
@@ -98,6 +112,10 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestDecreaseBiomeDoorAutoCloseSeconds,
                 RequestIncreaseBiomeDoorAutoCloseSeconds,
                 RequestToggleBiomeStructureDamageProtection,
+                RequestEconomyDepositDialog,
+                RequestEconomyWithdrawDialog,
+                RequestEconomyUpkeepDialog,
+                RequestEconomyTransferDialog,
                 CloseByInput,
                 CloseByDistance);
 
@@ -165,11 +183,48 @@ namespace ClanTerritory.Features.WardMenu.Controllers
 
         public string GetText()
         {
+            if (_textInputMode == TextInputMode.EconomyDeposit ||
+                _textInputMode == TextInputMode.EconomyWithdraw ||
+                _textInputMode == TextInputMode.EconomyUpkeep)
+            {
+                return "10";
+            }
+
+            if (_textInputMode == TextInputMode.EconomyTransfer)
+                return "";
+
             return _currentTerritoryName;
         }
 
         public void SetText(string text)
         {
+            TextInputMode mode = _textInputMode;
+            _textInputMode = TextInputMode.None;
+
+            if (mode == TextInputMode.EconomyDeposit)
+            {
+                RequestEconomyDeposit(text);
+                return;
+            }
+
+            if (mode == TextInputMode.EconomyWithdraw)
+            {
+                RequestEconomyWithdraw(text);
+                return;
+            }
+
+            if (mode == TextInputMode.EconomyUpkeep)
+            {
+                RequestEconomyUpkeep(text);
+                return;
+            }
+
+            if (mode == TextInputMode.EconomyTransfer)
+            {
+                RequestEconomyTransfer(text);
+                return;
+            }
+
             RequestRenameTerritory(text);
         }
 
@@ -380,6 +435,180 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 "AddTerraformingStoneSlot");
         }
 
+        public void RequestEconomyDepositDialog()
+        {
+            RequestEconomyAmountDialog(
+                TextInputMode.EconomyDeposit,
+                CtLocalization.Get("ct.menu.economy.deposit_prompt"));
+        }
+
+        public void RequestEconomyWithdrawDialog()
+        {
+            RequestEconomyAmountDialog(
+                TextInputMode.EconomyWithdraw,
+                CtLocalization.Get("ct.menu.economy.withdraw_prompt"));
+        }
+
+        public void RequestEconomyUpkeepDialog()
+        {
+            RequestEconomyAmountDialog(
+                TextInputMode.EconomyUpkeep,
+                CtLocalization.Get("ct.menu.economy.upkeep_prompt"));
+        }
+
+        public void RequestEconomyTransferDialog()
+        {
+            if (TextInput.instance == null)
+            {
+                ModLog.Debug("[WardMenuController] Economy transfer dialog ignored. TextInput is null: " + _currentWardId);
+                return;
+            }
+
+            _view.Hide();
+            _textInputMode = TextInputMode.EconomyTransfer;
+            TextInput.instance.RequestText(this, CtLocalization.Get("ct.menu.economy.transfer_prompt"), 80);
+            ModLog.Debug("[WardMenuController] Economy transfer dialog opened: " + _currentWardId);
+        }
+
+        private void RequestEconomyAmountDialog(TextInputMode mode, string title)
+        {
+            if (TextInput.instance == null)
+            {
+                ModLog.Debug("[WardMenuController] Economy amount dialog ignored. TextInput is null: " + _currentWardId);
+                return;
+            }
+
+            _view.Hide();
+            _textInputMode = mode;
+            TextInput.instance.RequestText(this, title, 12);
+            ModLog.Debug("[WardMenuController] Economy amount dialog opened: " + mode + ", ward: " + _currentWardId);
+        }
+
+        private void RequestEconomyDeposit(string amountText)
+        {
+            int amount;
+
+            if (!TryParseEconomyAmount(amountText, out amount))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.DepositEconomyCoins(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    amount),
+                "EconomyDeposit");
+        }
+
+        private void RequestEconomyWithdraw(string amountText)
+        {
+            int amount;
+
+            if (!TryParseEconomyAmount(amountText, out amount))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.WithdrawEconomyCoins(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    amount),
+                "EconomyWithdraw");
+        }
+
+        private void RequestEconomyUpkeep(string amountText)
+        {
+            int amount;
+
+            if (!TryParseEconomyAmount(amountText, out amount))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.PayEconomyUpkeep(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    amount),
+                "EconomyUpkeep");
+        }
+
+        private void RequestEconomyTransfer(string value)
+        {
+            string targetGuildName;
+            int amount;
+
+            if (!TryParseEconomyTransfer(value, out targetGuildName, out amount))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.economy.command.transfer_usage"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.TransferEconomyCoins(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    targetGuildName,
+                    amount),
+                "EconomyTransfer");
+        }
+
+        private static bool TryParseEconomyAmount(string value, out int amount)
+        {
+            amount = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            if (!int.TryParse(value.Trim(), out amount))
+                return false;
+
+            return amount > 0 && amount <= 1000000;
+        }
+
+        private static bool TryParseEconomyTransfer(string value, out string targetGuildName, out int amount)
+        {
+            targetGuildName = "";
+            amount = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            string[] parts = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts == null || parts.Length < 2)
+                return false;
+
+            if (!int.TryParse(parts[parts.Length - 1], out amount) ||
+                amount <= 0 ||
+                amount > 1000000)
+            {
+                return false;
+            }
+
+            targetGuildName = string.Join(" ", parts, 0, parts.Length - 1);
+            return !string.IsNullOrWhiteSpace(targetGuildName);
+        }
+
+        private static void ShowPlayerMessage(string message)
+        {
+            if (Player.m_localPlayer == null || string.IsNullOrEmpty(message))
+                return;
+
+            Player.m_localPlayer.Message(
+                MessageHud.MessageType.Center,
+                message);
+        }
+
         public void RequestRenameTerritoryDialog()
         {
             if (!IsCurrentPlayerWardCreator())
@@ -395,6 +624,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             }
 
             _view.Hide();
+            _textInputMode = TextInputMode.RenameTerritory;
             TextInput.instance.RequestText(this, "Territory name", TerritoryNameCharacterLimit);
             ModLog.Debug("[WardMenuController] Rename dialog opened: " + _currentWardId);
         }
@@ -438,6 +668,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             _view.ShowBiomeDominionPanel();
         }
 
+        private void ShowEconomy()
+        {
+            _currentTab = WardMenuTab.Economy;
+            _view.ShowEconomyPanel();
+        }
+
         private void ShowTerraforming()
         {
             _currentTab = WardMenuTab.Terraforming;
@@ -461,6 +697,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (_currentTab == WardMenuTab.BiomeDominion)
             {
                 _view.ShowBiomeDominionPanel();
+                return;
+            }
+
+            if (_currentTab == WardMenuTab.Economy)
+            {
+                _view.ShowEconomyPanel();
                 return;
             }
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
 using ClanTerritory.Features.BiomeDominion;
+using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.TerritoryNaming.Services;
@@ -92,11 +93,17 @@ namespace ClanTerritory.Features.WardMenu.Builders
                     privateArea,
                     player);
 
+            WardMenuEconomySection economySection =
+                BuildEconomySection(
+                    privateArea,
+                    player);
+
             WardMenuModel model = new WardMenuModel(
                 wardSection,
                 territorySection,
                 terraformingSection,
-                biomeDominionSection);
+                biomeDominionSection,
+                economySection);
 
             ModLog.Debug(
                 "[WardMenu] Ward territory model created: " + wardId +
@@ -111,12 +118,54 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ", biome: " + biomeDominionSection.BiomeName +
                 ", biomeClaimed: " + biomeDominionSection.Claimed +
                 ", biomeCanManage: " + biomeDominionSection.CanManage +
+                ", economyAvailable: " + economySection.Available +
+                ", economyBalance: " + economySection.Balance +
                 ", terraformingEnabled: " + terraformingSection.Enabled +
                 ", territoryName: " + territorySection.Name +
                 ", runtimeActive: " + territorySection.RuntimeActive +
                 ", permitted: " + wardSection.PermittedPlayers.Count);
 
             return model;
+        }
+
+
+        private static WardMenuEconomySection BuildEconomySection(
+            PrivateArea privateArea,
+            Player player)
+        {
+            EconomyService economyService;
+
+            if (!ServiceContainer.TryGet<EconomyService>(out economyService) ||
+                economyService == null)
+            {
+                return WardMenuEconomySection.Unavailable();
+            }
+
+            EconomyMenuState state =
+                economyService.BuildMenuState(
+                    privateArea,
+                    player);
+
+            if (state == null)
+                return WardMenuEconomySection.Unavailable();
+
+            return new WardMenuEconomySection(
+                state.Available,
+                state.StatusText,
+                state.GuildName,
+                state.TerritoryGuildName,
+                state.Balance,
+                state.DepositedTotal,
+                state.WithdrawnTotal,
+                state.UpkeepPaidTotal,
+                state.TributeReceivedTotal,
+                state.TransferSentTotal,
+                state.TransferReceivedTotal,
+                state.CanDeposit,
+                state.CanWithdraw,
+                state.CanPayUpkeep,
+                state.CanTransfer,
+                state.DefaultAmount);
         }
 
         private static WardMenuBiomeDominionSection BuildBiomeDominionSection(

@@ -13,16 +13,97 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public WardMenuBiomeDominionSection BiomeDominion { get; private set; }
 
+        public WardMenuEconomySection Economy { get; private set; }
+
         public WardMenuModel(
             WardMenuWardSection ward,
             WardMenuTerritorySection territory,
             WardMenuTerraformingSection terraforming,
-            WardMenuBiomeDominionSection biomeDominion)
+            WardMenuBiomeDominionSection biomeDominion,
+            WardMenuEconomySection economy)
         {
             Ward = ward;
             Territory = territory;
             Terraforming = terraforming;
             BiomeDominion = biomeDominion;
+            Economy = economy;
+        }
+    }
+
+    internal sealed class WardMenuEconomySection
+    {
+        public bool Available { get; private set; }
+        public string StatusText { get; private set; }
+        public string GuildName { get; private set; }
+        public string TerritoryGuildName { get; private set; }
+        public long Balance { get; private set; }
+        public long DepositedTotal { get; private set; }
+        public long WithdrawnTotal { get; private set; }
+        public long UpkeepPaidTotal { get; private set; }
+        public long TributeReceivedTotal { get; private set; }
+        public long TransferSentTotal { get; private set; }
+        public long TransferReceivedTotal { get; private set; }
+        public bool CanDeposit { get; private set; }
+        public bool CanWithdraw { get; private set; }
+        public bool CanPayUpkeep { get; private set; }
+        public bool CanTransfer { get; private set; }
+        public int DefaultAmount { get; private set; }
+
+        public WardMenuEconomySection(
+            bool available,
+            string statusText,
+            string guildName,
+            string territoryGuildName,
+            long balance,
+            long depositedTotal,
+            long withdrawnTotal,
+            long upkeepPaidTotal,
+            long tributeReceivedTotal,
+            long transferSentTotal,
+            long transferReceivedTotal,
+            bool canDeposit,
+            bool canWithdraw,
+            bool canPayUpkeep,
+            bool canTransfer,
+            int defaultAmount)
+        {
+            Available = available;
+            StatusText = statusText ?? "";
+            GuildName = guildName ?? "";
+            TerritoryGuildName = territoryGuildName ?? "";
+            Balance = balance;
+            DepositedTotal = depositedTotal;
+            WithdrawnTotal = withdrawnTotal;
+            UpkeepPaidTotal = upkeepPaidTotal;
+            TributeReceivedTotal = tributeReceivedTotal;
+            TransferSentTotal = transferSentTotal;
+            TransferReceivedTotal = transferReceivedTotal;
+            CanDeposit = canDeposit;
+            CanWithdraw = canWithdraw;
+            CanPayUpkeep = canPayUpkeep;
+            CanTransfer = canTransfer;
+            DefaultAmount = defaultAmount;
+        }
+
+        public static WardMenuEconomySection Unavailable()
+        {
+            return new WardMenuEconomySection(
+                false,
+                "",
+                "",
+                "",
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                false,
+                false,
+                false,
+                false,
+                10);
         }
     }
 

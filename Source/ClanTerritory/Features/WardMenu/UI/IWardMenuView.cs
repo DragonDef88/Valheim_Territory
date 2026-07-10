@@ -13,6 +13,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showBiomeDominionAction,
+            Action showEconomyAction,
             Action showTerraformingAction,
             Action openTreasuryChestAction,
             Action toggleProtectionAction,
@@ -40,6 +41,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseBiomeDoorAutoCloseAction,
             Action increaseBiomeDoorAutoCloseAction,
             Action toggleBiomeStructureDamageProtectionAction,
+            Action economyDepositAction,
+            Action economyWithdrawAction,
+            Action economyUpkeepAction,
+            Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 
@@ -58,6 +63,8 @@ namespace ClanTerritory.Features.WardMenu.UI
         void ShowTerritoryPanel();
 
         void ShowBiomeDominionPanel();
+
+        void ShowEconomyPanel();
 
         void ShowTerraformingPanel();
     }

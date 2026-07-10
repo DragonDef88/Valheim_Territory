@@ -104,6 +104,32 @@ namespace ClanTerritory.Features.WardMenu.Actions
             PrivateArea privateArea,
             Player player);
 
+
+        bool DepositEconomyCoins(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int amount);
+
+        bool WithdrawEconomyCoins(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int amount);
+
+        bool PayEconomyUpkeep(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int amount);
+
+        bool TransferEconomyCoins(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            string targetGuildName,
+            int amount);
+
         void ToggleGuildAccess(WardId wardId);
 
         void ToggleGroupAccess(WardId wardId);

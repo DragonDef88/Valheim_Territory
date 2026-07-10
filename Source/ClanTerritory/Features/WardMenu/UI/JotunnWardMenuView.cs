@@ -22,6 +22,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private GameObject _wardPanel;
         private GameObject _territoryPanel;
         private GameObject _biomeDominionPanel;
+        private GameObject _economyPanel;
         private GameObject _terraformingPanel;
         private GameObject _terraformingStoragePanel;
 
@@ -31,6 +32,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Text _wardText;
         private Text _territoryText;
         private Text _biomeDominionText;
+        private Text _economyText;
         private Text _terraformingText;
         private Text _radiusValueText;
         private Text _doorAutoCloseValueText;
@@ -41,6 +43,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _wardButton;
         private Button _territoryButton;
         private Button _biomeDominionButton;
+        private Button _economyButton;
         private Button _terraformingButton;
         private Button _openTreasuryButton;
         private Button _closeButton;
@@ -59,6 +62,10 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _decreaseBiomeDoorAutoCloseButton;
         private Button _increaseBiomeDoorAutoCloseButton;
         private Button _toggleBiomeStructureDamageProtectionButton;
+        private Button _economyDepositButton;
+        private Button _economyWithdrawButton;
+        private Button _economyUpkeepButton;
+        private Button _economyTransferButton;
         private Button _toggleTerraformingButton;
         private Button _toggleTerraformingRunningButton;
         private Button _openTerraformingPreparationButton;
@@ -74,6 +81,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _showWardAction;
         private Action _showTerritoryAction;
         private Action _showBiomeDominionAction;
+        private Action _showEconomyAction;
         private Action _showTerraformingAction;
         private Action _openTreasuryChestAction;
         private Action _toggleProtectionAction;
@@ -101,6 +109,10 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _decreaseBiomeDoorAutoCloseAction;
         private Action _increaseBiomeDoorAutoCloseAction;
         private Action _toggleBiomeStructureDamageProtectionAction;
+        private Action _economyDepositAction;
+        private Action _economyWithdrawAction;
+        private Action _economyUpkeepAction;
+        private Action _economyTransferAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -123,6 +135,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showBiomeDominionAction,
+            Action showEconomyAction,
             Action showTerraformingAction,
             Action openTreasuryChestAction,
             Action toggleProtectionAction,
@@ -150,6 +163,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseBiomeDoorAutoCloseAction,
             Action increaseBiomeDoorAutoCloseAction,
             Action toggleBiomeStructureDamageProtectionAction,
+            Action economyDepositAction,
+            Action economyWithdrawAction,
+            Action economyUpkeepAction,
+            Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -161,6 +178,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 showWardAction,
                 showTerritoryAction,
                 showBiomeDominionAction,
+                showEconomyAction,
                 showTerraformingAction,
                 openTreasuryChestAction,
                 toggleProtectionAction,
@@ -188,6 +206,10 @@ namespace ClanTerritory.Features.WardMenu.UI
                 decreaseBiomeDoorAutoCloseAction,
                 increaseBiomeDoorAutoCloseAction,
                 toggleBiomeStructureDamageProtectionAction,
+                economyDepositAction,
+                economyWithdrawAction,
+                economyUpkeepAction,
+                economyTransferAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -297,6 +319,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardPanel = null;
             _territoryPanel = null;
             _biomeDominionPanel = null;
+            _economyPanel = null;
             _terraformingPanel = null;
             _terraformingStoragePanel = null;
 
@@ -306,6 +329,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardText = null;
             _territoryText = null;
             _biomeDominionText = null;
+            _economyText = null;
             _terraformingText = null;
             _radiusValueText = null;
             _doorAutoCloseValueText = null;
@@ -316,6 +340,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _wardButton = null;
             _territoryButton = null;
             _biomeDominionButton = null;
+            _economyButton = null;
             _terraformingButton = null;
             _openTreasuryButton = null;
             _closeButton = null;
@@ -334,6 +359,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseBiomeDoorAutoCloseButton = null;
             _increaseBiomeDoorAutoCloseButton = null;
             _toggleBiomeStructureDamageProtectionButton = null;
+            _economyDepositButton = null;
+            _economyWithdrawButton = null;
+            _economyUpkeepButton = null;
+            _economyTransferButton = null;
             _toggleTerraformingButton = null;
             _toggleTerraformingRunningButton = null;
             _openTerraformingPreparationButton = null;
@@ -366,6 +395,11 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetActivePanel(_biomeDominionPanel);
         }
 
+        public void ShowEconomyPanel()
+        {
+            SetActivePanel(_economyPanel);
+        }
+
         public void ShowTerraformingPanel()
         {
             SetActivePanel(_terraformingPanel);
@@ -376,6 +410,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action showWardAction,
             Action showTerritoryAction,
             Action showBiomeDominionAction,
+            Action showEconomyAction,
             Action showTerraformingAction,
             Action openTreasuryChestAction,
             Action toggleProtectionAction,
@@ -403,6 +438,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action decreaseBiomeDoorAutoCloseAction,
             Action increaseBiomeDoorAutoCloseAction,
             Action toggleBiomeStructureDamageProtectionAction,
+            Action economyDepositAction,
+            Action economyWithdrawAction,
+            Action economyUpkeepAction,
+            Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -410,6 +449,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = showWardAction;
             _showTerritoryAction = showTerritoryAction;
             _showBiomeDominionAction = showBiomeDominionAction;
+            _showEconomyAction = showEconomyAction;
             _showTerraformingAction = showTerraformingAction;
             _openTreasuryChestAction = openTreasuryChestAction;
             _toggleProtectionAction = toggleProtectionAction;
@@ -437,6 +477,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseBiomeDoorAutoCloseAction = decreaseBiomeDoorAutoCloseAction;
             _increaseBiomeDoorAutoCloseAction = increaseBiomeDoorAutoCloseAction;
             _toggleBiomeStructureDamageProtectionAction = toggleBiomeStructureDamageProtectionAction;
+            _economyDepositAction = economyDepositAction;
+            _economyWithdrawAction = economyWithdrawAction;
+            _economyUpkeepAction = economyUpkeepAction;
+            _economyTransferAction = economyTransferAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -447,6 +491,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _showWardAction = null;
             _showTerritoryAction = null;
             _showBiomeDominionAction = null;
+            _showEconomyAction = null;
             _showTerraformingAction = null;
             _openTreasuryChestAction = null;
             _toggleProtectionAction = null;
@@ -474,6 +519,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseBiomeDoorAutoCloseAction = null;
             _increaseBiomeDoorAutoCloseAction = null;
             _toggleBiomeStructureDamageProtectionAction = null;
+            _economyDepositAction = null;
+            _economyWithdrawAction = null;
+            _economyUpkeepAction = null;
+            _economyTransferAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -545,6 +594,9 @@ namespace ClanTerritory.Features.WardMenu.UI
                     CtLocalization.Get("ct.menu.field.doors") + ": " + FormatBiomeDoorLock(model) + "\n" +
                     CtLocalization.Get("ct.menu.field.structures") + ": " + FormatBiomeStructures(model);
             }
+
+            if (_economyText != null)
+                _economyText.text = FormatEconomy(model);
 
             _terraformingText.text =
                 CtLocalization.Get("ct.menu.leveling.title") + "\n\n" +
@@ -639,6 +691,11 @@ namespace ClanTerritory.Features.WardMenu.UI
                     ? CtLocalization.Get("ct.menu.button.pickaxe_set")
                     : CtLocalization.Get("ct.menu.button.pickaxe_slot"));
             UpdateTerraformingStorageSlots(model);
+
+            SetButtonActive(_economyDepositButton, model.Economy != null && model.Economy.CanDeposit);
+            SetButtonActive(_economyWithdrawButton, model.Economy != null && model.Economy.CanWithdraw);
+            SetButtonActive(_economyUpkeepButton, model.Economy != null && model.Economy.CanPayUpkeep);
+            SetButtonActive(_economyTransferButton, model.Economy != null && model.Economy.CanTransfer);
 
             SetButtonActive(_toggleProtectionButton, ownerMode);
             SetButtonActive(_decreaseRadiusButton, ownerMode);
@@ -752,16 +809,18 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _openTreasuryButton = CreateButton(CtLocalization.Get("ct.menu.button.treasury"), new Vector2(0f, 178f), 180f, 30f);
 
-            _overviewButton = CreateButton(CtLocalization.Get("ct.menu.tab.overview"), new Vector2(-320f, 138f), 140f, 38f);
-            _wardButton = CreateButton(CtLocalization.Get("ct.menu.tab.ward"), new Vector2(-160f, 138f), 140f, 38f);
-            _territoryButton = CreateButton(CtLocalization.Get("ct.menu.tab.territory"), new Vector2(0f, 138f), 140f, 38f);
-            _biomeDominionButton = CreateButton(CtLocalization.Get("ct.menu.tab.biome"), new Vector2(160f, 138f), 140f, 38f);
-            _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(320f, 138f), 140f, 38f);
+            _overviewButton = CreateButton(CtLocalization.Get("ct.menu.tab.overview"), new Vector2(-330f, 138f), 112f, 38f);
+            _wardButton = CreateButton(CtLocalization.Get("ct.menu.tab.ward"), new Vector2(-198f, 138f), 112f, 38f);
+            _territoryButton = CreateButton(CtLocalization.Get("ct.menu.tab.territory"), new Vector2(-66f, 138f), 112f, 38f);
+            _economyButton = CreateButton(CtLocalization.Get("ct.menu.tab.economy"), new Vector2(66f, 138f), 112f, 38f);
+            _biomeDominionButton = CreateButton(CtLocalization.Get("ct.menu.tab.biome"), new Vector2(198f, 138f), 112f, 38f);
+            _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(330f, 138f), 112f, 38f);
 
             _overviewPanel = CreatePanelRoot("OverviewPanel");
             _wardPanel = CreatePanelRoot("WardPanel");
             _territoryPanel = CreatePanelRoot("TerritoryPanel");
             _biomeDominionPanel = CreatePanelRoot("BiomeDominionPanel");
+            _economyPanel = CreatePanelRoot("EconomyPanel");
             _terraformingPanel = CreatePanelRoot("TerraformingPanel");
             _terraformingStoragePanel = CreatePanelRoot("TerraformingPreparationChest");
 
@@ -870,6 +929,24 @@ namespace ClanTerritory.Features.WardMenu.UI
             _increaseBiomeDoorAutoCloseButton = CreateButton(_biomeDominionPanel.transform, "+1", new Vector2(226f, -94f), 64f, 28f);
             _toggleBiomeStructureDamageProtectionButton = CreateButton(_biomeDominionPanel.transform, CtLocalization.Get("ct.menu.button.enable_biome_structure_protection"), new Vector2(0f, -134f), 320f, 30f);
 
+
+            _economyText = CreateLabel(
+                "",
+                new Vector2(0f, 55f),
+                18,
+                650f,
+                150f,
+                TextAnchor.UpperLeft,
+                gui.AveriaSerif,
+                gui.ValheimBeige);
+
+            _economyText.transform.SetParent(_economyPanel.transform, false);
+
+            _economyDepositButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_deposit"), new Vector2(-240f, -85f), 150f, 30f);
+            _economyWithdrawButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_withdraw"), new Vector2(-80f, -85f), 150f, 30f);
+            _economyUpkeepButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_upkeep"), new Vector2(80f, -85f), 150f, 30f);
+            _economyTransferButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_transfer"), new Vector2(240f, -85f), 150f, 30f);
+
             _terraformingText = CreateLabel(
                 "",
                 new Vector2(0f, 52f),
@@ -909,6 +986,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _overviewButton.onClick.AddListener(RequestShowOverview);
             _wardButton.onClick.AddListener(RequestShowWard);
             _territoryButton.onClick.AddListener(RequestShowTerritory);
+            _economyButton.onClick.AddListener(RequestShowEconomy);
             _biomeDominionButton.onClick.AddListener(RequestShowBiomeDominion);
             _terraformingButton.onClick.AddListener(RequestShowTerraforming);
             _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
@@ -928,6 +1006,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _decreaseBiomeDoorAutoCloseButton.onClick.AddListener(RequestDecreaseBiomeDoorAutoClose);
             _increaseBiomeDoorAutoCloseButton.onClick.AddListener(RequestIncreaseBiomeDoorAutoClose);
             _toggleBiomeStructureDamageProtectionButton.onClick.AddListener(RequestToggleBiomeStructureDamageProtection);
+            _economyDepositButton.onClick.AddListener(RequestEconomyDeposit);
+            _economyWithdrawButton.onClick.AddListener(RequestEconomyWithdraw);
+            _economyUpkeepButton.onClick.AddListener(RequestEconomyUpkeep);
+            _economyTransferButton.onClick.AddListener(RequestEconomyTransfer);
             _toggleTerraformingButton.onClick.AddListener(RequestToggleTerraforming);
             _toggleTerraformingRunningButton.onClick.AddListener(RequestToggleTerraformingRunning);
             _openTerraformingPreparationButton.onClick.AddListener(RequestShowTerraformingPreparationChest);
@@ -1127,6 +1209,9 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             if (_biomeDominionPanel != null)
                 _biomeDominionPanel.SetActive(activePanel == _biomeDominionPanel);
+
+            if (_economyPanel != null)
+                _economyPanel.SetActive(activePanel == _economyPanel);
 
             if (_terraformingPanel != null)
                 _terraformingPanel.SetActive(activePanel == _terraformingPanel);
@@ -1341,6 +1426,40 @@ namespace ClanTerritory.Features.WardMenu.UI
 
 
 
+        private static string FormatEconomy(WardMenuModel model)
+        {
+            if (model == null || model.Economy == null)
+                return CtLocalization.Get("ct.menu.value.unavailable");
+
+            WardMenuEconomySection economy = model.Economy;
+
+            if (!economy.Available)
+            {
+                return CtLocalization.Get("ct.menu.economy.title") + "\n\n" +
+                       (string.IsNullOrEmpty(economy.StatusText)
+                           ? CtLocalization.Get("ct.menu.value.unavailable")
+                           : economy.StatusText);
+            }
+
+            return CtLocalization.Get("ct.menu.economy.title") + "\n\n" +
+                   CtLocalization.Get("ct.menu.field.guild") + ": " + economy.GuildName + "\n" +
+                   CtLocalization.Get("ct.menu.field.balance") + ": " + economy.Balance + "\n" +
+                   CtLocalization.Get("ct.menu.field.territory_guild") + ": " + FormatEconomyTerritoryGuild(economy) + "\n\n" +
+                   CtLocalization.Get("ct.menu.field.deposited") + ": " + economy.DepositedTotal + "\n" +
+                   CtLocalization.Get("ct.menu.field.withdrawn") + ": " + economy.WithdrawnTotal + "\n" +
+                   CtLocalization.Get("ct.menu.field.upkeep_paid") + ": " + economy.UpkeepPaidTotal + "\n" +
+                   CtLocalization.Get("ct.menu.field.tribute_received") + ": " + economy.TributeReceivedTotal + "\n" +
+                   CtLocalization.Get("ct.menu.field.transfers") + ": " + economy.TransferSentTotal + " / " + economy.TransferReceivedTotal;
+        }
+
+        private static string FormatEconomyTerritoryGuild(WardMenuEconomySection economy)
+        {
+            if (economy == null || string.IsNullOrEmpty(economy.TerritoryGuildName))
+                return CtLocalization.Get("ct.menu.value.none");
+
+            return economy.TerritoryGuildName;
+        }
+
         private static string FormatBiomeDominionOverview(WardMenuModel model)
         {
             if (model == null || model.BiomeDominion == null)
@@ -1475,6 +1594,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_showTerraformingAction != null)
                 _showTerraformingAction();
+        }
+
+        private void RequestShowEconomy()
+        {
+            if (_showEconomyAction != null)
+                _showEconomyAction();
         }
 
         private void RequestOpenTreasuryChest()
@@ -1646,6 +1771,30 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_toggleBiomeStructureDamageProtectionAction != null)
                 _toggleBiomeStructureDamageProtectionAction();
+        }
+
+        private void RequestEconomyDeposit()
+        {
+            if (_economyDepositAction != null)
+                _economyDepositAction();
+        }
+
+        private void RequestEconomyWithdraw()
+        {
+            if (_economyWithdrawAction != null)
+                _economyWithdrawAction();
+        }
+
+        private void RequestEconomyUpkeep()
+        {
+            if (_economyUpkeepAction != null)
+                _economyUpkeepAction();
+        }
+
+        private void RequestEconomyTransfer()
+        {
+            if (_economyTransferAction != null)
+                _economyTransferAction();
         }
 
         private void RequestCloseByInput()

@@ -2,6 +2,7 @@ using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.BiomeDominion;
+using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
@@ -229,6 +230,59 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 nextValue);
         }
 
+
+        public bool DepositEconomyCoins(WardId wardId, PrivateArea privateArea, Player player, int amount)
+        {
+            EconomyService economyService;
+
+            if (!TryGetEconomyService("DepositEconomyCoins", wardId, out economyService))
+                return false;
+
+            return economyService.RequestDepositCoins(
+                privateArea,
+                player,
+                amount);
+        }
+
+        public bool WithdrawEconomyCoins(WardId wardId, PrivateArea privateArea, Player player, int amount)
+        {
+            EconomyService economyService;
+
+            if (!TryGetEconomyService("WithdrawEconomyCoins", wardId, out economyService))
+                return false;
+
+            return economyService.RequestWithdrawCoins(
+                privateArea,
+                player,
+                amount);
+        }
+
+        public bool PayEconomyUpkeep(WardId wardId, PrivateArea privateArea, Player player, int amount)
+        {
+            EconomyService economyService;
+
+            if (!TryGetEconomyService("PayEconomyUpkeep", wardId, out economyService))
+                return false;
+
+            return economyService.RequestPayCurrentTerritoryUpkeep(
+                privateArea,
+                player,
+                amount);
+        }
+
+        public bool TransferEconomyCoins(WardId wardId, PrivateArea privateArea, Player player, string targetGuildName, int amount)
+        {
+            EconomyService economyService;
+
+            if (!TryGetEconomyService("TransferEconomyCoins", wardId, out economyService))
+                return false;
+
+            return economyService.RequestTransferToGuild(
+                player,
+                targetGuildName,
+                amount);
+        }
+
         public void ToggleGuildAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGuildAccess requested: " + wardId);
@@ -237,6 +291,21 @@ namespace ClanTerritory.Features.WardMenu.Actions
         public void ToggleGroupAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGroupAccess requested: " + wardId);
+        }
+
+        private static bool TryGetEconomyService(
+            string actionName,
+            WardId wardId,
+            out EconomyService economyService)
+        {
+            if (ServiceContainer.TryGet<EconomyService>(out economyService) &&
+                economyService != null)
+            {
+                return true;
+            }
+
+            ModLog.Debug("[WardMenuActions] " + actionName + " ignored. EconomyService is null: " + wardId);
+            return false;
         }
 
         private static bool TryGetBiomeDominionService(
