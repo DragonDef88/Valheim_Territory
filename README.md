@@ -363,6 +363,35 @@ Docs/Research/Valheim/
 Clan Territory развивается как модульная gameplay-платформа для территорий, guild-aware правил, persistent storage и автоматизированных world workers в Valheim.
 
 
+
+### Guild Diplomacy
+
+Первый слой дипломатии между Guilds guild:
+
+```text
+/ctdip list
+/ctdip status <guild>
+/ctdip ally <guild>
+/ctdip enemy <guild>
+/ctdip vassal <guild>
+/ctdip neutral <guild>
+/ctdip set ally|enemy|vassal|neutral <guild>
+```
+
+Алиас:
+
+```text
+/ctdiplomacy ...
+```
+
+Отношения сохраняются отдельно по миру:
+
+```text
+BepInEx/config/ClanTerritory/worlds/<world>.diplomacy.txt
+```
+
+На этом этапе дипломатия только сохраняет и показывает отношения. Автоматическое влияние на двери, структуру, налоги и доступ будет подключаться отдельными безопасными шагами.
+
 ## Ward menu: Clan overview
 
 Если ward привязан к Guilds guild, вкладка Overview показывает строку клана и кнопку `Clan`.

@@ -9250,3 +9250,980 @@ namespace ClanTerritory.Features.Economy
     }
 }
 
+
+namespace ClanTerritory.Features.Diplomacy
+{
+    internal enum DiplomacyRelationKind
+    {
+        Neutral,
+        Ally,
+        Enemy,
+        Vassal
+    }
+
+    internal sealed class DiplomacyRelationRecord
+    {
+        public string SourceGuildId;
+        public string SourceGuildName;
+        public string TargetGuildId;
+        public string TargetGuildName;
+        public DiplomacyRelationKind Relation;
+        public string UpdatedAtUtc;
+    }
+
+    internal sealed class DiplomacyModule :
+        IInitializable,
+        IDisposableModule
+    {
+        private DiplomacyService _service;
+
+        public void Initialize()
+        {
+            _service = new DiplomacyService();
+            _service.Initialize();
+
+            ServiceContainer.Register<DiplomacyService>(_service);
+
+            ModLog.Info("[Diplomacy] Module initialized.");
+        }
+
+        public void Shutdown()
+        {
+            if (_service != null)
+                _service.Shutdown();
+
+            _service = null;
+
+            ModLog.Info("[Diplomacy] Module shutdown.");
+        }
+    }
+
+    internal sealed class DiplomacyService
+    {
+        private const string FileSuffix = ".diplomacy.txt";
+
+        private readonly Dictionary<string, DiplomacyRelationRecord> _relations =
+            new Dictionary<string, DiplomacyRelationRecord>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly PersistenceFileSystem _fileSystem =
+            new PersistenceFileSystem();
+
+        private string _loadedWorldName = "";
+        private bool _commandsRegistered;
+
+        public void Initialize()
+        {
+            _fileSystem.EnsureDirectories();
+            EnsureLoadedForCurrentWorld();
+
+            if (!_commandsRegistered)
+            {
+                RegisterCommands();
+                _commandsRegistered = true;
+            }
+
+            ModLog.Info("[Diplomacy] Service initialized. Relations: " + _relations.Count);
+        }
+
+        public void Shutdown()
+        {
+            Save();
+            _relations.Clear();
+            _loadedWorldName = "";
+            ModLog.Info("[Diplomacy] Service shutdown.");
+        }
+
+        public bool TryGetRelation(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName,
+            out DiplomacyRelationKind relation)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            relation = DiplomacyRelationKind.Neutral;
+
+            DiplomacyRelationRecord record;
+
+            if (!TryFindRelationRecord(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName,
+                    out record) ||
+                record == null)
+            {
+                return false;
+            }
+
+            relation = record.Relation;
+            return true;
+        }
+
+        public DiplomacyRelationKind GetRelationOrNeutral(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName)
+        {
+            DiplomacyRelationKind relation;
+
+            if (TryGetRelation(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName,
+                    out relation))
+            {
+                return relation;
+            }
+
+            return DiplomacyRelationKind.Neutral;
+        }
+
+        public bool AreAllies(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName)
+        {
+            return GetRelationOrNeutral(
+                       sourceGuildId,
+                       sourceGuildName,
+                       targetGuildId,
+                       targetGuildName) == DiplomacyRelationKind.Ally;
+        }
+
+        public bool AreEnemies(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName)
+        {
+            return GetRelationOrNeutral(
+                       sourceGuildId,
+                       sourceGuildName,
+                       targetGuildId,
+                       targetGuildName) == DiplomacyRelationKind.Enemy;
+        }
+
+        public bool IsVassalRelation(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName)
+        {
+            return GetRelationOrNeutral(
+                       sourceGuildId,
+                       sourceGuildName,
+                       targetGuildId,
+                       targetGuildName) == DiplomacyRelationKind.Vassal;
+        }
+
+        private void RegisterCommands()
+        {
+            new Terminal.ConsoleCommand(
+                "ctdip",
+                "Clan Territory guild diplomacy commands",
+                HandleDiplomacyCommand,
+                false,
+                false,
+                false,
+                false,
+                true);
+
+            new Terminal.ConsoleCommand(
+                "ctdiplomacy",
+                "Clan Territory guild diplomacy commands",
+                HandleDiplomacyCommand,
+                false,
+                false,
+                false,
+                false,
+                true);
+        }
+
+        private object HandleDiplomacyCommand(Terminal.ConsoleEventArgs args)
+        {
+            if (args == null)
+                return false;
+
+            if (args.Length <= 1 || IsHelp(args[1]))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.help"));
+                return true;
+            }
+
+            string action = args[1].ToLowerInvariant();
+
+            if (action == "list")
+                return ListRelations(args);
+
+            if (action == "status")
+                return ShowRelationStatus(args);
+
+            if (action == "ally")
+                return SetRelationFromCommand(args, DiplomacyRelationKind.Ally, 2);
+
+            if (action == "enemy")
+                return SetRelationFromCommand(args, DiplomacyRelationKind.Enemy, 2);
+
+            if (action == "vassal")
+                return SetRelationFromCommand(args, DiplomacyRelationKind.Vassal, 2);
+
+            if (action == "neutral")
+                return SetRelationFromCommand(args, DiplomacyRelationKind.Neutral, 2);
+
+            if (action == "set")
+            {
+                if (args.Length <= 3)
+                {
+                    Reply(args, CtLocalization.Get("ct.diplomacy.command.set_usage"));
+                    return true;
+                }
+
+                DiplomacyRelationKind relation;
+
+                if (!TryParseRelation(args[2], out relation))
+                {
+                    Reply(args, CtLocalization.Get("ct.diplomacy.command.invalid_relation"));
+                    return true;
+                }
+
+                return SetRelationFromCommand(args, relation, 3);
+            }
+
+            Reply(args, CtLocalization.Get("ct.diplomacy.command.help"));
+            return true;
+        }
+
+        private object ShowRelationStatus(Terminal.ConsoleEventArgs args)
+        {
+            if (args.Length <= 2)
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.status_usage"));
+                return true;
+            }
+
+            string sourceGuildId;
+            string sourceGuildName;
+
+            if (!TryGetCurrentPlayerGuild(
+                    args,
+                    false,
+                    out sourceGuildId,
+                    out sourceGuildName))
+            {
+                return true;
+            }
+
+            string targetGuildName =
+                BuildArgumentText(
+                    args,
+                    2);
+
+            string targetGuildId =
+                NormalizeGuildLookupText(targetGuildName);
+
+            DiplomacyRelationKind relation =
+                GetRelationOrNeutral(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName);
+
+            Reply(
+                args,
+                CtLocalization.Format(
+                    "ct.diplomacy.command.status",
+                    sourceGuildName,
+                    targetGuildName,
+                    FormatRelation(relation)));
+
+            return true;
+        }
+
+        private object ListRelations(Terminal.ConsoleEventArgs args)
+        {
+            string sourceGuildId;
+            string sourceGuildName;
+
+            if (!TryGetCurrentPlayerGuild(
+                    args,
+                    false,
+                    out sourceGuildId,
+                    out sourceGuildName))
+            {
+                return true;
+            }
+
+            EnsureLoadedForCurrentWorld();
+
+            List<DiplomacyRelationRecord> ownRelations =
+                new List<DiplomacyRelationRecord>();
+
+            foreach (DiplomacyRelationRecord record in _relations.Values)
+            {
+                if (record == null)
+                    continue;
+
+                if (SameGuildIdentity(
+                        record.SourceGuildId,
+                        record.SourceGuildName,
+                        sourceGuildId,
+                        sourceGuildName))
+                {
+                    ownRelations.Add(record);
+                }
+            }
+
+            if (ownRelations.Count == 0)
+            {
+                Reply(
+                    args,
+                    CtLocalization.Format(
+                        "ct.diplomacy.command.list_empty",
+                        sourceGuildName));
+
+                return true;
+            }
+
+            ownRelations.Sort(
+                delegate(DiplomacyRelationRecord left, DiplomacyRelationRecord right)
+                {
+                    string leftName = left != null ? left.TargetGuildName : "";
+                    string rightName = right != null ? right.TargetGuildName : "";
+                    return string.Compare(leftName, rightName, StringComparison.OrdinalIgnoreCase);
+                });
+
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine(
+                CtLocalization.Format(
+                    "ct.diplomacy.command.list_header",
+                    sourceGuildName));
+
+            for (int i = 0; i < ownRelations.Count; i++)
+            {
+                DiplomacyRelationRecord record = ownRelations[i];
+
+                if (record == null)
+                    continue;
+
+                builder.Append("- ");
+                builder.Append(string.IsNullOrEmpty(record.TargetGuildName) ? record.TargetGuildId : record.TargetGuildName);
+                builder.Append(": ");
+                builder.AppendLine(FormatRelation(record.Relation));
+            }
+
+            Reply(args, builder.ToString().Trim());
+            return true;
+        }
+
+        private object SetRelationFromCommand(
+            Terminal.ConsoleEventArgs args,
+            DiplomacyRelationKind relation,
+            int targetStartIndex)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.server_only"));
+                return true;
+            }
+
+            if (args.Length <= targetStartIndex)
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.set_usage"));
+                return true;
+            }
+
+            string sourceGuildId;
+            string sourceGuildName;
+
+            if (!TryGetCurrentPlayerGuild(
+                    args,
+                    true,
+                    out sourceGuildId,
+                    out sourceGuildName))
+            {
+                return true;
+            }
+
+            string targetGuildName =
+                BuildArgumentText(
+                    args,
+                    targetStartIndex);
+
+            if (string.IsNullOrEmpty(targetGuildName))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.target_required"));
+                return true;
+            }
+
+            string targetGuildId =
+                NormalizeGuildLookupText(targetGuildName);
+
+            if (SameGuildIdentity(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.self_relation"));
+                return true;
+            }
+
+            SetRelation(
+                sourceGuildId,
+                sourceGuildName,
+                targetGuildId,
+                targetGuildName,
+                relation);
+
+            Reply(
+                args,
+                CtLocalization.Format(
+                    "ct.diplomacy.command.set_success",
+                    sourceGuildName,
+                    targetGuildName,
+                    FormatRelation(relation)));
+
+            ModLog.Info("[Diplomacy] Relation set. Source: " + sourceGuildName + ", target: " + targetGuildName + ", relation: " + relation);
+            return true;
+        }
+
+        private void SetRelation(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName,
+            DiplomacyRelationKind relation)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            string key =
+                BuildRelationKey(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName);
+
+            if (relation == DiplomacyRelationKind.Neutral)
+            {
+                _relations.Remove(key);
+                Save();
+                return;
+            }
+
+            DiplomacyRelationRecord record =
+                new DiplomacyRelationRecord();
+
+            record.SourceGuildId = NormalizeGuildIdentity(sourceGuildId, sourceGuildName);
+            record.SourceGuildName = sourceGuildName ?? record.SourceGuildId;
+            record.TargetGuildId = NormalizeGuildIdentity(targetGuildId, targetGuildName);
+            record.TargetGuildName = targetGuildName ?? record.TargetGuildId;
+            record.Relation = relation;
+            record.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            _relations[key] = record;
+
+            Save();
+        }
+
+        private bool TryGetCurrentPlayerGuild(
+            Terminal.ConsoleEventArgs args,
+            bool leaderOnly,
+            out string guildId,
+            out string guildName)
+        {
+            guildId = "";
+            guildName = "";
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.no_player"));
+                return false;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.no_guilds"));
+                return false;
+            }
+
+            long playerId = player.GetPlayerID();
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) ||
+                string.IsNullOrEmpty(guildId))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.no_guild"));
+                return false;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) ||
+                string.IsNullOrEmpty(guildName))
+            {
+                guildName = guildId;
+            }
+
+            if (leaderOnly &&
+                !guildService.IsPlayerGuildLeader(playerId))
+            {
+                Reply(args, CtLocalization.Get("ct.diplomacy.command.leader_only"));
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryFindRelationRecord(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName,
+            out DiplomacyRelationRecord record)
+        {
+            record = null;
+
+            string key =
+                BuildRelationKey(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName);
+
+            if (_relations.TryGetValue(key, out record) &&
+                record != null)
+            {
+                return true;
+            }
+
+            string normalizedSource =
+                NormalizeGuildIdentity(
+                    sourceGuildId,
+                    sourceGuildName);
+
+            string normalizedTarget =
+                NormalizeGuildIdentity(
+                    targetGuildId,
+                    targetGuildName);
+
+            foreach (DiplomacyRelationRecord candidate in _relations.Values)
+            {
+                if (candidate == null)
+                    continue;
+
+                if (SameGuildIdentity(
+                        candidate.SourceGuildId,
+                        candidate.SourceGuildName,
+                        normalizedSource,
+                        sourceGuildName) &&
+                    SameGuildIdentity(
+                        candidate.TargetGuildId,
+                        candidate.TargetGuildName,
+                        normalizedTarget,
+                        targetGuildName))
+                {
+                    record = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void EnsureLoadedForCurrentWorld()
+        {
+            string worldName = GetCurrentWorldName();
+
+            if (string.Equals(
+                    _loadedWorldName,
+                    worldName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_loadedWorldName) &&
+                !IsUnknownWorldName(_loadedWorldName))
+            {
+                Save();
+            }
+
+            _relations.Clear();
+            _loadedWorldName = worldName;
+
+            Load(worldName);
+        }
+
+        private void Load(string worldName)
+        {
+            if (IsUnknownWorldName(worldName))
+            {
+                ModLog.Debug("[Diplomacy] Load skipped: unknown world.");
+                return;
+            }
+
+            string path = GetSavePath(worldName);
+
+            if (!File.Exists(path))
+                return;
+
+            try
+            {
+                string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+                DiplomacyRelationRecord record = null;
+
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string line = lines[i];
+
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        AddLoadedRecord(record);
+                        record = null;
+                        continue;
+                    }
+
+                    if (line.StartsWith("[Relation]", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddLoadedRecord(record);
+                        record = new DiplomacyRelationRecord();
+                        continue;
+                    }
+
+                    if (record == null)
+                        continue;
+
+                    int equalsIndex = line.IndexOf('=');
+
+                    if (equalsIndex <= 0)
+                        continue;
+
+                    string key = line.Substring(0, equalsIndex).Trim();
+                    string value = Unescape(line.Substring(equalsIndex + 1).Trim());
+
+                    ApplyLoadedValue(record, key, value);
+                }
+
+                AddLoadedRecord(record);
+                ModLog.Info("[Diplomacy] Relations loaded. World: " + worldName + ", count: " + _relations.Count);
+            }
+            catch (Exception exception)
+            {
+                ModLog.Warning("[Diplomacy] Load failed: " + exception.Message);
+            }
+        }
+
+        private void AddLoadedRecord(DiplomacyRelationRecord record)
+        {
+            if (record == null ||
+                string.IsNullOrEmpty(record.SourceGuildId) ||
+                string.IsNullOrEmpty(record.TargetGuildId))
+            {
+                return;
+            }
+
+            string key =
+                BuildRelationKey(
+                    record.SourceGuildId,
+                    record.SourceGuildName,
+                    record.TargetGuildId,
+                    record.TargetGuildName);
+
+            if (record.Relation == DiplomacyRelationKind.Neutral)
+                return;
+
+            _relations[key] = record;
+        }
+
+        private static void ApplyLoadedValue(
+            DiplomacyRelationRecord record,
+            string key,
+            string value)
+        {
+            if (record == null)
+                return;
+
+            if (string.Equals(key, "SourceGuildId", StringComparison.OrdinalIgnoreCase))
+                record.SourceGuildId = NormalizeGuildLookupText(value);
+
+            if (string.Equals(key, "SourceGuildName", StringComparison.OrdinalIgnoreCase))
+                record.SourceGuildName = value;
+
+            if (string.Equals(key, "TargetGuildId", StringComparison.OrdinalIgnoreCase))
+                record.TargetGuildId = NormalizeGuildLookupText(value);
+
+            if (string.Equals(key, "TargetGuildName", StringComparison.OrdinalIgnoreCase))
+                record.TargetGuildName = value;
+
+            if (string.Equals(key, "Relation", StringComparison.OrdinalIgnoreCase))
+            {
+                DiplomacyRelationKind relation;
+
+                if (TryParseRelation(value, out relation))
+                    record.Relation = relation;
+            }
+
+            if (string.Equals(key, "UpdatedAtUtc", StringComparison.OrdinalIgnoreCase))
+                record.UpdatedAtUtc = value;
+        }
+
+        private void Save()
+        {
+            if (IsUnknownWorldName(_loadedWorldName))
+                return;
+
+            try
+            {
+                _fileSystem.EnsureDirectories();
+
+                string path = GetSavePath(_loadedWorldName);
+                StringBuilder builder = new StringBuilder();
+
+                foreach (DiplomacyRelationRecord record in _relations.Values)
+                {
+                    if (record == null ||
+                        record.Relation == DiplomacyRelationKind.Neutral)
+                    {
+                        continue;
+                    }
+
+                    builder.AppendLine("[Relation]");
+                    builder.Append("SourceGuildId=");
+                    builder.AppendLine(Escape(record.SourceGuildId));
+                    builder.Append("SourceGuildName=");
+                    builder.AppendLine(Escape(record.SourceGuildName));
+                    builder.Append("TargetGuildId=");
+                    builder.AppendLine(Escape(record.TargetGuildId));
+                    builder.Append("TargetGuildName=");
+                    builder.AppendLine(Escape(record.TargetGuildName));
+                    builder.Append("Relation=");
+                    builder.AppendLine(record.Relation.ToString());
+                    builder.Append("UpdatedAtUtc=");
+                    builder.AppendLine(Escape(record.UpdatedAtUtc));
+                    builder.AppendLine();
+                }
+
+                File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+                ModLog.Info("[Diplomacy] Relations saved. Count: " + _relations.Count);
+            }
+            catch (Exception exception)
+            {
+                ModLog.Warning("[Diplomacy] Save failed: " + exception.Message);
+            }
+        }
+
+        private string GetSavePath(string worldName)
+        {
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return Path.Combine(_fileSystem.WorldsDirectory, worldName + FileSuffix);
+        }
+
+        private string GetCurrentWorldName()
+        {
+            string worldName = "Unknown";
+
+            IWorldInfoService worldInfoService;
+
+            if (ServiceContainer.TryGet<IWorldInfoService>(out worldInfoService) &&
+                worldInfoService != null)
+            {
+                worldName = worldInfoService.GetWorldName();
+            }
+
+            if (string.IsNullOrWhiteSpace(worldName))
+                worldName = "Unknown";
+
+            return worldName;
+        }
+
+        private static string BuildRelationKey(
+            string sourceGuildId,
+            string sourceGuildName,
+            string targetGuildId,
+            string targetGuildName)
+        {
+            return NormalizeGuildIdentity(sourceGuildId, sourceGuildName) +
+                   "->" +
+                   NormalizeGuildIdentity(targetGuildId, targetGuildName);
+        }
+
+        private static bool SameGuildIdentity(
+            string firstGuildId,
+            string firstGuildName,
+            string secondGuildId,
+            string secondGuildName)
+        {
+            string first =
+                NormalizeGuildIdentity(
+                    firstGuildId,
+                    firstGuildName);
+
+            string second =
+                NormalizeGuildIdentity(
+                    secondGuildId,
+                    secondGuildName);
+
+            return !string.IsNullOrEmpty(first) &&
+                   string.Equals(
+                       first,
+                       second,
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeGuildIdentity(
+            string guildId,
+            string guildName)
+        {
+            string normalizedId =
+                NormalizeGuildLookupText(guildId);
+
+            if (!string.IsNullOrEmpty(normalizedId))
+                return normalizedId;
+
+            return NormalizeGuildLookupText(guildName);
+        }
+
+        private static string NormalizeGuildLookupText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            return value.Trim().ToLowerInvariant();
+        }
+
+        private static string BuildArgumentText(
+            Terminal.ConsoleEventArgs args,
+            int startIndex)
+        {
+            if (args == null || args.Length <= startIndex)
+                return "";
+
+            StringBuilder builder = new StringBuilder();
+
+            for (int i = startIndex; i < args.Length; i++)
+            {
+                if (i > startIndex)
+                    builder.Append(' ');
+
+                builder.Append(args[i]);
+            }
+
+            return builder.ToString().Trim();
+        }
+
+        private static bool TryParseRelation(
+            string value,
+            out DiplomacyRelationKind relation)
+        {
+            relation = DiplomacyRelationKind.Neutral;
+
+            if (string.IsNullOrEmpty(value))
+                return false;
+
+            string normalized = value.Trim().ToLowerInvariant();
+
+            if (normalized == "ally" || normalized == "allied" || normalized == "friend" || normalized == "friends" || normalized == "союз" || normalized == "союзник")
+            {
+                relation = DiplomacyRelationKind.Ally;
+                return true;
+            }
+
+            if (normalized == "enemy" || normalized == "war" || normalized == "hostile" || normalized == "враг" || normalized == "война")
+            {
+                relation = DiplomacyRelationKind.Enemy;
+                return true;
+            }
+
+            if (normalized == "vassal" || normalized == "subject" || normalized == "вассал")
+            {
+                relation = DiplomacyRelationKind.Vassal;
+                return true;
+            }
+
+            if (normalized == "neutral" || normalized == "none" || normalized == "нейтрал" || normalized == "нейтрально")
+            {
+                relation = DiplomacyRelationKind.Neutral;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string FormatRelation(DiplomacyRelationKind relation)
+        {
+            if (relation == DiplomacyRelationKind.Ally)
+                return CtLocalization.Get("ct.diplomacy.relation.ally");
+
+            if (relation == DiplomacyRelationKind.Enemy)
+                return CtLocalization.Get("ct.diplomacy.relation.enemy");
+
+            if (relation == DiplomacyRelationKind.Vassal)
+                return CtLocalization.Get("ct.diplomacy.relation.vassal");
+
+            return CtLocalization.Get("ct.diplomacy.relation.neutral");
+        }
+
+        private static bool TryGetGuildService(out IGuildService guildService)
+        {
+            guildService = null;
+
+            return ServiceContainer.TryGet<IGuildService>(out guildService) &&
+                   guildService != null &&
+                   guildService.IsAvailable;
+        }
+
+        private static bool IsServerOrSinglePlayer()
+        {
+            return ZNet.instance == null || ZNet.instance.IsServer();
+        }
+
+        private static bool IsUnknownWorldName(string worldName)
+        {
+            return string.IsNullOrWhiteSpace(worldName) ||
+                   string.Equals(worldName, "Unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsHelp(string value)
+        {
+            return string.Equals(value, "help", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(value, "?", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string Escape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\", "\\\\").Replace("\n", "\\n").Replace("]", "\\]");
+        }
+
+        private static string Unescape(string value)
+        {
+            if (value == null)
+                return "";
+
+            return value.Replace("\\]", "]").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+
+        private static void Reply(Terminal.ConsoleEventArgs args, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (args != null && args.Context != null)
+                args.Context.AddString(message);
+
+            if (Player.m_localPlayer != null)
+                Player.m_localPlayer.Message(MessageHud.MessageType.Center, message);
+        }
+    }
+}
+
