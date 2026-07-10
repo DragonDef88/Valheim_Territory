@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
 using ClanTerritory.Features.BiomeDominion;
+using ClanTerritory.Features.Diplomacy;
 using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.Runtime.Registry;
 using ClanTerritory.Features.Territory.Services;
@@ -102,12 +103,16 @@ namespace ClanTerritory.Features.WardMenu.Builders
                     privateArea,
                     player);
 
+            WardMenuDiplomacySection diplomacySection =
+                BuildDiplomacySection(player);
+
             WardMenuModel model = new WardMenuModel(
                 wardSection,
                 territorySection,
                 terraformingSection,
                 biomeDominionSection,
-                economySection);
+                economySection,
+                diplomacySection);
 
             ModLog.Debug(
                 "[WardMenu] Ward territory model created: " + wardId +
@@ -132,6 +137,31 @@ namespace ClanTerritory.Features.WardMenu.Builders
             return model;
         }
 
+
+
+        private static WardMenuDiplomacySection BuildDiplomacySection(Player player)
+        {
+            DiplomacyService diplomacyService;
+
+            if (!ServiceContainer.TryGet<DiplomacyService>(out diplomacyService) ||
+                diplomacyService == null)
+            {
+                return WardMenuDiplomacySection.Unavailable();
+            }
+
+            DiplomacyMenuState state =
+                diplomacyService.BuildMenuState(player);
+
+            if (state == null)
+                return WardMenuDiplomacySection.Unavailable();
+
+            return new WardMenuDiplomacySection(
+                state.Available,
+                state.StatusText,
+                state.GuildName,
+                state.RelationsText,
+                state.CanChange);
+        }
 
         private static WardMenuEconomySection BuildEconomySection(
             PrivateArea privateArea,

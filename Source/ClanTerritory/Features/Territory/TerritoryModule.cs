@@ -9271,6 +9271,16 @@ namespace ClanTerritory.Features.Diplomacy
         public string UpdatedAtUtc;
     }
 
+    internal sealed class DiplomacyMenuState
+    {
+        public bool Available;
+        public string StatusText;
+        public string GuildId;
+        public string GuildName;
+        public string RelationsText;
+        public bool CanChange;
+    }
+
     internal sealed class DiplomacyModule :
         IInitializable,
         IDisposableModule
@@ -9421,6 +9431,145 @@ namespace ClanTerritory.Features.Diplomacy
                        targetGuildName) == DiplomacyRelationKind.Vassal;
         }
 
+        public DiplomacyMenuState BuildMenuState(Player player)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            DiplomacyMenuState state = new DiplomacyMenuState();
+            state.Available = false;
+            state.StatusText = "";
+            state.GuildId = "";
+            state.GuildName = "";
+            state.RelationsText = "";
+            state.CanChange = false;
+
+            if (player == null)
+            {
+                state.StatusText = CtLocalization.Get("ct.diplomacy.command.no_player");
+                return state;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                state.StatusText = CtLocalization.Get("ct.diplomacy.command.no_guilds");
+                return state;
+            }
+
+            long playerId = player.GetPlayerID();
+            string guildId;
+            string guildName;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out guildId) ||
+                string.IsNullOrEmpty(guildId))
+            {
+                state.StatusText = CtLocalization.Get("ct.diplomacy.command.no_guild");
+                return state;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out guildName) ||
+                string.IsNullOrEmpty(guildName))
+            {
+                guildName = guildId;
+            }
+
+            state.Available = true;
+            state.GuildId = guildId;
+            state.GuildName = guildName;
+            state.CanChange = guildService.IsPlayerGuildLeader(playerId);
+            state.RelationsText =
+                BuildRelationsText(
+                    guildId,
+                    guildName);
+
+            return state;
+        }
+
+        public bool RequestSetRelation(Player player, string targetGuildName, DiplomacyRelationKind relation)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.server_only"));
+                return false;
+            }
+
+            if (player == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.no_player"));
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetGuildName))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.target_required"));
+                return false;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.no_guilds"));
+                return false;
+            }
+
+            long playerId = player.GetPlayerID();
+            string sourceGuildId;
+            string sourceGuildName;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out sourceGuildId) ||
+                string.IsNullOrEmpty(sourceGuildId))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.no_guild"));
+                return false;
+            }
+
+            if (!guildService.TryGetPlayerGuildName(playerId, out sourceGuildName) ||
+                string.IsNullOrEmpty(sourceGuildName))
+            {
+                sourceGuildName = sourceGuildId;
+            }
+
+            if (!guildService.IsPlayerGuildLeader(playerId))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.leader_only"));
+                return false;
+            }
+
+            string targetGuildId =
+                NormalizeGuildLookupText(targetGuildName);
+
+            if (SameGuildIdentity(
+                    sourceGuildId,
+                    sourceGuildName,
+                    targetGuildId,
+                    targetGuildName))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.diplomacy.command.self_relation"));
+                return false;
+            }
+
+            SetRelation(
+                sourceGuildId,
+                sourceGuildName,
+                targetGuildId,
+                targetGuildName,
+                relation);
+
+            string message =
+                CtLocalization.Format(
+                    "ct.diplomacy.command.set_success",
+                    sourceGuildName,
+                    targetGuildName,
+                    FormatRelation(relation));
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Diplomacy] UI relation set. Source: " + sourceGuildName + ", target: " + targetGuildName + ", relation: " + relation);
+            return true;
+        }
+
+
         private void RegisterCommands()
         {
             new Terminal.ConsoleCommand(
@@ -9542,6 +9691,63 @@ namespace ClanTerritory.Features.Diplomacy
                     FormatRelation(relation)));
 
             return true;
+        }
+
+
+        private string BuildRelationsText(string sourceGuildId, string sourceGuildName)
+        {
+            EnsureLoadedForCurrentWorld();
+
+            List<DiplomacyRelationRecord> ownRelations =
+                new List<DiplomacyRelationRecord>();
+
+            foreach (DiplomacyRelationRecord record in _relations.Values)
+            {
+                if (record == null)
+                    continue;
+
+                if (SameGuildIdentity(
+                        record.SourceGuildId,
+                        record.SourceGuildName,
+                        sourceGuildId,
+                        sourceGuildName))
+                {
+                    ownRelations.Add(record);
+                }
+            }
+
+            if (ownRelations.Count == 0)
+            {
+                return CtLocalization.Get("ct.diplomacy.menu.no_relations");
+            }
+
+            ownRelations.Sort(
+                delegate(DiplomacyRelationRecord left, DiplomacyRelationRecord right)
+                {
+                    string leftName = left != null ? left.TargetGuildName : "";
+                    string rightName = right != null ? right.TargetGuildName : "";
+                    return string.Compare(leftName, rightName, StringComparison.OrdinalIgnoreCase);
+                });
+
+            StringBuilder builder = new StringBuilder();
+
+            for (int i = 0; i < ownRelations.Count; i++)
+            {
+                DiplomacyRelationRecord record = ownRelations[i];
+
+                if (record == null)
+                    continue;
+
+                if (builder.Length > 0)
+                    builder.Append('\n');
+
+                builder.Append("- ");
+                builder.Append(string.IsNullOrEmpty(record.TargetGuildName) ? record.TargetGuildId : record.TargetGuildName);
+                builder.Append(": ");
+                builder.Append(FormatRelation(record.Relation));
+            }
+
+            return builder.ToString();
         }
 
         private object ListRelations(Terminal.ConsoleEventArgs args)
@@ -10211,6 +10417,20 @@ namespace ClanTerritory.Features.Diplomacy
                 return "";
 
             return value.Replace("\\]", "]").Replace("\\n", "\n").Replace("\\\\", "\\");
+        }
+
+        private static void ShowPlayerMessage(Player player, string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            if (player == null)
+                player = Player.m_localPlayer;
+
+            if (player == null)
+                return;
+
+            player.Message(MessageHud.MessageType.Center, message);
         }
 
         private static void Reply(Terminal.ConsoleEventArgs args, string message)

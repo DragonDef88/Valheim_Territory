@@ -1,4 +1,5 @@
 using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Features.Diplomacy;
 
 namespace ClanTerritory.Features.WardMenu.Actions
 {
@@ -135,6 +136,12 @@ namespace ClanTerritory.Features.WardMenu.Actions
             Player player,
             string targetGuildName,
             int amount);
+
+        bool SetDiplomacyRelation(
+            WardId wardId,
+            Player player,
+            string targetGuildName,
+            DiplomacyRelationKind relation);
 
         void ToggleGuildAccess(WardId wardId);
 

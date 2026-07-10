@@ -2,6 +2,7 @@ using ClanTerritory.Domain.Identifiers;
 using ClanTerritory.Core;
 using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.BiomeDominion;
+using ClanTerritory.Features.Diplomacy;
 using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.TerritoryNaming.Services;
 using ClanTerritory.Integration.Guilds;
@@ -304,6 +305,24 @@ namespace ClanTerritory.Features.WardMenu.Actions
         public void ToggleGroupAccess(WardId wardId)
         {
             ModLog.Debug("[WardMenuActions] ToggleGroupAccess requested: " + wardId);
+        }
+
+
+        public bool SetDiplomacyRelation(WardId wardId, Player player, string targetGuildName, DiplomacyRelationKind relation)
+        {
+            DiplomacyService diplomacyService;
+
+            if (!ServiceContainer.TryGet<DiplomacyService>(out diplomacyService) ||
+                diplomacyService == null)
+            {
+                ModLog.Debug("[WardMenuActions] SetDiplomacyRelation ignored. DiplomacyService is null: " + wardId);
+                return false;
+            }
+
+            return diplomacyService.RequestSetRelation(
+                player,
+                targetGuildName,
+                relation);
         }
 
         private static bool TryGetEconomyService(

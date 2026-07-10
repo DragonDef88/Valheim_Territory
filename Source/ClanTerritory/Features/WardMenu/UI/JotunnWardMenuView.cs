@@ -50,6 +50,10 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _terraformingButton;
         private Button _openTreasuryButton;
         private Button _clanOverviewButton;
+        private Button _diplomacyAllyButton;
+        private Button _diplomacyEnemyButton;
+        private Button _diplomacyVassalButton;
+        private Button _diplomacyNeutralButton;
         private Button _closeButton;
         private Button _toggleProtectionButton;
         private Button _toggleSelfPermissionButton;
@@ -119,6 +123,10 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _economyUpkeepAction;
         private Action _economyTaxAction;
         private Action _economyTransferAction;
+        private Action _diplomacyAllyAction;
+        private Action _diplomacyEnemyAction;
+        private Action _diplomacyVassalAction;
+        private Action _diplomacyNeutralAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
 
@@ -174,6 +182,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyUpkeepAction,
             Action economyTaxAction,
             Action economyTransferAction,
+            Action diplomacyAllyAction,
+            Action diplomacyEnemyAction,
+            Action diplomacyVassalAction,
+            Action diplomacyNeutralAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -218,6 +230,10 @@ namespace ClanTerritory.Features.WardMenu.UI
                 economyUpkeepAction,
                 economyTaxAction,
                 economyTransferAction,
+                diplomacyAllyAction,
+                diplomacyEnemyAction,
+                diplomacyVassalAction,
+                diplomacyNeutralAction,
                 closeByInputAction,
                 closeByDistanceAction);
 
@@ -352,6 +368,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _terraformingButton = null;
             _openTreasuryButton = null;
             _clanOverviewButton = null;
+            _diplomacyAllyButton = null;
+            _diplomacyEnemyButton = null;
+            _diplomacyVassalButton = null;
+            _diplomacyNeutralButton = null;
             _closeButton = null;
             _toggleProtectionButton = null;
             _toggleSelfPermissionButton = null;
@@ -453,6 +473,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyUpkeepAction,
             Action economyTaxAction,
             Action economyTransferAction,
+            Action diplomacyAllyAction,
+            Action diplomacyEnemyAction,
+            Action diplomacyVassalAction,
+            Action diplomacyNeutralAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
         {
@@ -493,6 +517,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyUpkeepAction = economyUpkeepAction;
             _economyTaxAction = economyTaxAction;
             _economyTransferAction = economyTransferAction;
+            _diplomacyAllyAction = diplomacyAllyAction;
+            _diplomacyEnemyAction = diplomacyEnemyAction;
+            _diplomacyVassalAction = diplomacyVassalAction;
+            _diplomacyNeutralAction = diplomacyNeutralAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
         }
@@ -536,6 +564,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyUpkeepAction = null;
             _economyTaxAction = null;
             _economyTransferAction = null;
+            _diplomacyAllyAction = null;
+            _diplomacyEnemyAction = null;
+            _diplomacyVassalAction = null;
+            _diplomacyNeutralAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
         }
@@ -593,6 +625,8 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonActive(
                 _clanOverviewButton,
                 HasClanInfo(model));
+
+            SetDiplomacyButtonsActive(model);
 
             _wardText.text =
                 CtLocalization.Get("ct.menu.ward.title") + "\n\n" +
@@ -866,9 +900,14 @@ namespace ClanTerritory.Features.WardMenu.UI
             _clanOverviewButton = CreateButton(
                 _overviewPanel.transform,
                 CtLocalization.Get("ct.menu.button.clan"),
-                new Vector2(0f, -170f),
+                new Vector2(0f, -218f),
                 220f,
-                32f);
+                30f);
+
+            _diplomacyAllyButton = CreateButton(_overviewPanel.transform, CtLocalization.Get("ct.menu.diplomacy.ally"), new Vector2(-255f, -178f), 120f, 30f);
+            _diplomacyEnemyButton = CreateButton(_overviewPanel.transform, CtLocalization.Get("ct.menu.diplomacy.enemy"), new Vector2(-85f, -178f), 120f, 30f);
+            _diplomacyVassalButton = CreateButton(_overviewPanel.transform, CtLocalization.Get("ct.menu.diplomacy.vassal"), new Vector2(85f, -178f), 120f, 30f);
+            _diplomacyNeutralButton = CreateButton(_overviewPanel.transform, CtLocalization.Get("ct.menu.diplomacy.neutral"), new Vector2(255f, -178f), 120f, 30f);
 
             _wardText = CreateLabel(
                 "",
@@ -1026,6 +1065,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             _terraformingButton.onClick.AddListener(RequestShowTerraforming);
             _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
             _clanOverviewButton.onClick.AddListener(RequestToggleClanOverview);
+            _diplomacyAllyButton.onClick.AddListener(RequestDiplomacyAlly);
+            _diplomacyEnemyButton.onClick.AddListener(RequestDiplomacyEnemy);
+            _diplomacyVassalButton.onClick.AddListener(RequestDiplomacyVassal);
+            _diplomacyNeutralButton.onClick.AddListener(RequestDiplomacyNeutral);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
             _toggleSelfPermissionButton.onClick.AddListener(RequestToggleSelfPermission);
@@ -1503,7 +1546,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             return CtLocalization.Get("ct.menu.clan.description_title") + "\n\n" +
                    model.Ward.CreatorGuildName + "\n\n" +
-                   description;
+                   description + "\n\n" +
+                   FormatDiplomacy(model);
         }
 
         private static bool HasClanInfo(WardMenuModel model)
@@ -1511,6 +1555,46 @@ namespace ClanTerritory.Features.WardMenu.UI
             return model != null &&
                    model.Ward != null &&
                    !string.IsNullOrEmpty(model.Ward.CreatorGuildName);
+        }
+
+
+        private static string FormatDiplomacy(WardMenuModel model)
+        {
+            if (model == null || model.Diplomacy == null)
+                return CtLocalization.Get("ct.menu.diplomacy.title") + "\n" +
+                       CtLocalization.Get("ct.menu.value.unavailable");
+
+            WardMenuDiplomacySection diplomacy = model.Diplomacy;
+
+            if (!diplomacy.Available)
+            {
+                return CtLocalization.Get("ct.menu.diplomacy.title") + "\n" +
+                       (string.IsNullOrEmpty(diplomacy.StatusText)
+                           ? CtLocalization.Get("ct.menu.value.unavailable")
+                           : diplomacy.StatusText);
+            }
+
+            return CtLocalization.Get("ct.menu.diplomacy.title") + "\n" +
+                   CtLocalization.Get("ct.menu.field.guild") + ": " + diplomacy.GuildName + "\n" +
+                   CtLocalization.Get("ct.menu.diplomacy.relations") + ":\n" +
+                   (string.IsNullOrEmpty(diplomacy.RelationsText)
+                       ? CtLocalization.Get("ct.diplomacy.menu.no_relations")
+                       : diplomacy.RelationsText);
+        }
+
+        private void SetDiplomacyButtonsActive(WardMenuModel model)
+        {
+            bool active =
+                _showClanOverview &&
+                model != null &&
+                model.Diplomacy != null &&
+                model.Diplomacy.Available &&
+                model.Diplomacy.CanChange;
+
+            SetButtonActive(_diplomacyAllyButton, active);
+            SetButtonActive(_diplomacyEnemyButton, active);
+            SetButtonActive(_diplomacyVassalButton, active);
+            SetButtonActive(_diplomacyNeutralButton, active);
         }
 
 
@@ -1659,6 +1743,30 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (text != null)
                 text.gameObject.SetActive(active);
+        }
+
+        private void RequestDiplomacyAlly()
+        {
+            if (_diplomacyAllyAction != null)
+                _diplomacyAllyAction();
+        }
+
+        private void RequestDiplomacyEnemy()
+        {
+            if (_diplomacyEnemyAction != null)
+                _diplomacyEnemyAction();
+        }
+
+        private void RequestDiplomacyVassal()
+        {
+            if (_diplomacyVassalAction != null)
+                _diplomacyVassalAction();
+        }
+
+        private void RequestDiplomacyNeutral()
+        {
+            if (_diplomacyNeutralAction != null)
+                _diplomacyNeutralAction();
         }
 
         private void RequestShowOverview()

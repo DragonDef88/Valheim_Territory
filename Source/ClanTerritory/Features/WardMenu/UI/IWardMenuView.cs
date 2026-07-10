@@ -46,6 +46,10 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyUpkeepAction,
             Action economyTaxAction,
             Action economyTransferAction,
+            Action diplomacyAllyAction,
+            Action diplomacyEnemyAction,
+            Action diplomacyVassalAction,
+            Action diplomacyNeutralAction,
             Action closeByInputAction,
             Action closeByDistanceAction);
 

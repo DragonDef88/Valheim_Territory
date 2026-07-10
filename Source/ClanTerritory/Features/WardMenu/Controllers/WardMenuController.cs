@@ -1,5 +1,6 @@
 using System;
 using ClanTerritory.Domain.Identifiers;
+using ClanTerritory.Features.Diplomacy;
 using ClanTerritory.Features.WardMenu.Actions;
 using ClanTerritory.Features.WardMenu.Models;
 using ClanTerritory.Features.WardMenu.UI;
@@ -25,6 +26,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         private PrivateArea _currentPrivateArea;
         private Player _currentPlayer;
         private string _currentTerritoryName = "";
+        private DiplomacyRelationKind _pendingDiplomacyRelation = DiplomacyRelationKind.Neutral;
         private WardMenuTab _currentTab;
         private TextInputMode _textInputMode;
 
@@ -36,7 +38,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             EconomyWithdraw,
             EconomyUpkeep,
             EconomyTax,
-            EconomyTransfer
+            EconomyTransfer,
+            DiplomacyTargetGuild
         }
 
         private enum WardMenuTab
@@ -118,6 +121,10 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestEconomyUpkeepDialog,
                 RequestEconomyTaxDialog,
                 RequestEconomyTransferDialog,
+                RequestDiplomacyAllyDialog,
+                RequestDiplomacyEnemyDialog,
+                RequestDiplomacyVassalDialog,
+                RequestDiplomacyNeutralDialog,
                 CloseByInput,
                 CloseByDistance);
 
@@ -193,7 +200,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 return "10";
             }
 
-            if (_textInputMode == TextInputMode.EconomyTransfer)
+            if (_textInputMode == TextInputMode.EconomyTransfer ||
+                _textInputMode == TextInputMode.DiplomacyTargetGuild)
                 return "";
 
             return _currentTerritoryName;
@@ -231,6 +239,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (mode == TextInputMode.EconomyTransfer)
             {
                 RequestEconomyTransfer(text);
+                return;
+            }
+
+            if (mode == TextInputMode.DiplomacyTargetGuild)
+            {
+                RequestSetDiplomacyRelation(text);
                 return;
             }
 
@@ -442,6 +456,59 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             RefreshIfActionStarted(
                 _territoryActions.AddTerraformingStoneSlot(_currentWardId, _currentPrivateArea, _currentPlayer, slotIndex),
                 "AddTerraformingStoneSlot");
+        }
+
+
+        public void RequestDiplomacyAllyDialog()
+        {
+            RequestDiplomacyRelationDialog(DiplomacyRelationKind.Ally);
+        }
+
+        public void RequestDiplomacyEnemyDialog()
+        {
+            RequestDiplomacyRelationDialog(DiplomacyRelationKind.Enemy);
+        }
+
+        public void RequestDiplomacyVassalDialog()
+        {
+            RequestDiplomacyRelationDialog(DiplomacyRelationKind.Vassal);
+        }
+
+        public void RequestDiplomacyNeutralDialog()
+        {
+            RequestDiplomacyRelationDialog(DiplomacyRelationKind.Neutral);
+        }
+
+        private void RequestDiplomacyRelationDialog(DiplomacyRelationKind relation)
+        {
+            if (TextInput.instance == null)
+            {
+                ModLog.Debug("[WardMenuController] Diplomacy relation dialog ignored. TextInput is null: " + _currentWardId);
+                return;
+            }
+
+            _view.Hide();
+            _pendingDiplomacyRelation = relation;
+            _textInputMode = TextInputMode.DiplomacyTargetGuild;
+            TextInput.instance.RequestText(this, CtLocalization.Get("ct.menu.diplomacy.target_prompt"), 80);
+            ModLog.Debug("[WardMenuController] Diplomacy relation dialog opened: " + relation + ", ward: " + _currentWardId);
+        }
+
+        private void RequestSetDiplomacyRelation(string targetGuildName)
+        {
+            if (string.IsNullOrWhiteSpace(targetGuildName))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.diplomacy.command.target_required"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.SetDiplomacyRelation(
+                    _currentWardId,
+                    _currentPlayer,
+                    targetGuildName,
+                    _pendingDiplomacyRelation),
+                "DiplomacyRelation");
         }
 
         public void RequestEconomyDepositDialog()

@@ -15,18 +15,56 @@ namespace ClanTerritory.Features.WardMenu.Models
 
         public WardMenuEconomySection Economy { get; private set; }
 
+        public WardMenuDiplomacySection Diplomacy { get; private set; }
+
         public WardMenuModel(
             WardMenuWardSection ward,
             WardMenuTerritorySection territory,
             WardMenuTerraformingSection terraforming,
             WardMenuBiomeDominionSection biomeDominion,
-            WardMenuEconomySection economy)
+            WardMenuEconomySection economy,
+            WardMenuDiplomacySection diplomacy)
         {
             Ward = ward;
             Territory = territory;
             Terraforming = terraforming;
             BiomeDominion = biomeDominion;
             Economy = economy;
+            Diplomacy = diplomacy;
+        }
+    }
+
+
+    internal sealed class WardMenuDiplomacySection
+    {
+        public bool Available { get; private set; }
+        public string StatusText { get; private set; }
+        public string GuildName { get; private set; }
+        public string RelationsText { get; private set; }
+        public bool CanChange { get; private set; }
+
+        public WardMenuDiplomacySection(
+            bool available,
+            string statusText,
+            string guildName,
+            string relationsText,
+            bool canChange)
+        {
+            Available = available;
+            StatusText = statusText ?? "";
+            GuildName = guildName ?? "";
+            RelationsText = relationsText ?? "";
+            CanChange = canChange;
+        }
+
+        public static WardMenuDiplomacySection Unavailable()
+        {
+            return new WardMenuDiplomacySection(
+                false,
+                "",
+                "",
+                "",
+                false);
         }
     }
 

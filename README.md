@@ -397,3 +397,19 @@ BepInEx/config/ClanTerritory/worlds/<world>.diplomacy.txt
 Если ward привязан к Guilds guild, вкладка Overview показывает строку клана и кнопку `Clan`.
 
 Кнопка `Clan` переключает центральный блок Overview на описание клана, если Guilds API отдаёт description. Если описание недоступно, показывается аккуратная заглушка без ошибки.
+
+
+## Ward menu: Clan diplomacy
+
+В Clan-панели ward menu теперь показываются дипломатические отношения текущей guild.
+
+Если текущий игрок является leader guild, доступны кнопки:
+
+```text
+Ally
+Enemy
+Vassal
+Neutral
+```
+
+После нажатия кнопки открывается ввод имени целевой guild. Изменение сохраняется через `DiplomacyService` в world diplomacy file.
