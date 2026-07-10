@@ -413,7 +413,7 @@ namespace ClanTerritory.Integration.Guilds
                 return Player.m_localPlayer;
             }
 
-            Player[] players = UnityEngine.Object.FindObjectsOfType<Player>();
+            Player[] players = UnityEngine.Object.FindObjectsByType<Player>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < players.Length; i++)
             {

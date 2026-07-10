@@ -677,7 +677,7 @@ namespace ClanTerritory.Features.Territory.Services
             List<Container> territoryContainers =
                 GetRealContainersInTerritory(privateArea);
 
-            ItemDrop[] drops = UnityEngine.Object.FindObjectsOfType<ItemDrop>();
+            ItemDrop[] drops = UnityEngine.Object.FindObjectsByType<ItemDrop>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < drops.Length && absorbedItems < ResourceAbsorbMaxItemsPerWard; i++)
             {
@@ -983,7 +983,7 @@ namespace ClanTerritory.Features.Territory.Services
             if (privateArea == null)
                 return result;
 
-            Container[] containers = UnityEngine.Object.FindObjectsOfType<Container>();
+            Container[] containers = UnityEngine.Object.FindObjectsByType<Container>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < containers.Length && result.Count < ResourceAbsorbMaxContainersPerWard; i++)
             {
@@ -2479,7 +2479,7 @@ namespace ClanTerritory.Features.Territory.Services
             Collider bestCollider = null;
             float bestDistance = float.MaxValue;
 
-            TreeBase[] trees = UnityEngine.Object.FindObjectsOfType<TreeBase>();
+            TreeBase[] trees = UnityEngine.Object.FindObjectsByType<TreeBase>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < trees.Length; i++)
             {
@@ -2520,7 +2520,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            TreeLog[] logs = UnityEngine.Object.FindObjectsOfType<TreeLog>();
+            TreeLog[] logs = UnityEngine.Object.FindObjectsByType<TreeLog>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < logs.Length; i++)
             {
@@ -2561,7 +2561,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            Destructible[] destructibles = UnityEngine.Object.FindObjectsOfType<Destructible>();
+            Destructible[] destructibles = UnityEngine.Object.FindObjectsByType<Destructible>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < destructibles.Length; i++)
             {
@@ -2690,7 +2690,7 @@ namespace ClanTerritory.Features.Territory.Services
             MineRock5 bestMineRock5 = null;
             float bestDistance = float.MaxValue;
 
-            MineRock[] mineRocks = UnityEngine.Object.FindObjectsOfType<MineRock>();
+            MineRock[] mineRocks = UnityEngine.Object.FindObjectsByType<MineRock>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < mineRocks.Length; i++)
             {
@@ -2730,7 +2730,7 @@ namespace ClanTerritory.Features.Territory.Services
                 }
             }
 
-            MineRock5[] mineRocks5 = UnityEngine.Object.FindObjectsOfType<MineRock5>();
+            MineRock5[] mineRocks5 = UnityEngine.Object.FindObjectsByType<MineRock5>(UnityEngine.FindObjectsSortMode.None);
 
             for (int i = 0; i < mineRocks5.Length; i++)
             {
