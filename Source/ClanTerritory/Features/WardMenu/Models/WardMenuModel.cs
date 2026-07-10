@@ -41,11 +41,14 @@ namespace ClanTerritory.Features.WardMenu.Models
         public long WithdrawnTotal { get; private set; }
         public long UpkeepPaidTotal { get; private set; }
         public long TributeReceivedTotal { get; private set; }
+        public long TaxPaidTotal { get; private set; }
+        public long TaxReceivedTotal { get; private set; }
         public long TransferSentTotal { get; private set; }
         public long TransferReceivedTotal { get; private set; }
         public bool CanDeposit { get; private set; }
         public bool CanWithdraw { get; private set; }
         public bool CanPayUpkeep { get; private set; }
+        public bool CanPayTax { get; private set; }
         public bool CanTransfer { get; private set; }
         public int DefaultAmount { get; private set; }
 
@@ -59,11 +62,14 @@ namespace ClanTerritory.Features.WardMenu.Models
             long withdrawnTotal,
             long upkeepPaidTotal,
             long tributeReceivedTotal,
+            long taxPaidTotal,
+            long taxReceivedTotal,
             long transferSentTotal,
             long transferReceivedTotal,
             bool canDeposit,
             bool canWithdraw,
             bool canPayUpkeep,
+            bool canPayTax,
             bool canTransfer,
             int defaultAmount)
         {
@@ -76,11 +82,14 @@ namespace ClanTerritory.Features.WardMenu.Models
             WithdrawnTotal = withdrawnTotal;
             UpkeepPaidTotal = upkeepPaidTotal;
             TributeReceivedTotal = tributeReceivedTotal;
+            TaxPaidTotal = taxPaidTotal;
+            TaxReceivedTotal = taxReceivedTotal;
             TransferSentTotal = transferSentTotal;
             TransferReceivedTotal = transferReceivedTotal;
             CanDeposit = canDeposit;
             CanWithdraw = canWithdraw;
             CanPayUpkeep = canPayUpkeep;
+            CanPayTax = canPayTax;
             CanTransfer = canTransfer;
             DefaultAmount = defaultAmount;
         }
@@ -99,6 +108,9 @@ namespace ClanTerritory.Features.WardMenu.Models
                 0L,
                 0L,
                 0L,
+                0L,
+                0L,
+                false,
                 false,
                 false,
                 false,

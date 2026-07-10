@@ -7325,6 +7325,8 @@ namespace ClanTerritory.Features.Economy
         public long WithdrawnTotal;
         public long UpkeepPaidTotal;
         public long TributeReceivedTotal;
+        public long TaxPaidTotal;
+        public long TaxReceivedTotal;
         public long TransferSentTotal;
         public long TransferReceivedTotal;
         public string UpdatedAtUtc;
@@ -7353,11 +7355,14 @@ namespace ClanTerritory.Features.Economy
         public long WithdrawnTotal;
         public long UpkeepPaidTotal;
         public long TributeReceivedTotal;
+        public long TaxPaidTotal;
+        public long TaxReceivedTotal;
         public long TransferSentTotal;
         public long TransferReceivedTotal;
         public bool CanDeposit;
         public bool CanWithdraw;
         public bool CanPayUpkeep;
+        public bool CanPayTax;
         public bool CanTransfer;
         public int DefaultAmount;
     }
@@ -7518,11 +7523,14 @@ namespace ClanTerritory.Features.Economy
             state.WithdrawnTotal = account.WithdrawnTotal;
             state.UpkeepPaidTotal = account.UpkeepPaidTotal;
             state.TributeReceivedTotal = account.TributeReceivedTotal;
+            state.TaxPaidTotal = account.TaxPaidTotal;
+            state.TaxReceivedTotal = account.TaxReceivedTotal;
             state.TransferSentTotal = account.TransferSentTotal;
             state.TransferReceivedTotal = account.TransferReceivedTotal;
             state.CanDeposit = true;
             state.CanWithdraw = leader;
             state.CanTransfer = leader;
+            state.CanPayTax = territoryGuildKnown;
             state.CanPayUpkeep =
                 leader &&
                 territoryGuildKnown &&
@@ -7785,6 +7793,133 @@ namespace ClanTerritory.Features.Economy
             return true;
         }
 
+        public bool RequestPayCurrentTerritoryTax(PrivateArea privateArea, Player player, int amount)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.server_only"));
+                return false;
+            }
+
+            if (!IsValidAmount(amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return false;
+            }
+
+            if (player == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_player"));
+                return false;
+            }
+
+            if (privateArea == null)
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_current_territory"));
+                return false;
+            }
+
+            string territoryGuildId;
+            string territoryGuildName;
+
+            if (!TryGetTerritoryGuild(privateArea, player, out territoryGuildId, out territoryGuildName))
+            {
+                ShowPlayerMessage(player, CtLocalization.Get("ct.economy.command.no_territory_guild"));
+                return false;
+            }
+
+            Inventory inventory = player.GetInventory();
+
+            if (!TryRemoveCoins(inventory, amount))
+            {
+                ShowPlayerMessage(player, CtLocalization.Format("ct.economy.command.not_enough_coins", amount));
+                return false;
+            }
+
+            EconomyAccount payerAccount;
+
+            if (TryGetPlayerEconomyAccount(player, false, out payerAccount) &&
+                payerAccount != null)
+            {
+                payerAccount.TaxPaidTotal += amount;
+                payerAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+            }
+
+            EconomyAccount territoryAccount =
+                GetOrCreateAccount(
+                    territoryGuildId,
+                    territoryGuildName);
+
+            int tributeAmount = 0;
+            EconomyAccount tributeAccount = null;
+
+            BiomeDominionService biomeDominionService;
+            BiomeDominionRecord dominion;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService != null &&
+                biomeDominionService.TryGetVassalStatus(privateArea, out dominion) &&
+                dominion != null &&
+                !string.IsNullOrEmpty(dominion.GuildId) &&
+                !string.Equals(dominion.GuildId, territoryGuildId, StringComparison.OrdinalIgnoreCase))
+            {
+                tributeAmount =
+                    Mathf.Clamp(
+                        amount * VassalTributePercent / 100,
+                        0,
+                        amount);
+
+                if (tributeAmount > 0)
+                {
+                    tributeAccount =
+                        GetOrCreateAccount(
+                            dominion.GuildId,
+                            dominion.DisplayName);
+
+                    tributeAccount.Balance += tributeAmount;
+                    tributeAccount.TributeReceivedTotal += tributeAmount;
+                    tributeAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                }
+            }
+
+            int territoryAmount = amount - tributeAmount;
+
+            territoryAccount.Balance += territoryAmount;
+            territoryAccount.TaxReceivedTotal += territoryAmount;
+            territoryAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            if (tributeAccount != null && tributeAmount > 0)
+            {
+                string tributeMessage =
+                    CtLocalization.Format(
+                        "ct.economy.command.tax_vassal_success",
+                        territoryAccount.DisplayName,
+                        amount,
+                        territoryAmount,
+                        tributeAmount,
+                        tributeAccount.DisplayName,
+                        territoryAccount.Balance,
+                        tributeAccount.Balance);
+
+                ShowPlayerMessage(player, tributeMessage);
+                ModLog.Info("[Economy] UI territory tax with tribute. TerritoryGuild: " + territoryAccount.DisplayName + ", amount: " + amount + ", tribute: " + tributeAmount);
+                return true;
+            }
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.tax_success",
+                    territoryAccount.DisplayName,
+                    amount,
+                    territoryAccount.Balance);
+
+            ShowPlayerMessage(player, message);
+            ModLog.Info("[Economy] UI territory tax. TerritoryGuild: " + territoryAccount.DisplayName + ", amount: " + amount + ", balance: " + territoryAccount.Balance);
+            return true;
+        }
+
         public bool RequestTransferToGuild(Player player, string targetGuildName, int amount)
         {
             if (!IsServerOrSinglePlayer())
@@ -7919,6 +8054,9 @@ namespace ClanTerritory.Features.Economy
             if (action == "upkeep" || action == "tribute")
                 return PayCurrentTerritoryUpkeep(args);
 
+            if (action == "tax" || action == "fee")
+                return PayCurrentTerritoryTax(args);
+
             if (action == "transfer" || action == "pay")
                 return TransferToGuild(args);
 
@@ -7948,6 +8086,8 @@ namespace ClanTerritory.Features.Economy
                     account.WithdrawnTotal,
                     account.UpkeepPaidTotal,
                     account.TributeReceivedTotal,
+                    account.TaxPaidTotal,
+                    account.TaxReceivedTotal,
                     account.TransferSentTotal,
                     account.TransferReceivedTotal));
 
@@ -8180,6 +8320,50 @@ namespace ClanTerritory.Features.Economy
                 senderAccount.Balance +
                 ", targetBalance: " +
                 targetAccount.Balance);
+
+            return true;
+        }
+
+        private object PayCurrentTerritoryTax(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.server_only"));
+                return true;
+            }
+
+            int amount;
+
+            if (!TryParseAmount(args, 2, out amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_player"));
+                return true;
+            }
+
+            PrivateArea privateArea = FindEconomyPrivateAreaAt(player.transform.position);
+
+            if (privateArea == null)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_current_territory"));
+                return true;
+            }
+
+            bool actionStarted =
+                RequestPayCurrentTerritoryTax(
+                    privateArea,
+                    player,
+                    amount);
+
+            if (!actionStarted)
+                Reply(args, CtLocalization.Get("ct.economy.command.tax_failed"));
 
             return true;
         }
@@ -8450,6 +8634,8 @@ namespace ClanTerritory.Features.Economy
             account.WithdrawnTotal = 0L;
             account.UpkeepPaidTotal = 0L;
             account.TributeReceivedTotal = 0L;
+            account.TaxPaidTotal = 0L;
+            account.TaxReceivedTotal = 0L;
             account.TransferSentTotal = 0L;
             account.TransferReceivedTotal = 0L;
             account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
@@ -8873,6 +9059,12 @@ namespace ClanTerritory.Features.Economy
             if (string.Equals(key, "TributeReceivedTotal", StringComparison.OrdinalIgnoreCase))
                 account.TributeReceivedTotal = ParseLong(value);
 
+            if (string.Equals(key, "TaxPaidTotal", StringComparison.OrdinalIgnoreCase))
+                account.TaxPaidTotal = ParseLong(value);
+
+            if (string.Equals(key, "TaxReceivedTotal", StringComparison.OrdinalIgnoreCase))
+                account.TaxReceivedTotal = ParseLong(value);
+
             if (string.Equals(key, "TransferSentTotal", StringComparison.OrdinalIgnoreCase))
                 account.TransferSentTotal = ParseLong(value);
 
@@ -8925,6 +9117,10 @@ namespace ClanTerritory.Features.Economy
                     builder.AppendLine(account.UpkeepPaidTotal.ToString());
                     builder.Append("TributeReceivedTotal=");
                     builder.AppendLine(account.TributeReceivedTotal.ToString());
+                    builder.Append("TaxPaidTotal=");
+                    builder.AppendLine(account.TaxPaidTotal.ToString());
+                    builder.Append("TaxReceivedTotal=");
+                    builder.AppendLine(account.TaxReceivedTotal.ToString());
                     builder.Append("TransferSentTotal=");
                     builder.AppendLine(account.TransferSentTotal.ToString());
                     builder.Append("TransferReceivedTotal=");

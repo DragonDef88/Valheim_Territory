@@ -44,6 +44,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyDepositAction,
             Action economyWithdrawAction,
             Action economyUpkeepAction,
+            Action economyTaxAction,
             Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction);

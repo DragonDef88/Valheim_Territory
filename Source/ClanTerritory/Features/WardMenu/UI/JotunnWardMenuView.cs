@@ -65,6 +65,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _economyDepositButton;
         private Button _economyWithdrawButton;
         private Button _economyUpkeepButton;
+        private Button _economyTaxButton;
         private Button _economyTransferButton;
         private Button _toggleTerraformingButton;
         private Button _toggleTerraformingRunningButton;
@@ -112,6 +113,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Action _economyDepositAction;
         private Action _economyWithdrawAction;
         private Action _economyUpkeepAction;
+        private Action _economyTaxAction;
         private Action _economyTransferAction;
         private Action _closeByInputAction;
         private Action _closeByDistanceAction;
@@ -166,6 +168,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyDepositAction,
             Action economyWithdrawAction,
             Action economyUpkeepAction,
+            Action economyTaxAction,
             Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
@@ -209,6 +212,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                 economyDepositAction,
                 economyWithdrawAction,
                 economyUpkeepAction,
+                economyTaxAction,
                 economyTransferAction,
                 closeByInputAction,
                 closeByDistanceAction);
@@ -362,6 +366,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyDepositButton = null;
             _economyWithdrawButton = null;
             _economyUpkeepButton = null;
+            _economyTaxButton = null;
             _economyTransferButton = null;
             _toggleTerraformingButton = null;
             _toggleTerraformingRunningButton = null;
@@ -441,6 +446,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             Action economyDepositAction,
             Action economyWithdrawAction,
             Action economyUpkeepAction,
+            Action economyTaxAction,
             Action economyTransferAction,
             Action closeByInputAction,
             Action closeByDistanceAction)
@@ -480,6 +486,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyDepositAction = economyDepositAction;
             _economyWithdrawAction = economyWithdrawAction;
             _economyUpkeepAction = economyUpkeepAction;
+            _economyTaxAction = economyTaxAction;
             _economyTransferAction = economyTransferAction;
             _closeByInputAction = closeByInputAction;
             _closeByDistanceAction = closeByDistanceAction;
@@ -522,6 +529,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyDepositAction = null;
             _economyWithdrawAction = null;
             _economyUpkeepAction = null;
+            _economyTaxAction = null;
             _economyTransferAction = null;
             _closeByInputAction = null;
             _closeByDistanceAction = null;
@@ -695,6 +703,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             SetButtonActive(_economyDepositButton, model.Economy != null && model.Economy.CanDeposit);
             SetButtonActive(_economyWithdrawButton, model.Economy != null && model.Economy.CanWithdraw);
             SetButtonActive(_economyUpkeepButton, model.Economy != null && model.Economy.CanPayUpkeep);
+            SetButtonActive(_economyTaxButton, model.Economy != null && model.Economy.CanPayTax);
             SetButtonActive(_economyTransferButton, model.Economy != null && model.Economy.CanTransfer);
 
             SetButtonActive(_toggleProtectionButton, ownerMode);
@@ -942,10 +951,11 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _economyText.transform.SetParent(_economyPanel.transform, false);
 
-            _economyDepositButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_deposit"), new Vector2(-240f, -85f), 150f, 30f);
-            _economyWithdrawButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_withdraw"), new Vector2(-80f, -85f), 150f, 30f);
-            _economyUpkeepButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_upkeep"), new Vector2(80f, -85f), 150f, 30f);
-            _economyTransferButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_transfer"), new Vector2(240f, -85f), 150f, 30f);
+            _economyDepositButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_deposit"), new Vector2(-280f, -85f), 120f, 30f);
+            _economyWithdrawButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_withdraw"), new Vector2(-140f, -85f), 120f, 30f);
+            _economyUpkeepButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_upkeep"), new Vector2(0f, -85f), 120f, 30f);
+            _economyTaxButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_tax"), new Vector2(140f, -85f), 120f, 30f);
+            _economyTransferButton = CreateButton(_economyPanel.transform, CtLocalization.Get("ct.menu.button.economy_transfer"), new Vector2(280f, -85f), 120f, 30f);
 
             _terraformingText = CreateLabel(
                 "",
@@ -1009,6 +1019,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyDepositButton.onClick.AddListener(RequestEconomyDeposit);
             _economyWithdrawButton.onClick.AddListener(RequestEconomyWithdraw);
             _economyUpkeepButton.onClick.AddListener(RequestEconomyUpkeep);
+            _economyTaxButton.onClick.AddListener(RequestEconomyTax);
             _economyTransferButton.onClick.AddListener(RequestEconomyTransfer);
             _toggleTerraformingButton.onClick.AddListener(RequestToggleTerraforming);
             _toggleTerraformingRunningButton.onClick.AddListener(RequestToggleTerraformingRunning);
@@ -1449,6 +1460,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                    CtLocalization.Get("ct.menu.field.withdrawn") + ": " + economy.WithdrawnTotal + "\n" +
                    CtLocalization.Get("ct.menu.field.upkeep_paid") + ": " + economy.UpkeepPaidTotal + "\n" +
                    CtLocalization.Get("ct.menu.field.tribute_received") + ": " + economy.TributeReceivedTotal + "\n" +
+                   CtLocalization.Get("ct.menu.field.taxes") + ": " + economy.TaxPaidTotal + " / " + economy.TaxReceivedTotal + "\n" +
                    CtLocalization.Get("ct.menu.field.transfers") + ": " + economy.TransferSentTotal + " / " + economy.TransferReceivedTotal;
         }
 
@@ -1789,6 +1801,12 @@ namespace ClanTerritory.Features.WardMenu.UI
         {
             if (_economyUpkeepAction != null)
                 _economyUpkeepAction();
+        }
+
+        private void RequestEconomyTax()
+        {
+            if (_economyTaxAction != null)
+                _economyTaxAction();
         }
 
         private void RequestEconomyTransfer()

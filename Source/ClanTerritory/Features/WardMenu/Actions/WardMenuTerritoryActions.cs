@@ -270,6 +270,19 @@ namespace ClanTerritory.Features.WardMenu.Actions
                 amount);
         }
 
+        public bool PayEconomyTax(WardId wardId, PrivateArea privateArea, Player player, int amount)
+        {
+            EconomyService economyService;
+
+            if (!TryGetEconomyService("PayEconomyTax", wardId, out economyService))
+                return false;
+
+            return economyService.RequestPayCurrentTerritoryTax(
+                privateArea,
+                player,
+                amount);
+        }
+
         public bool TransferEconomyCoins(WardId wardId, PrivateArea privateArea, Player player, string targetGuildName, int amount)
         {
             EconomyService economyService;

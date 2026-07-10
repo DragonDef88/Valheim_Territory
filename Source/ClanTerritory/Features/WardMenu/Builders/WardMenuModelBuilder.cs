@@ -159,11 +159,14 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 state.WithdrawnTotal,
                 state.UpkeepPaidTotal,
                 state.TributeReceivedTotal,
+                state.TaxPaidTotal,
+                state.TaxReceivedTotal,
                 state.TransferSentTotal,
                 state.TransferReceivedTotal,
                 state.CanDeposit,
                 state.CanWithdraw,
                 state.CanPayUpkeep,
+                state.CanPayTax,
                 state.CanTransfer,
                 state.DefaultAmount);
         }

@@ -123,6 +123,12 @@ namespace ClanTerritory.Features.WardMenu.Actions
             Player player,
             int amount);
 
+        bool PayEconomyTax(
+            WardId wardId,
+            PrivateArea privateArea,
+            Player player,
+            int amount);
+
         bool TransferEconomyCoins(
             WardId wardId,
             PrivateArea privateArea,

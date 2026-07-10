@@ -35,6 +35,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             EconomyDeposit,
             EconomyWithdraw,
             EconomyUpkeep,
+            EconomyTax,
             EconomyTransfer
         }
 
@@ -115,6 +116,7 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 RequestEconomyDepositDialog,
                 RequestEconomyWithdrawDialog,
                 RequestEconomyUpkeepDialog,
+                RequestEconomyTaxDialog,
                 RequestEconomyTransferDialog,
                 CloseByInput,
                 CloseByDistance);
@@ -185,7 +187,8 @@ namespace ClanTerritory.Features.WardMenu.Controllers
         {
             if (_textInputMode == TextInputMode.EconomyDeposit ||
                 _textInputMode == TextInputMode.EconomyWithdraw ||
-                _textInputMode == TextInputMode.EconomyUpkeep)
+                _textInputMode == TextInputMode.EconomyUpkeep ||
+                _textInputMode == TextInputMode.EconomyTax)
             {
                 return "10";
             }
@@ -216,6 +219,12 @@ namespace ClanTerritory.Features.WardMenu.Controllers
             if (mode == TextInputMode.EconomyUpkeep)
             {
                 RequestEconomyUpkeep(text);
+                return;
+            }
+
+            if (mode == TextInputMode.EconomyTax)
+            {
+                RequestEconomyTax(text);
                 return;
             }
 
@@ -456,6 +465,13 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                 CtLocalization.Get("ct.menu.economy.upkeep_prompt"));
         }
 
+        public void RequestEconomyTaxDialog()
+        {
+            RequestEconomyAmountDialog(
+                TextInputMode.EconomyTax,
+                CtLocalization.Get("ct.menu.economy.tax_prompt"));
+        }
+
         public void RequestEconomyTransferDialog()
         {
             if (TextInput.instance == null)
@@ -539,6 +555,25 @@ namespace ClanTerritory.Features.WardMenu.Controllers
                     _currentPlayer,
                     amount),
                 "EconomyUpkeep");
+        }
+
+        private void RequestEconomyTax(string amountText)
+        {
+            int amount;
+
+            if (!TryParseEconomyAmount(amountText, out amount))
+            {
+                ShowPlayerMessage(CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return;
+            }
+
+            RefreshIfActionStarted(
+                _territoryActions.PayEconomyTax(
+                    _currentWardId,
+                    _currentPrivateArea,
+                    _currentPlayer,
+                    amount),
+                "EconomyTax");
         }
 
         private void RequestEconomyTransfer(string value)
