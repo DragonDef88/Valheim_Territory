@@ -14,6 +14,8 @@ namespace ClanTerritory.Integration.Guilds
 
         bool TryGetGuildIcon(string guildName, out Sprite sprite);
 
+        bool TryGetGuildDescription(string guildName, out string description);
+
         bool ArePlayersInSameGuild(long firstPlayerId, long secondPlayerId);
 
         bool IsPlayerGuildLeader(long playerId);

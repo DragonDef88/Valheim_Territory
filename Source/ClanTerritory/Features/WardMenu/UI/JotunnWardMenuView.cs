@@ -16,6 +16,9 @@ namespace ClanTerritory.Features.WardMenu.UI
         private readonly List<GameObject> _permittedPlayerRowObjects =
             new List<GameObject>();
 
+        private WardMenuModel _lastModel;
+        private bool _showClanOverview;
+
         private GameObject _root;
         private GameObject _panel;
         private GameObject _overviewPanel;
@@ -46,6 +49,7 @@ namespace ClanTerritory.Features.WardMenu.UI
         private Button _economyButton;
         private Button _terraformingButton;
         private Button _openTreasuryButton;
+        private Button _clanOverviewButton;
         private Button _closeButton;
         private Button _toggleProtectionButton;
         private Button _toggleSelfPermissionButton;
@@ -347,6 +351,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyButton = null;
             _terraformingButton = null;
             _openTreasuryButton = null;
+            _clanOverviewButton = null;
             _closeButton = null;
             _toggleProtectionButton = null;
             _toggleSelfPermissionButton = null;
@@ -552,6 +557,8 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void ApplyModel(WardMenuModel model)
         {
+            _lastModel = model;
+
             string radiusText = FormatRadius(model.Ward.Radius);
             string protectionText = FormatProtection(model.Ward.Enabled);
             string doorText = FormatDoorLock(model);
@@ -564,17 +571,28 @@ namespace ClanTerritory.Features.WardMenu.UI
                 radiusText,
                 protectionText);
 
+            _overviewText.alignment = _showClanOverview
+                ? TextAnchor.MiddleCenter
+                : TextAnchor.UpperLeft;
+
             _overviewText.text =
-                CtLocalization.Get("ct.menu.overview.title") + "\n\n" +
-                CtLocalization.Get("ct.menu.field.territory") + ":\n" + model.Territory.Name + "\n\n" +
-                CtLocalization.Get("ct.menu.field.ward_id") + ":\n" + model.Ward.WardId + "\n\n" +
-                CtLocalization.Get("ct.menu.field.owner") + ":\n" + model.Ward.OwnerName + "\n\n" +
-                CtLocalization.Get("ct.menu.field.radius") + ":\n" + radiusText + " m\n\n" +
-                CtLocalization.Get("ct.menu.field.protection") + ":\n" + protectionText + "\n\n" +
-                CtLocalization.Get("ct.menu.field.your_access") + ":\n" + FormatCurrentAccess(model) + "\n\n" +
-                CtLocalization.Get("ct.menu.field.doors") + ":\n" + doorText + "\n\n" +
-                CtLocalization.Get("ct.menu.field.structures") + ":\n" + FormatStructures(model.Territory.StructureDamageProtectionEnabled) + "\n\n" +
-                CtLocalization.Get("ct.menu.field.biome") + ":\n" + FormatBiomeDominionOverview(model);
+                _showClanOverview
+                    ? FormatClanOverview(model)
+                    : FormatWardOverview(
+                        model,
+                        radiusText,
+                        protectionText,
+                        doorText);
+
+            SetButtonText(
+                _clanOverviewButton,
+                _showClanOverview
+                    ? CtLocalization.Get("ct.menu.button.overview")
+                    : CtLocalization.Get("ct.menu.button.clan"));
+
+            SetButtonActive(
+                _clanOverviewButton,
+                HasClanInfo(model));
 
             _wardText.text =
                 CtLocalization.Get("ct.menu.ward.title") + "\n\n" +
@@ -845,6 +863,13 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _overviewText.transform.SetParent(_overviewPanel.transform, false);
 
+            _clanOverviewButton = CreateButton(
+                _overviewPanel.transform,
+                CtLocalization.Get("ct.menu.button.clan"),
+                new Vector2(0f, -170f),
+                220f,
+                32f);
+
             _wardText = CreateLabel(
                 "",
                 new Vector2(0f, 76f),
@@ -1000,6 +1025,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _biomeDominionButton.onClick.AddListener(RequestShowBiomeDominion);
             _terraformingButton.onClick.AddListener(RequestShowTerraforming);
             _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
+            _clanOverviewButton.onClick.AddListener(RequestToggleClanOverview);
             _closeButton.onClick.AddListener(RequestCloseByInput);
             _toggleProtectionButton.onClick.AddListener(RequestToggleProtection);
             _toggleSelfPermissionButton.onClick.AddListener(RequestToggleSelfPermission);
@@ -1437,6 +1463,57 @@ namespace ClanTerritory.Features.WardMenu.UI
 
 
 
+        private static string FormatWardOverview(
+            WardMenuModel model,
+            string radiusText,
+            string protectionText,
+            string doorText)
+        {
+            return CtLocalization.Get("ct.menu.overview.title") + "\n\n" +
+                   CtLocalization.Get("ct.menu.field.territory") + ": " + model.Territory.Name + "\n" +
+                   CtLocalization.Get("ct.menu.field.ward_id") + ": " + model.Ward.WardId + "\n" +
+                   CtLocalization.Get("ct.menu.field.owner") + ": " + model.Ward.OwnerName + "\n" +
+                   FormatClanLine(model) +
+                   CtLocalization.Get("ct.menu.field.radius") + ": " + radiusText + " m\n" +
+                   CtLocalization.Get("ct.menu.field.protection") + ": " + protectionText + "\n" +
+                   CtLocalization.Get("ct.menu.field.your_access") + ": " + FormatCurrentAccess(model) + "\n" +
+                   CtLocalization.Get("ct.menu.field.doors") + ": " + doorText + "\n" +
+                   CtLocalization.Get("ct.menu.field.structures") + ": " + FormatStructures(model.Territory.StructureDamageProtectionEnabled) + "\n" +
+                   CtLocalization.Get("ct.menu.field.biome") + ": " + FormatBiomeDominionOverview(model);
+        }
+
+        private static string FormatClanLine(WardMenuModel model)
+        {
+            if (!HasClanInfo(model))
+                return "";
+
+            return CtLocalization.Get("ct.menu.field.clan") + ": " + model.Ward.CreatorGuildName + "\n";
+        }
+
+        private static string FormatClanOverview(WardMenuModel model)
+        {
+            if (!HasClanInfo(model))
+                return CtLocalization.Get("ct.menu.clan.no_clan");
+
+            string description =
+                model.Ward.CreatorGuildDescription;
+
+            if (string.IsNullOrEmpty(description))
+                description = CtLocalization.Get("ct.menu.clan.description_unavailable");
+
+            return CtLocalization.Get("ct.menu.clan.description_title") + "\n\n" +
+                   model.Ward.CreatorGuildName + "\n\n" +
+                   description;
+        }
+
+        private static bool HasClanInfo(WardMenuModel model)
+        {
+            return model != null &&
+                   model.Ward != null &&
+                   !string.IsNullOrEmpty(model.Ward.CreatorGuildName);
+        }
+
+
         private static string FormatEconomy(WardMenuModel model)
         {
             if (model == null || model.Economy == null)
@@ -1586,6 +1663,22 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void RequestShowOverview()
         {
+            _showClanOverview = false;
+
+            if (_lastModel != null)
+                ApplyModel(_lastModel);
+
+            if (_showOverviewAction != null)
+                _showOverviewAction();
+        }
+
+        private void RequestToggleClanOverview()
+        {
+            _showClanOverview = !_showClanOverview;
+
+            if (_lastModel != null)
+                ApplyModel(_lastModel);
+
             if (_showOverviewAction != null)
                 _showOverviewAction();
         }

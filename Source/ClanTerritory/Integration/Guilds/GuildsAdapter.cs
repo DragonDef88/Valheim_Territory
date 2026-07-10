@@ -131,6 +131,41 @@ namespace ClanTerritory.Integration.Guilds
             }
         }
 
+
+        public bool TryGetGuildDescription(string guildName, out string description)
+        {
+            description = null;
+
+            if (string.IsNullOrEmpty(guildName))
+                return false;
+
+            EnsureResolved();
+
+            if (_getGuildByNameMethod == null)
+                return false;
+
+            try
+            {
+                object guild = _getGuildByNameMethod.Invoke(
+                    null,
+                    new object[]
+                    {
+                        guildName
+                    });
+
+                if (guild == null)
+                    return false;
+
+                description = ExtractGuildDescription(guild);
+                return !string.IsNullOrEmpty(description);
+            }
+            catch (Exception exception)
+            {
+                ModLog.Debug("[Guilds] GetGuildDescription failed: " + exception.GetType().Name);
+                return false;
+            }
+        }
+
         public bool ArePlayersInSameGuild(long firstPlayerId, long secondPlayerId)
         {
             if (firstPlayerId == secondPlayerId && firstPlayerId != 0L)
@@ -478,6 +513,84 @@ namespace ClanTerritory.Integration.Guilds
                 return name;
 
             return guild.ToString();
+        }
+
+        private static string ExtractGuildDescription(object guild)
+        {
+            if (guild == null)
+                return null;
+
+            string description =
+                ExtractNamedMember(
+                    guild,
+                    new[]
+                    {
+                        "Description",
+                        "description",
+                        "Desc",
+                        "desc",
+                        "About",
+                        "about",
+                        "Info",
+                        "info",
+                        "Motto",
+                        "motto",
+                        "Bio",
+                        "bio"
+                    });
+
+            if (!string.IsNullOrEmpty(description))
+                return NormalizeDescription(description);
+
+            object general =
+                ExtractObjectMember(
+                    guild,
+                    "General");
+
+            if (general != null)
+            {
+                description =
+                    ExtractNamedMember(
+                        general,
+                        new[]
+                        {
+                            "description",
+                            "Description",
+                            "desc",
+                            "Desc",
+                            "about",
+                            "About",
+                            "info",
+                            "Info",
+                            "motto",
+                            "Motto",
+                            "bio",
+                            "Bio"
+                        });
+
+                if (!string.IsNullOrEmpty(description))
+                    return NormalizeDescription(description);
+            }
+
+            return null;
+        }
+
+        private static string NormalizeDescription(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return null;
+
+            string normalized =
+                value
+                    .Replace("\\r\\n", "\n")
+                    .Replace("\\n", "\n")
+                    .Replace("\r\n", "\n")
+                    .Replace("\r", "\n")
+                    .Trim();
+
+            return string.IsNullOrEmpty(normalized)
+                ? null
+                : normalized;
         }
 
         private static string ExtractGuildColor(object guild)

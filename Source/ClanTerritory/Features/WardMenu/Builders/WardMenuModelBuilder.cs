@@ -50,6 +50,9 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 ? BuildCreatorGuildName(zdo)
                 : "";
 
+            string creatorGuildDescription =
+                BuildCreatorGuildDescription(creatorGuildName);
+
             bool enabled = zdo != null && zdo.GetBool(ZDOVars.s_enabled);
 
             string territoryName = _territoryNamingService != null
@@ -69,6 +72,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 wardId,
                 ownerName,
                 creatorGuildName,
+                creatorGuildDescription,
                 privateArea.m_radius,
                 enabled,
                 isCurrentPlayerCreator,
@@ -280,6 +284,33 @@ namespace ClanTerritory.Features.WardMenu.Builders
                 "");
 
             return guildName ?? "";
+        }
+
+
+        private static string BuildCreatorGuildDescription(string guildName)
+        {
+            if (string.IsNullOrEmpty(guildName))
+                return "";
+
+            IGuildService guildService;
+
+            if (!ServiceContainer.TryGet<IGuildService>(out guildService) ||
+                guildService == null ||
+                !guildService.IsAvailable)
+            {
+                return "";
+            }
+
+            string description;
+
+            if (!guildService.TryGetGuildDescription(
+                    guildName,
+                    out description))
+            {
+                return "";
+            }
+
+            return description ?? "";
         }
 
         private static bool HasCreatorOrGuildAccess(PrivateArea privateArea, Player player)

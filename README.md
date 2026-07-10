@@ -361,3 +361,10 @@ Docs/Research/Valheim/
 > Мы управляем состоянием мира.
 
 Clan Territory развивается как модульная gameplay-платформа для территорий, guild-aware правил, persistent storage и автоматизированных world workers в Valheim.
+
+
+## Ward menu: Clan overview
+
+Если ward привязан к Guilds guild, вкладка Overview показывает строку клана и кнопку `Clan`.
+
+Кнопка `Clan` переключает центральный блок Overview на описание клана, если Guilds API отдаёт description. Если описание недоступно, показывается аккуратная заглушка без ошибки.
