@@ -7325,6 +7325,8 @@ namespace ClanTerritory.Features.Economy
         public long WithdrawnTotal;
         public long UpkeepPaidTotal;
         public long TributeReceivedTotal;
+        public long TransferSentTotal;
+        public long TransferReceivedTotal;
         public string UpdatedAtUtc;
 
         public string DisplayName
@@ -7477,6 +7479,9 @@ namespace ClanTerritory.Features.Economy
             if (action == "upkeep" || action == "tribute")
                 return PayCurrentTerritoryUpkeep(args);
 
+            if (action == "transfer" || action == "pay")
+                return TransferToGuild(args);
+
             Reply(args, CtLocalization.Get("ct.economy.command.help"));
             return true;
         }
@@ -7502,7 +7507,9 @@ namespace ClanTerritory.Features.Economy
                     account.DepositedTotal,
                     account.WithdrawnTotal,
                     account.UpkeepPaidTotal,
-                    account.TributeReceivedTotal));
+                    account.TributeReceivedTotal,
+                    account.TransferSentTotal,
+                    account.TransferReceivedTotal));
 
             return true;
         }
@@ -7620,6 +7627,120 @@ namespace ClanTerritory.Features.Economy
             ShowPlayerMessage(player, message);
 
             ModLog.Info("[Economy] Withdraw. Guild: " + account.DisplayName + ", amount: " + amount + ", balance: " + account.Balance);
+            return true;
+        }
+
+        private object TransferToGuild(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.server_only"));
+                return true;
+            }
+
+            if (args == null || args.Length <= 3)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.transfer_usage"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+            EconomyAccount senderAccount;
+
+            if (!TryGetPlayerEconomyAccount(player, true, out senderAccount))
+            {
+                Reply(args, ResolveLastPlayerAccountError(player));
+                return true;
+            }
+
+            string targetGuildName =
+                BuildArgumentText(
+                    args,
+                    2,
+                    args.Length - 3);
+
+            int amount;
+
+            if (!TryParseAmount(args, args.Length - 1, out amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(targetGuildName))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.transfer_usage"));
+                return true;
+            }
+
+            if (senderAccount.Balance < amount)
+            {
+                Reply(
+                    args,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_balance",
+                        senderAccount.Balance,
+                        amount));
+
+                return true;
+            }
+
+            EconomyAccount targetAccount;
+
+            if (!TryFindAccountByNameOrId(targetGuildName, out targetAccount))
+            {
+                Reply(
+                    args,
+                    CtLocalization.Format(
+                        "ct.economy.command.unknown_target_guild",
+                        targetGuildName));
+
+                return true;
+            }
+
+            if (string.Equals(
+                    senderAccount.GuildId,
+                    targetAccount.GuildId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.transfer_self"));
+                return true;
+            }
+
+            senderAccount.Balance -= amount;
+            senderAccount.TransferSentTotal += amount;
+            senderAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            targetAccount.Balance += amount;
+            targetAccount.TransferReceivedTotal += amount;
+            targetAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.transfer_success",
+                    senderAccount.DisplayName,
+                    targetAccount.DisplayName,
+                    amount,
+                    senderAccount.Balance,
+                    targetAccount.Balance);
+
+            Reply(args, message);
+            ShowPlayerMessage(player, message);
+
+            ModLog.Info(
+                "[Economy] Guild transfer. From: " +
+                senderAccount.DisplayName +
+                ", to: " +
+                targetAccount.DisplayName +
+                ", amount: " +
+                amount +
+                ", senderBalance: " +
+                senderAccount.Balance +
+                ", targetBalance: " +
+                targetAccount.Balance);
+
             return true;
         }
 
@@ -7889,6 +8010,8 @@ namespace ClanTerritory.Features.Economy
             account.WithdrawnTotal = 0L;
             account.UpkeepPaidTotal = 0L;
             account.TributeReceivedTotal = 0L;
+            account.TransferSentTotal = 0L;
+            account.TransferReceivedTotal = 0L;
             account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
 
             _accountsByGuildId[guildId] = account;
@@ -8080,6 +8203,75 @@ namespace ClanTerritory.Features.Economy
             return zNetView.GetZDO();
         }
 
+        private bool TryFindAccountByNameOrId(
+            string target,
+            out EconomyAccount account)
+        {
+            account = null;
+
+            EnsureLoadedForCurrentWorld();
+
+            if (string.IsNullOrWhiteSpace(target))
+                return false;
+
+            string normalizedTarget = NormalizeGuildLookupText(target);
+
+            foreach (EconomyAccount candidate in _accountsByGuildId.Values)
+            {
+                if (candidate == null)
+                    continue;
+
+                if (string.Equals(
+                        NormalizeGuildLookupText(candidate.GuildId),
+                        normalizedTarget,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(
+                        NormalizeGuildLookupText(candidate.GuildName),
+                        normalizedTarget,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    account = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string BuildArgumentText(
+            Terminal.ConsoleEventArgs args,
+            int startIndex,
+            int count)
+        {
+            if (args == null || count <= 0)
+                return "";
+
+            StringBuilder builder = new StringBuilder();
+
+            for (int i = 0; i < count; i++)
+            {
+                int index = startIndex + i;
+
+                if (index < 0 || index >= args.Length)
+                    continue;
+
+                if (builder.Length > 0)
+                    builder.Append(" ");
+
+                builder.Append(args[index]);
+            }
+
+            return builder.ToString().Trim();
+        }
+
+        private static string NormalizeGuildLookupText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            return value.Trim().ToLowerInvariant();
+        }
+
         private void EnsureLoadedForCurrentWorld()
         {
             string worldName = GetCurrentWorldName();
@@ -8194,6 +8386,12 @@ namespace ClanTerritory.Features.Economy
             if (string.Equals(key, "TributeReceivedTotal", StringComparison.OrdinalIgnoreCase))
                 account.TributeReceivedTotal = ParseLong(value);
 
+            if (string.Equals(key, "TransferSentTotal", StringComparison.OrdinalIgnoreCase))
+                account.TransferSentTotal = ParseLong(value);
+
+            if (string.Equals(key, "TransferReceivedTotal", StringComparison.OrdinalIgnoreCase))
+                account.TransferReceivedTotal = ParseLong(value);
+
             if (string.Equals(key, "UpdatedAtUtc", StringComparison.OrdinalIgnoreCase))
                 account.UpdatedAtUtc = value ?? "";
         }
@@ -8240,6 +8438,10 @@ namespace ClanTerritory.Features.Economy
                     builder.AppendLine(account.UpkeepPaidTotal.ToString());
                     builder.Append("TributeReceivedTotal=");
                     builder.AppendLine(account.TributeReceivedTotal.ToString());
+                    builder.Append("TransferSentTotal=");
+                    builder.AppendLine(account.TransferSentTotal.ToString());
+                    builder.Append("TransferReceivedTotal=");
+                    builder.AppendLine(account.TransferReceivedTotal.ToString());
                     builder.Append("UpdatedAtUtc=");
                     builder.AppendLine(Escape(account.UpdatedAtUtc ?? ""));
                     builder.AppendLine();
