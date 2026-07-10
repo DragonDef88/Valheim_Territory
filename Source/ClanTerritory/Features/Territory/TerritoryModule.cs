@@ -7308,6 +7308,7 @@ namespace ClanTerritory.Features.Economy
     using ClanTerritory.Abstractions;
     using ClanTerritory.Core;
     using ClanTerritory.Features.Persistence.FileSystem;
+    using ClanTerritory.Features.BiomeDominion;
     using ClanTerritory.Features.World.Services;
     using ClanTerritory.Integration.Guilds;
     using ClanTerritory.Localization;
@@ -7322,6 +7323,8 @@ namespace ClanTerritory.Features.Economy
         public long Balance;
         public long DepositedTotal;
         public long WithdrawnTotal;
+        public long UpkeepPaidTotal;
+        public long TributeReceivedTotal;
         public string UpdatedAtUtc;
 
         public string DisplayName
@@ -7366,6 +7369,13 @@ namespace ClanTerritory.Features.Economy
     {
         private const string FileSuffix = ".economy.txt";
         private const string CurrencyPrefabName = "Coins";
+        private const int DefaultTerritoryUpkeepCoins = 10;
+        private const int VassalTributePercent = 40;
+
+        private static readonly FieldInfo AllPrivateAreasField =
+            AccessTools.Field(
+                typeof(PrivateArea),
+                "m_allAreas");
 
         private static readonly MethodInfo InventoryChangedMethod =
             AccessTools.Method(
@@ -7464,6 +7474,9 @@ namespace ClanTerritory.Features.Economy
             if (action == "withdraw")
                 return Withdraw(args);
 
+            if (action == "upkeep" || action == "tribute")
+                return PayCurrentTerritoryUpkeep(args);
+
             Reply(args, CtLocalization.Get("ct.economy.command.help"));
             return true;
         }
@@ -7487,7 +7500,9 @@ namespace ClanTerritory.Features.Economy
                     account.DisplayName,
                     account.Balance,
                     account.DepositedTotal,
-                    account.WithdrawnTotal));
+                    account.WithdrawnTotal,
+                    account.UpkeepPaidTotal,
+                    account.TributeReceivedTotal));
 
             return true;
         }
@@ -7608,6 +7623,203 @@ namespace ClanTerritory.Features.Economy
             return true;
         }
 
+        private object PayCurrentTerritoryUpkeep(Terminal.ConsoleEventArgs args)
+        {
+            if (!IsServerOrSinglePlayer())
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.server_only"));
+                return true;
+            }
+
+            int amount = DefaultTerritoryUpkeepCoins;
+
+            if (args != null && args.Length > 2 && !TryParseAmount(args, 2, out amount))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.invalid_amount"));
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+
+            if (player == null)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_player"));
+                return true;
+            }
+
+            PrivateArea privateArea = FindEconomyPrivateAreaAt(player.transform.position);
+
+            if (privateArea == null)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_current_territory"));
+                return true;
+            }
+
+            TerritoryGuildAccess.SyncWardGuildFromPlayer(
+                privateArea,
+                player,
+                true);
+
+            ZDO zdo = GetEconomyZdo(privateArea);
+
+            if (zdo == null)
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_current_territory"));
+                return true;
+            }
+
+            string wardId = zdo.m_uid.ToString();
+            string territoryGuildId;
+            string territoryGuildName;
+
+            if (!TerritoryGuildAccess.TryGetWardGuildId(wardId, out territoryGuildId) ||
+                string.IsNullOrEmpty(territoryGuildId))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_territory_guild"));
+                return true;
+            }
+
+            if (!TerritoryGuildAccess.TryGetWardGuildName(wardId, out territoryGuildName) ||
+                string.IsNullOrEmpty(territoryGuildName))
+            {
+                territoryGuildName = territoryGuildId;
+            }
+
+            IGuildService guildService;
+
+            if (!TryGetGuildService(out guildService))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.no_guilds"));
+                return true;
+            }
+
+            long playerId = player.GetPlayerID();
+            string playerGuildId;
+
+            if (!guildService.TryGetPlayerGuildId(playerId, out playerGuildId) ||
+                string.IsNullOrEmpty(playerGuildId) ||
+                !string.Equals(playerGuildId, territoryGuildId, StringComparison.OrdinalIgnoreCase))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.not_territory_guild_member"));
+                return true;
+            }
+
+            if (!guildService.IsPlayerGuildLeader(playerId))
+            {
+                Reply(args, CtLocalization.Get("ct.economy.command.leader_only"));
+                return true;
+            }
+
+            EnsureLoadedForCurrentWorld();
+
+            EconomyAccount payerAccount =
+                GetOrCreateAccount(
+                    territoryGuildId,
+                    territoryGuildName);
+
+            if (payerAccount.Balance < amount)
+            {
+                Reply(
+                    args,
+                    CtLocalization.Format(
+                        "ct.economy.command.not_enough_upkeep_balance",
+                        payerAccount.DisplayName,
+                        payerAccount.Balance,
+                        amount));
+
+                return true;
+            }
+
+            int tributeAmount = 0;
+            EconomyAccount tributeAccount = null;
+            string tributeGuildName = "";
+
+            BiomeDominionService biomeDominionService;
+            BiomeDominionRecord dominion;
+
+            if (ServiceContainer.TryGet<BiomeDominionService>(out biomeDominionService) &&
+                biomeDominionService != null &&
+                biomeDominionService.TryGetVassalStatus(privateArea, out dominion) &&
+                dominion != null &&
+                !string.IsNullOrEmpty(dominion.GuildId) &&
+                !string.Equals(dominion.GuildId, territoryGuildId, StringComparison.OrdinalIgnoreCase))
+            {
+                tributeAmount =
+                    Mathf.Clamp(
+                        amount * VassalTributePercent / 100,
+                        0,
+                        amount);
+
+                tributeGuildName = dominion.DisplayName;
+
+                if (tributeAmount > 0)
+                {
+                    tributeAccount =
+                        GetOrCreateAccount(
+                            dominion.GuildId,
+                            tributeGuildName);
+
+                    tributeAccount.Balance += tributeAmount;
+                    tributeAccount.TributeReceivedTotal += tributeAmount;
+                    tributeAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+                }
+            }
+
+            payerAccount.Balance -= amount;
+            payerAccount.UpkeepPaidTotal += amount;
+            payerAccount.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
+
+            Save();
+
+            if (tributeAccount != null && tributeAmount > 0)
+            {
+                string tributeMessage =
+                    CtLocalization.Format(
+                        "ct.economy.command.upkeep_vassal_success",
+                        payerAccount.DisplayName,
+                        amount,
+                        tributeAmount,
+                        tributeAccount.DisplayName,
+                        payerAccount.Balance,
+                        tributeAccount.Balance);
+
+                Reply(args, tributeMessage);
+                ShowPlayerMessage(player, tributeMessage);
+
+                ModLog.Info(
+                    "[Economy] Territory upkeep paid with vassal tribute. Payer: " +
+                    payerAccount.DisplayName +
+                    ", amount: " +
+                    amount +
+                    ", tribute: " +
+                    tributeAmount +
+                    ", tributeReceiver: " +
+                    tributeAccount.DisplayName);
+
+                return true;
+            }
+
+            string message =
+                CtLocalization.Format(
+                    "ct.economy.command.upkeep_success",
+                    payerAccount.DisplayName,
+                    amount,
+                    payerAccount.Balance);
+
+            Reply(args, message);
+            ShowPlayerMessage(player, message);
+
+            ModLog.Info(
+                "[Economy] Territory upkeep paid. Guild: " +
+                payerAccount.DisplayName +
+                ", amount: " +
+                amount +
+                ", balance: " +
+                payerAccount.Balance);
+
+            return true;
+        }
+
         private bool TryGetPlayerEconomyAccount(Player player, bool leaderRequired, out EconomyAccount account)
         {
             account = null;
@@ -7675,6 +7887,8 @@ namespace ClanTerritory.Features.Economy
             account.Balance = 0L;
             account.DepositedTotal = 0L;
             account.WithdrawnTotal = 0L;
+            account.UpkeepPaidTotal = 0L;
+            account.TributeReceivedTotal = 0L;
             account.UpdatedAtUtc = DateTime.UtcNow.ToString("o");
 
             _accountsByGuildId[guildId] = account;
@@ -7817,6 +8031,55 @@ namespace ClanTerritory.Features.Economy
             return true;
         }
 
+        private static PrivateArea FindEconomyPrivateAreaAt(Vector3 position)
+        {
+            List<PrivateArea> areas = GetEconomyPrivateAreas();
+
+            for (int i = 0; i < areas.Count; i++)
+            {
+                PrivateArea privateArea = areas[i];
+
+                if (privateArea == null)
+                    continue;
+
+                if (global::Utils.DistanceXZ(
+                        privateArea.transform.position,
+                        position) < privateArea.m_radius)
+                {
+                    return privateArea;
+                }
+            }
+
+            return null;
+        }
+
+        private static List<PrivateArea> GetEconomyPrivateAreas()
+        {
+            if (AllPrivateAreasField == null)
+                return new List<PrivateArea>();
+
+            List<PrivateArea> areas =
+                AllPrivateAreasField.GetValue(null) as List<PrivateArea>;
+
+            if (areas == null)
+                return new List<PrivateArea>();
+
+            return areas;
+        }
+
+        private static ZDO GetEconomyZdo(PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return null;
+
+            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null || !zNetView.IsValid())
+                return null;
+
+            return zNetView.GetZDO();
+        }
+
         private void EnsureLoadedForCurrentWorld()
         {
             string worldName = GetCurrentWorldName();
@@ -7925,6 +8188,12 @@ namespace ClanTerritory.Features.Economy
             if (string.Equals(key, "WithdrawnTotal", StringComparison.OrdinalIgnoreCase))
                 account.WithdrawnTotal = ParseLong(value);
 
+            if (string.Equals(key, "UpkeepPaidTotal", StringComparison.OrdinalIgnoreCase))
+                account.UpkeepPaidTotal = ParseLong(value);
+
+            if (string.Equals(key, "TributeReceivedTotal", StringComparison.OrdinalIgnoreCase))
+                account.TributeReceivedTotal = ParseLong(value);
+
             if (string.Equals(key, "UpdatedAtUtc", StringComparison.OrdinalIgnoreCase))
                 account.UpdatedAtUtc = value ?? "";
         }
@@ -7967,6 +8236,10 @@ namespace ClanTerritory.Features.Economy
                     builder.AppendLine(account.DepositedTotal.ToString());
                     builder.Append("WithdrawnTotal=");
                     builder.AppendLine(account.WithdrawnTotal.ToString());
+                    builder.Append("UpkeepPaidTotal=");
+                    builder.AppendLine(account.UpkeepPaidTotal.ToString());
+                    builder.Append("TributeReceivedTotal=");
+                    builder.AppendLine(account.TributeReceivedTotal.ToString());
                     builder.Append("UpdatedAtUtc=");
                     builder.AppendLine(Escape(account.UpdatedAtUtc ?? ""));
                     builder.AppendLine();
