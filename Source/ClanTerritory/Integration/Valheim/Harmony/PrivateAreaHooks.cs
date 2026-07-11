@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -9,6 +10,7 @@ using ClanTerritory.Features.Territory.Services;
 using ClanTerritory.Features.WardDetection.Models;
 using ClanTerritory.Features.WardDetection.Services;
 using ClanTerritory.Integration.Guilds;
+using ClanTerritory.Utils;
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
@@ -17,6 +19,57 @@ namespace ClanTerritory.Integration.Valheim.Harmony
     {
         private static readonly PrivateAreaScanner Scanner =
             new PrivateAreaScanner();
+
+        private static readonly MethodInfo InventoryGuiIsVisibleMethod =
+            AccessTools.Method(
+                typeof(InventoryGui),
+                "IsVisible",
+                Type.EmptyTypes);
+
+        private static bool IsInteractionBlockedByOpenUi()
+        {
+            if (IsInventoryGuiVisible())
+                return true;
+
+            if (Console.IsVisible())
+                return true;
+
+            if (Menu.IsVisible())
+                return true;
+
+            if (Minimap.IsOpen())
+                return true;
+
+            return false;
+        }
+
+        private static bool IsInventoryGuiVisible()
+        {
+            if (InventoryGui.instance == null)
+                return false;
+
+            try
+            {
+                if (InventoryGuiIsVisibleMethod != null)
+                {
+                    object result =
+                        InventoryGuiIsVisibleMethod.Invoke(
+                            InventoryGui.instance,
+                            null);
+
+                    if (result is bool)
+                        return (bool)result;
+                }
+            }
+            catch (Exception exception)
+            {
+                ModLog.Debug("[Compatibility] InventoryGui.IsVisible reflection failed: " + exception.GetType().Name);
+            }
+
+            GameObject gameObject = InventoryGui.instance.gameObject;
+
+            return gameObject != null && gameObject.activeInHierarchy;
+        }
 
         [HarmonyPostfix]
         [HarmonyPatch("Awake")]
@@ -106,6 +159,13 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             if (player == null)
                 return true;
+
+            if (IsInteractionBlockedByOpenUi())
+            {
+                ModLog.Debug("[Compatibility] PrivateArea interaction ignored because another UI/container is open.");
+                __result = false;
+                return false;
+            }
 
             ITerritoryInteractionService territoryInteractionService;
 

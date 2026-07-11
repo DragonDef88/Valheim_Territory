@@ -375,6 +375,12 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(Inventory),
                 "Changed");
 
+        private static readonly MethodInfo InventoryGuiIsVisibleMethod =
+            AccessTools.Method(
+                typeof(InventoryGui),
+                "IsVisible",
+                Type.EmptyTypes);
+
         private static readonly MethodInfo MemberwiseCloneMethod =
             AccessTools.Method(
                 typeof(object),
@@ -3415,6 +3421,14 @@ namespace ClanTerritory.Features.Territory.Services
             if (InventoryGui.instance == null)
                 return false;
 
+            if (IsVirtualContainerBlockedByOpenInventoryGui(
+                    "OpenPreparationChest",
+                    wardId,
+                    player))
+            {
+                return false;
+            }
+
             InventoryGui.instance.Hide();
 
             Container container = CreateVirtualPreparationChest(
@@ -3440,6 +3454,14 @@ namespace ClanTerritory.Features.Territory.Services
             if (InventoryGui.instance == null)
                 return false;
 
+            if (IsVirtualContainerBlockedByOpenInventoryGui(
+                    "OpenTreasuryChest",
+                    wardId,
+                    player))
+            {
+                return false;
+            }
+
             InventoryGui.instance.Hide();
 
             Container container = CreateVirtualTreasuryChest(
@@ -3452,6 +3474,60 @@ namespace ClanTerritory.Features.Territory.Services
 
             InventoryGui.instance.Show(container);
             return true;
+        }
+
+        private static bool IsVirtualContainerBlockedByOpenInventoryGui(
+            string actionName,
+            WardId wardId,
+            Player player)
+        {
+            if (!IsInventoryGuiVisible())
+                return false;
+
+            ModLog.Info("[Compatibility] " + actionName + " blocked because another inventory/container UI is already open. Ward: " + wardId);
+            ShowCompatibilityMessage(player);
+            return true;
+        }
+
+        private static bool IsInventoryGuiVisible()
+        {
+            if (InventoryGui.instance == null)
+                return false;
+
+            try
+            {
+                if (InventoryGuiIsVisibleMethod != null)
+                {
+                    object result =
+                        InventoryGuiIsVisibleMethod.Invoke(
+                            InventoryGui.instance,
+                            null);
+
+                    if (result is bool)
+                        return (bool)result;
+                }
+            }
+            catch (Exception exception)
+            {
+                ModLog.Debug("[Compatibility] InventoryGui.IsVisible reflection failed: " + exception.GetType().Name);
+            }
+
+            GameObject gameObject = InventoryGui.instance.gameObject;
+
+            return gameObject != null && gameObject.activeInHierarchy;
+        }
+
+        private static void ShowCompatibilityMessage(Player player)
+        {
+            if (player == null)
+                player = Player.m_localPlayer;
+
+            if (player == null)
+                return;
+
+            player.Message(
+                MessageHud.MessageType.Center,
+                CtLocalization.Get("ct.compat.close_current_container_first"));
         }
 
         public bool RequestDecreaseRadius(
