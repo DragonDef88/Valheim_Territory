@@ -459,3 +459,8 @@ This is different from vanilla-style repeated `TerrainOp.Level` operations, whic
 Clan Territory virtual containers now close/persist when another mod opens a different `InventoryGui` container through `InventoryGui.Show(Container)`.
 
 This improves compatibility with companion inventory mods that switch containers without going through the normal `InventoryGui.Hide()` path.
+
+
+## InventoryGui.Show signature compatibility fix
+
+The virtual container switch compatibility hook now dynamically finds `InventoryGui.Show` overloads whose first argument is `Container`, instead of requiring the exact `Show(Container)` signature.

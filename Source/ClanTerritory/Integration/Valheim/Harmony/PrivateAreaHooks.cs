@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -324,7 +325,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
     }
 
 
-    [HarmonyPatch(typeof(InventoryGui), "Show", new Type[] { typeof(Container) })]
+    [HarmonyPatch]
     internal static class InventoryGuiShowVirtualTerritoryContainerSwitchHook
     {
         private static readonly FieldInfo CurrentContainerField =
@@ -332,18 +333,48 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                 typeof(InventoryGui),
                 "m_currentContainer");
 
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            MethodInfo[] methods =
+                typeof(InventoryGui).GetMethods(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            for (int i = 0; i < methods.Length; i++)
+            {
+                MethodInfo method = methods[i];
+
+                if (method == null || method.Name != "Show")
+                    continue;
+
+                ParameterInfo[] parameters = method.GetParameters();
+
+                if (parameters.Length <= 0)
+                    continue;
+
+                if (parameters[0].ParameterType != typeof(Container))
+                    continue;
+
+                yield return method;
+            }
+        }
+
         private static void Prefix(
             InventoryGui __instance,
-            Container container)
+            object[] __args)
         {
             if (__instance == null || CurrentContainerField == null)
                 return;
+
+            Container nextContainer = null;
+
+            if (__args != null && __args.Length > 0)
+                nextContainer = __args[0] as Container;
 
             Container currentContainer =
                 CurrentContainerField.GetValue(__instance) as Container;
 
             if (currentContainer == null ||
-                ReferenceEquals(currentContainer, container))
+                ReferenceEquals(currentContainer, nextContainer))
             {
                 return;
             }
