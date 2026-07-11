@@ -452,3 +452,10 @@ Terraforming now uses a more Plateautem-like terrain algorithm:
 ```
 
 This is different from vanilla-style repeated `TerrainOp.Level` operations, which can leave overlapping falloff artifacts.
+
+
+## Virtual container switch compatibility
+
+Clan Territory virtual containers now close/persist when another mod opens a different `InventoryGui` container through `InventoryGui.Show(Container)`.
+
+This improves compatibility with companion inventory mods that switch containers without going through the normal `InventoryGui.Hide()` path.

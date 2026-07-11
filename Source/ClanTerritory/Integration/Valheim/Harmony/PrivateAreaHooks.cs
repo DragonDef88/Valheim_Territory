@@ -323,6 +323,41 @@ namespace ClanTerritory.Integration.Valheim.Harmony
         }
     }
 
+
+    [HarmonyPatch(typeof(InventoryGui), "Show", new Type[] { typeof(Container) })]
+    internal static class InventoryGuiShowVirtualTerritoryContainerSwitchHook
+    {
+        private static readonly FieldInfo CurrentContainerField =
+            AccessTools.Field(
+                typeof(InventoryGui),
+                "m_currentContainer");
+
+        private static void Prefix(
+            InventoryGui __instance,
+            Container container)
+        {
+            if (__instance == null || CurrentContainerField == null)
+                return;
+
+            Container currentContainer =
+                CurrentContainerField.GetValue(__instance) as Container;
+
+            if (currentContainer == null ||
+                ReferenceEquals(currentContainer, container))
+            {
+                return;
+            }
+
+            if (!TerritoryTerraformingService.IsVirtualTerritoryContainer(currentContainer))
+                return;
+
+            TerritoryTerraformingService.CloseVirtualTerritoryContainer(currentContainer);
+
+            ModLog.Info(
+                "[Compatibility] Closed Clan Territory virtual container before InventoryGui.Show container switch.");
+        }
+    }
+
     [HarmonyPatch]
     internal static class TerritoryTerraformingLevelTerrainHook
     {
