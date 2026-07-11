@@ -413,3 +413,42 @@ Neutral
 ```
 
 После нажатия кнопки открывается ввод имени целевой guild. Изменение сохраняется через `DiplomacyService` в world diplomacy file.
+
+
+## Offline Companions compatibility guard
+
+Clan Territory avoids opening ward menus or virtual territory containers while another inventory/container UI is already open.
+
+This prevents UI/container switching conflicts with companion inventory windows from Offline Companions.
+
+
+## Plateautem-style terraforming mode
+
+Terraforming worker now uses a faster Plateautem-style flattening profile by default:
+
+```text
+- faster spiral sweep;
+- immediate one-pass terrain operation;
+- larger leveling operation radius;
+- stronger but still clamped height delta;
+- lower work threshold;
+- immediate virtual preparation chest persistence.
+```
+
+The worker still respects Clan Territory ownership/access rules, ward radius, configured terraforming radius, fuel, stone, and tool requirements.
+
+
+## Direct heightmap plane flattening
+
+Terraforming now uses a more Plateautem-like terrain algorithm:
+
+```text
+- the worker still scans in safe steps;
+- each terrain step writes TerrainComp height deltas toward a target plane;
+- the inner area is flattened as a plane;
+- only the outer edge uses falloff;
+- smooth deltas are cleared in the affected vertices to avoid leftover humps;
+- rocks and ore nodes inside the flattening radius are hit before terrain leveling.
+```
+
+This is different from vanilla-style repeated `TerrainOp.Level` operations, which can leave overlapping falloff artifacts.

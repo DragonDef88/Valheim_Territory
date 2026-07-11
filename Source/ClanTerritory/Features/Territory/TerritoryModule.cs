@@ -463,20 +463,20 @@ namespace ClanTerritory.Features.Territory.Services
         private const int StoneSlotCount = 5;
         private const float LevelingWorkerInterval = 0.1f;
         private const int LevelingMaxScanStepsPerTick = 1;
-        private const float LevelingSampleSpacing = 2.6f;
-        private const float LevelingOperationRadius = 1.75f;
-        private const float LevelingSampleRadius = 1.5f;
-        private const float LevelingLocalSampleSpacing = 0.5f;
-        private const float LevelingWorkThreshold = 0.45f;
-        private const int LevelingVerifyPasses = 3;
-        private const float LevelingScanTime = 0.55f;
-        private const float LevelingFlatteningTime = 1.8f;
-        private const float LevelingVerifyDelay = 0.75f;
+        private const float LevelingSampleSpacing = 1.6f;
+        private const float LevelingOperationRadius = 3.0f;
+        private const float LevelingSampleRadius = 2.25f;
+        private const float LevelingLocalSampleSpacing = 0.45f;
+        private const float LevelingWorkThreshold = 0.08f;
+        private const int LevelingVerifyPasses = 1;
+        private const float LevelingScanTime = 0.08f;
+        private const float LevelingFlatteningTime = 0.16f;
+        private const float LevelingVerifyDelay = 0.05f;
         private const float LevelingStonePerLower = 0.05f;
-        private const float LevelingTolerance = 0.25f;
+        private const float LevelingTolerance = 0.12f;
         private const int LevelingFuelCost = 1;
         private const int LevelingStoneCostWhenRaising = 1;
-        private const float LevelingMaxDeltaPerOperation = 0.18f;
+        private const float LevelingMaxDeltaPerOperation = 0.65f;
         private const float LevelingSpiritSmoothTime = 0.95f;
         private const float LevelingSpiritMaxSpeed = 5f;
         private const float LevelingMineRockRadius = 2.5f;
@@ -484,7 +484,9 @@ namespace ClanTerritory.Features.Territory.Services
         private const float LevelingFallbackPickaxeDamage = 25f;
         private const float LevelingFallbackAxeDamage = 25f;
         private const float LevelingFuelWorkPerItem = 8f;
-        private const float LevelingTerrainFuelWorkMultiplier = 0.45f;
+        private const float LevelingTerrainFuelWorkMultiplier = 0.22f;
+        private const float PlateautemInnerRadiusFactor = 0.78f;
+        private const float PlateautemEdgeFalloffPower = 1.35f;
         private const float LevelingRockFuelWork = 0.35f;
         private const float LevelingTreeFuelWork = 0.5f;
         private const float LevelingTreeRadius = 3f;
@@ -1575,6 +1577,50 @@ namespace ClanTerritory.Features.Territory.Services
                     zdo,
                     preparationInventory,
                     LevelingRockFuelWork) &&
+                TryMineBlockingRockInFlatteningArea(
+                    center,
+                    radius,
+                    targetHeight,
+                    preparationInventory))
+            {
+                SpendLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingRockFuelWork);
+
+                PersistTerraformingWorkerInventory(
+                    zdo,
+                    preparationInventory);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingPendingScanIndex,
+                    -1);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingVerifyCount,
+                    0);
+
+                zdo.Set(
+                    TerritoryZdoKeys.TerraformingNextVerifyTime,
+                    0f);
+
+                AdvanceLevelingScan(
+                    zdo,
+                    scanIndex,
+                    scanProgress,
+                    pointCount,
+                    true);
+
+                ModLog.Debug(
+                    "[TerritoryTerraforming] Plateautem blocking rock/ore hit applied in flattening area.");
+
+                return true;
+            }
+
+            if (HasLevelingFuelForWork(
+                    zdo,
+                    preparationInventory,
+                    LevelingRockFuelWork) &&
                 TryMineRockAtPoint(
                     point,
                     center,
@@ -1810,7 +1856,7 @@ namespace ClanTerritory.Features.Territory.Services
                 true);
 
             ModLog.Debug(
-                "[TerritoryTerraforming] Plateautem-style leveling step applied. target: " +
+                "[TerritoryTerraforming] Plateautem mode step applied. target: " +
                 targetHeight +
                 ", point: " +
                 point +
@@ -2678,6 +2724,150 @@ namespace ClanTerritory.Features.Territory.Services
                        "stub");
         }
 
+        private static bool TryMineBlockingRockInFlatteningArea(
+            Vector3 center,
+            float territoryRadius,
+            float targetHeight,
+            Inventory preparationInventory)
+        {
+            ItemDrop.ItemData pickaxe = preparationInventory != null
+                ? preparationInventory.GetItemAt(0, 0)
+                : null;
+
+            if (!IsPickaxe(pickaxe))
+                return false;
+
+            Collider bestCollider = null;
+            MineRock bestMineRock = null;
+            MineRock5 bestMineRock5 = null;
+            float bestScore = float.MaxValue;
+            float searchRadius =
+                Mathf.Max(
+                    0f,
+                    territoryRadius + LevelingMineRockRadius);
+
+            MineRock[] mineRocks = UnityEngine.Object.FindObjectsByType<MineRock>(UnityEngine.FindObjectsSortMode.None);
+
+            for (int i = 0; i < mineRocks.Length; i++)
+            {
+                MineRock mineRock = mineRocks[i];
+
+                if (mineRock == null)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    mineRock.gameObject,
+                    center,
+                    searchRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius + LevelingMineRockRadius))
+                {
+                    continue;
+                }
+
+                float xzDistance =
+                    global::Utils.DistanceXZ(
+                        center,
+                        colliderPoint);
+
+                float verticalDistance =
+                    Mathf.Abs(colliderPoint.y - targetHeight);
+
+                float score =
+                    Mathf.Max(
+                        0f,
+                        xzDistance - territoryRadius * 0.45f) +
+                    verticalDistance * 0.2f;
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestCollider = collider;
+                    bestMineRock = mineRock;
+                    bestMineRock5 = null;
+                }
+            }
+
+            MineRock5[] mineRocks5 = UnityEngine.Object.FindObjectsByType<MineRock5>(UnityEngine.FindObjectsSortMode.None);
+
+            for (int i = 0; i < mineRocks5.Length; i++)
+            {
+                MineRock5 mineRock = mineRocks5[i];
+
+                if (mineRock == null)
+                    continue;
+
+                Collider collider = FindNearestActiveCollider(
+                    mineRock.gameObject,
+                    center,
+                    searchRadius);
+
+                if (collider == null)
+                    continue;
+
+                Vector3 colliderPoint = GetColliderCenter(collider);
+
+                if (!IsInsideTerraformingRadius(
+                        center,
+                        colliderPoint,
+                        territoryRadius + LevelingMineRockRadius))
+                {
+                    continue;
+                }
+
+                float xzDistance =
+                    global::Utils.DistanceXZ(
+                        center,
+                        colliderPoint);
+
+                float verticalDistance =
+                    Mathf.Abs(colliderPoint.y - targetHeight);
+
+                float score =
+                    Mathf.Max(
+                        0f,
+                        xzDistance - territoryRadius * 0.45f) +
+                    verticalDistance * 0.2f;
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestCollider = collider;
+                    bestMineRock = null;
+                    bestMineRock5 = mineRock;
+                }
+            }
+
+            if (bestCollider == null)
+                return false;
+
+            HitData hit = CreateLevelingPickaxeHit(
+                pickaxe,
+                bestCollider);
+
+            if (bestMineRock != null)
+            {
+                bestMineRock.Damage(hit);
+                return true;
+            }
+
+            if (bestMineRock5 != null)
+            {
+                bestMineRock5.Damage(hit);
+                return true;
+            }
+
+            return false;
+        }
+
         private static bool TryMineRockAtPoint(
             Vector3 point,
             Vector3 center,
@@ -2982,7 +3172,7 @@ namespace ClanTerritory.Features.Territory.Services
                 if (Mathf.Abs(difference) <= LevelingTolerance)
                     continue;
 
-                float amount = Mathf.Min(Mathf.Abs(difference), LevelingMaxDeltaPerOperation) * 0.35f;
+                float amount = Mathf.Min(Mathf.Abs(difference), LevelingMaxDeltaPerOperation) * 0.85f;
                 float weight =
                     Mathf.Pow(
                         Mathf.Clamp01(
@@ -3227,19 +3417,16 @@ namespace ClanTerritory.Features.Territory.Services
                     vertexX,
                     vertexY);
 
+            float innerRadius =
+                scaledRadius *
+                Mathf.Clamp01(PlateautemInnerRadiusFactor);
+            bool changed = false;
+
             for (int y = vertexY - radiusInVertices; y <= vertexY + radiusInVertices; y++)
             {
                 for (int x = vertexX - radiusInVertices; x <= vertexX + radiusInVertices; x++)
                 {
-                    float distance =
-                        Vector2.Distance(
-                            center,
-                            new Vector2(
-                                x,
-                                y));
-
-                    if ((!square && distance > scaledRadius) ||
-                        x < 0 ||
+                    if (x < 0 ||
                         y < 0 ||
                         x >= vertexWidth ||
                         y >= vertexWidth)
@@ -3247,41 +3434,96 @@ namespace ClanTerritory.Features.Territory.Services
                         continue;
                     }
 
-                    float weight = Mathf.Clamp01(1f - distance / Mathf.Max(0.001f, scaledRadius));
-                    weight = Mathf.SmoothStep(
-                        0f,
-                        1f,
-                        weight);
+                    float distance =
+                        square
+                            ? Mathf.Max(Mathf.Abs(x - vertexX), Mathf.Abs(y - vertexY))
+                            : Vector2.Distance(
+                                center,
+                                new Vector2(
+                                    x,
+                                    y));
 
-                    float height = heightmap.GetHeight(
-                        x,
-                        y);
-
-                    int index = y * vertexWidth + x;
-                    float rawDelta =
-                        (localTarget.y - height) *
-                        weight;
-
-                    float delta = Mathf.Clamp(
-                        rawDelta,
-                        -LevelingMaxDeltaPerOperation,
-                        LevelingMaxDeltaPerOperation);
-
-                    if (Mathf.Abs(delta) <= 0.01f)
+                    if (distance > scaledRadius)
                         continue;
 
-                    delta += smoothDelta[index] * 0.25f;
+                    int index = y * vertexWidth + x;
+                    float baseHeight = heightmap.GetHeight(
+                        x,
+                        y);
+                    float currentDelta =
+                        levelDelta[index] +
+                        smoothDelta[index];
+                    float targetDelta =
+                        localTarget.y -
+                        baseHeight;
+
+                    float weight = CalculatePlateautemPlaneWeight(
+                        distance,
+                        innerRadius,
+                        scaledRadius);
+
+                    if (weight <= 0.001f)
+                        continue;
+
+                    float desiredDelta =
+                        Mathf.Lerp(
+                            currentDelta,
+                            targetDelta,
+                            weight);
+
+                    float delta =
+                        Mathf.Clamp(
+                            desiredDelta - currentDelta,
+                            -LevelingMaxDeltaPerOperation,
+                            LevelingMaxDeltaPerOperation);
+
+                    if (Mathf.Abs(delta) <= 0.002f)
+                        continue;
+
+                    levelDelta[index] =
+                        Mathf.Clamp(
+                            currentDelta + delta,
+                            -8f,
+                            8f);
+
                     smoothDelta[index] = 0f;
-                    levelDelta[index] += delta;
-                    levelDelta[index] = Mathf.Clamp(
-                        levelDelta[index],
-                        -8f,
-                        8f);
                     modifiedHeight[index] = true;
+                    changed = true;
                 }
             }
 
-            return true;
+            return changed;
+        }
+
+        private static float CalculatePlateautemPlaneWeight(
+            float distance,
+            float innerRadius,
+            float outerRadius)
+        {
+            if (outerRadius <= 0.001f)
+                return 1f;
+
+            if (distance <= innerRadius)
+                return 1f;
+
+            float edgeSize =
+                Mathf.Max(
+                    0.001f,
+                    outerRadius - innerRadius);
+
+            float edgeT =
+                Mathf.Clamp01(
+                    (outerRadius - distance) / edgeSize);
+
+            edgeT =
+                Mathf.Pow(
+                    edgeT,
+                    Mathf.Max(0.1f, PlateautemEdgeFalloffPower));
+
+            return Mathf.SmoothStep(
+                0f,
+                1f,
+                edgeT);
         }
 
         private static TerrainOp.Settings CreateWardLevelingSettings()
@@ -4129,6 +4371,12 @@ namespace ClanTerritory.Features.Territory.Services
                 SyncPreparationInventoryToZdo(
                     binding.WardZdo,
                     inventory);
+
+                ModLog.Debug("[TerritoryTerraforming] Preparation virtual inventory persisted.");
+            }
+            else if (binding.ItemKey == TerritoryZdoKeys.TreasuryChestItems)
+            {
+                ModLog.Debug("[TerritoryTreasury] Virtual treasury inventory persisted.");
             }
         }
 
@@ -4593,6 +4841,9 @@ namespace ClanTerritory.Features.Territory.Services
                 slot,
                 TreasurySlotCapacity);
 
+            if (result)
+                PersistVirtualInventory(targetInventory);
+
             return true;
         }
 
@@ -4714,6 +4965,7 @@ namespace ClanTerritory.Features.Territory.Services
 
                 item.m_gridPos = slot;
                 InvokeInventoryChanged(targetInventory);
+                PersistVirtualInventory(targetInventory);
                 result = true;
                 return true;
             }
@@ -4769,6 +5021,7 @@ namespace ClanTerritory.Features.Territory.Services
             sourceInventory.RemoveItem(item, moved);
             InvokeInventoryChanged(targetInventory);
             InvokeInventoryChanged(sourceInventory);
+            PersistVirtualInventory(targetInventory);
             result = true;
             return true;
         }
