@@ -9,6 +9,7 @@ using ClanTerritory.Features.Diplomacy;
 using ClanTerritory.Features.Economy;
 using ClanTerritory.Features.Persistence;
 using ClanTerritory.Features.Runtime;
+using ClanTerritory.Features.Races;
 using ClanTerritory.Features.Territory;
 using ClanTerritory.Features.BiomeDominion;
 using ClanTerritory.Features.WardDetection;
@@ -63,6 +64,7 @@ namespace ClanTerritory.Core
             _moduleManager.Register(new DiplomacyModule());
             _moduleManager.Register(new EconomyModule());
             _moduleManager.Register(new BiomeDominionModule());
+            _moduleManager.Register(new RaceModule());
             _moduleManager.Register(new TerritoryModule());
             _moduleManager.Register(new WardDetectionModule());
             _moduleManager.Register(new WorldDiscoveryModule());

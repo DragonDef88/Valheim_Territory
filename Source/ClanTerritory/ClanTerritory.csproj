@@ -442,7 +442,7 @@
   <Target Name="CopyToValheim" AfterTargets="Build">
     <PropertyGroup>
       <DeployToValheim>true</DeployToValheim>
-      <ValheimModsPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test\BepInEx\plugins\ClanTerritory\</ValheimModsPath>
+      <ValheimModsPath>C:\Users\infer\AppData\Roaming\r2modmanPlus-local\Valheim\profiles\Test2\BepInEx\plugins\ClanTerritory\</ValheimModsPath>
     </PropertyGroup>
     <MakeDir Directories="$(ValheimModsPath)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ValheimModsPath)" SkipUnchangedFiles="true" />

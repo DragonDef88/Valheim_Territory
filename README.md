@@ -473,3 +473,37 @@ Clan Territory no longer runs its own terraforming worker or patches `TerrainCom
 Terrain shaping should be handled by a dedicated terrain mod such as Plateautem. Clan Territory remains responsible for territory ownership, guild access, ward rules, economy, diplomacy, biome dominion, and protection logic.
 
 The legacy code paths are disabled so existing saved ZDO values do not break worlds, but the ward menu no longer exposes the terraforming tab and no background heightmap worker is executed.
+
+
+## Player races
+
+Clan Territory adds a lightweight personal race system:
+
+```text
+/ctrace status
+/ctrace choose werewolf
+/ctrace choose vampire
+/ctrace choose odin
+/ctrace reset
+```
+
+Current passive effects:
+
+```text
+Werewolf:
+- immune to frost damage;
+- takes more spirit/silver-like damage.
+
+Vampire:
+- immune to poison damage;
+- takes more fire and spirit/silver-like damage.
+
+Odin Blessed:
+- resists spirit, frost and lightning damage.
+```
+
+Race choices are saved per world in:
+
+```text
+BepInEx/config/ClanTerritory/worlds/<world>.races.txt
+```
