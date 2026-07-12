@@ -404,6 +404,7 @@
     <Compile Include="Features\Territory\Registry\TerritoryRegistry.cs" />
     <Compile Include="Features\Territory\Services\ITerritoryService.cs" />
     <Compile Include="Features\Territory\Services\TerritoryService.cs" />
+    <Compile Include="Features\Races\RaceModule.cs" />
     <Compile Include="Features\Territory\TerritoryModule.cs" />
     <Compile Include="Integration\Valheim\Harmony\PieceCreatorHooks.cs" />
     <Compile Include="Integration\Valheim\Harmony\PrivateAreaHooks.cs" />
