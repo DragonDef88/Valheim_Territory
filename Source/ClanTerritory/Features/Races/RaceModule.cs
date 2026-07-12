@@ -915,20 +915,9 @@ namespace ClanTerritory.Features.Races
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Player), "OnSpawned")]
     internal static class RacePlayerSpawnHook
     {
-        private static IEnumerable<MethodBase> TargetMethods()
-        {
-            MethodInfo method = AccessTools.Method(
-                typeof(Player),
-                "OnSpawned",
-                Type.EmptyTypes);
-
-            if (method != null)
-                yield return method;
-        }
-
         private static void Postfix(Player __instance)
         {
             if (__instance == null || __instance != Player.m_localPlayer)
