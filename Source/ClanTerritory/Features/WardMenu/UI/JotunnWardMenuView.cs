@@ -684,7 +684,7 @@ namespace ClanTerritory.Features.WardMenu.UI
                     : "";
 
             if (_terraformingRadiusValueText != null)
-                _terraformingRadiusValueText.text = FormatRadius(model.Terraforming.Radius) + " m";
+                _terraformingRadiusValueText.text = "";
 
             SetButtonText(
                 _toggleProtectionButton,
@@ -876,6 +876,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyButton = CreateButton(CtLocalization.Get("ct.menu.tab.economy"), new Vector2(66f, 138f), 112f, 38f);
             _biomeDominionButton = CreateButton(CtLocalization.Get("ct.menu.tab.biome"), new Vector2(198f, 138f), 112f, 38f);
             _terraformingButton = CreateButton(CtLocalization.Get("ct.menu.tab.terraforming"), new Vector2(330f, 138f), 112f, 38f);
+            _terraformingButton.gameObject.SetActive(false);
 
             _overviewPanel = CreatePanelRoot("OverviewPanel");
             _wardPanel = CreatePanelRoot("WardPanel");
@@ -883,7 +884,9 @@ namespace ClanTerritory.Features.WardMenu.UI
             _biomeDominionPanel = CreatePanelRoot("BiomeDominionPanel");
             _economyPanel = CreatePanelRoot("EconomyPanel");
             _terraformingPanel = CreatePanelRoot("TerraformingPanel");
+            _terraformingPanel.SetActive(false);
             _terraformingStoragePanel = CreatePanelRoot("TerraformingPreparationChest");
+            _terraformingStoragePanel.SetActive(false);
 
             _overviewText = CreateLabel(
                 "",
@@ -1062,7 +1065,7 @@ namespace ClanTerritory.Features.WardMenu.UI
             _territoryButton.onClick.AddListener(RequestShowTerritory);
             _economyButton.onClick.AddListener(RequestShowEconomy);
             _biomeDominionButton.onClick.AddListener(RequestShowBiomeDominion);
-            _terraformingButton.onClick.AddListener(RequestShowTerraforming);
+            // Built-in terraforming is disabled. Plateautem owns terrain changes.
             _openTreasuryButton.onClick.AddListener(RequestOpenTreasuryChest);
             _clanOverviewButton.onClick.AddListener(RequestToggleClanOverview);
             _diplomacyAllyButton.onClick.AddListener(RequestDiplomacyAlly);
@@ -1090,13 +1093,6 @@ namespace ClanTerritory.Features.WardMenu.UI
             _economyUpkeepButton.onClick.AddListener(RequestEconomyUpkeep);
             _economyTaxButton.onClick.AddListener(RequestEconomyTax);
             _economyTransferButton.onClick.AddListener(RequestEconomyTransfer);
-            _toggleTerraformingButton.onClick.AddListener(RequestToggleTerraforming);
-            _toggleTerraformingRunningButton.onClick.AddListener(RequestToggleTerraformingRunning);
-            _openTerraformingPreparationButton.onClick.AddListener(RequestShowTerraformingPreparationChest);
-            _decreaseTerraformingRadiusButton.onClick.AddListener(RequestDecreaseTerraformingRadius);
-            _increaseTerraformingRadiusButton.onClick.AddListener(RequestIncreaseTerraformingRadius);
-            _storeTerraformingHoeButton.onClick.AddListener(RequestStoreTerraformingHoe);
-            _storeTerraformingPickaxeButton.onClick.AddListener(RequestStoreTerraformingPickaxe);
 
             SetActivePanel(_overviewPanel);
             SetVisible(_visible);
@@ -1194,8 +1190,6 @@ namespace ClanTerritory.Features.WardMenu.UI
 
             _closeTerraformingPreparationButton = CreateButton(_terraformingStoragePanel.transform, CtLocalization.Get("ct.menu.button.back"), new Vector2(0f, -145f), 140f, 30f);
             _closeTerraformingPreparationButton.onClick.AddListener(RequestCloseTerraformingPreparationChest);
-            _storeTerraformingHoeButton.onClick.AddListener(RequestStoreTerraformingHoe);
-            _storeTerraformingPickaxeButton.onClick.AddListener(RequestStoreTerraformingPickaxe);
             _terraformingStoragePanel.SetActive(false);
         }
 
@@ -1805,8 +1799,7 @@ namespace ClanTerritory.Features.WardMenu.UI
 
         private void RequestShowTerraforming()
         {
-            if (_showTerraformingAction != null)
-                _showTerraformingAction();
+            RequestShowOverview();
         }
 
         private void RequestShowEconomy()

@@ -141,9 +141,7 @@ namespace ClanTerritory.Features.Territory
                 if (_ruleService != null)
                     _ruleService.Update();
 
-                if (_terraformingService != null)
-                    _terraformingService.Update();
-
+                // Built-in terraforming is disabled. Clan Territory must not run heightmap/tree/resource workers.
                 if (_presenceService != null)
                     _presenceService.Update();
             }
@@ -354,6 +352,7 @@ namespace ClanTerritory.Features.Territory.Services
         private const int PreparationChestHeight = 3;
         private const string TreasuryChestPrefabName = "piece_chest_blackmetal";
         private const int TreasurySlotCapacity = 9999;
+        private const bool BuiltInTerraformingEnabled = false;
 
         private static readonly FieldInfo InventoryWidthField =
             AccessTools.Field(
@@ -632,6 +631,9 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
+            if (!BuiltInTerraformingEnabled)
+                return;
+
             if (Time.time >= _nextResourceAbsorbTime)
             {
                 _nextResourceAbsorbTime = Time.time + ResourceAbsorbInterval;
@@ -3593,35 +3595,25 @@ namespace ClanTerritory.Features.Territory.Services
 
         public TerraformingState GetState(PrivateArea privateArea)
         {
-            EnsureDefaults(privateArea);
+            return TerraformingState.Disabled();
+        }
 
-            ZDO zdo = GetZdo(privateArea);
+        private static bool DenyBuiltInTerraformingRequest(
+            Player player,
+            string actionName)
+        {
+            if (player != null)
+            {
+                player.Message(
+                    MessageHud.MessageType.Center,
+                    "Clan Territory terraforming is disabled. Use Plateautem.");
+            }
 
-            if (zdo == null)
-                return TerraformingState.Disabled();
+            ModLog.Info(
+                "[TerritoryTerraforming] Built-in terraforming request ignored: " +
+                actionName);
 
-            int[] fuelSlots = ReadSlots(
-                zdo,
-                TerritoryZdoKeys.TerraformingFuelSlotPrefix,
-                FuelSlotCount);
-
-            int[] stoneSlots = ReadSlots(
-                zdo,
-                TerritoryZdoKeys.TerraformingStoneSlotPrefix,
-                StoneSlotCount);
-
-            return new TerraformingState(
-                zdo.GetBool(TerritoryZdoKeys.TerraformingEnabled, false),
-                zdo.GetBool(TerritoryZdoKeys.TerraformingRunning, false),
-                NormalizeRadius(zdo.GetFloat(TerritoryZdoKeys.TerraformingRadius, DefaultRadius)),
-                privateArea != null ? privateArea.transform.position.y : 0f,
-                fuelSlots,
-                stoneSlots,
-                zdo.GetBool(TerritoryZdoKeys.TerraformingHoeStored, false),
-                zdo.GetBool(TerritoryZdoKeys.TerraformingPickaxeStored, false),
-                zdo.GetBool(TerritoryZdoKeys.TerraformingAxeStored, false),
-                Mathf.Max(0f, zdo.GetFloat(TerritoryZdoKeys.TerraformingScanProgress, 0f)),
-                Mathf.Max(0, zdo.GetInt(TerritoryZdoKeys.TerraformingScanIndex, 0)));
+            return false;
         }
 
         public bool RequestToggleEnabled(
@@ -3629,13 +3621,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            TerraformingState state = GetState(privateArea);
-
-            return RequestSetEnabled(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                !state.Enabled);
+                "ToggleEnabled");
         }
 
         public bool RequestToggleRunning(
@@ -3643,13 +3631,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            TerraformingState state = GetState(privateArea);
-
-            return RequestSetRunning(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                !state.Running);
+                "ToggleRunning");
         }
 
         public bool RequestOpenPreparationChest(
@@ -3657,32 +3641,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            if (!ValidateCreatorAction("OpenPreparationChest", wardId, privateArea, player))
-                return false;
-
-            if (InventoryGui.instance == null)
-                return false;
-
-            if (IsVirtualContainerBlockedByOpenInventoryGui(
-                    "OpenPreparationChest",
-                    wardId,
-                    player))
-            {
-                return false;
-            }
-
-            InventoryGui.instance.Hide();
-
-            Container container = CreateVirtualPreparationChest(
-                wardId,
-                privateArea,
-                player);
-
-            if (container == null)
-                return false;
-
-            InventoryGui.instance.Show(container);
-            return true;
+            return DenyBuiltInTerraformingRequest(
+                player,
+                "OpenPreparationChest");
         }
 
         public bool RequestOpenTreasuryChest(
@@ -3777,13 +3738,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            TerraformingState state = GetState(privateArea);
-
-            return RequestSetRadius(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                state.Radius - RadiusStep);
+                "DecreaseRadius");
         }
 
         public bool RequestIncreaseRadius(
@@ -3791,13 +3748,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            TerraformingState state = GetState(privateArea);
-
-            return RequestSetRadius(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                state.Radius + RadiusStep);
+                "IncreaseRadius");
         }
 
         public bool RequestStoreHoe(
@@ -3805,14 +3758,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            if (!TryConsumeTool(player, "Hoe"))
-                return false;
-
-            return RequestSetHoeStored(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                true);
+                "StoreHoe");
         }
 
         public bool RequestStorePickaxe(
@@ -3820,14 +3768,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             Player player)
         {
-            if (!TryConsumeAnyTool(player, PickaxePrefabNames))
-                return false;
-
-            return RequestSetPickaxeStored(
-                wardId,
-                privateArea,
+            return DenyBuiltInTerraformingRequest(
                 player,
-                true);
+                "StorePickaxe");
         }
 
         public bool RequestAddFuelSlot(
@@ -3836,55 +3779,9 @@ namespace ClanTerritory.Features.Territory.Services
             Player player,
             int slotIndex)
         {
-            if (!ValidateCreatorAction("AddTerraformingFuelSlot", wardId, privateArea, player))
-                return false;
-
-            if (!IsValidFuelSlot(slotIndex))
-                return false;
-
-            ZDO zdo = GetZdo(privateArea);
-
-            if (zdo == null)
-                return false;
-
-            int stored = GetSlot(
-                zdo,
-                TerritoryZdoKeys.TerraformingFuelSlotPrefix,
-                slotIndex);
-
-            int capacity = SlotCapacity - stored;
-
-            if (capacity <= 0)
-            {
-                player.Message(MessageHud.MessageType.Center, "Fuel slot is full");
-                return false;
-            }
-
-            int moved = TakeItemsFromPlayer(
+            return DenyBuiltInTerraformingRequest(
                 player,
-                FuelPrefabNames,
-                capacity);
-
-            if (moved <= 0)
-            {
-                player.Message(MessageHud.MessageType.Center, "No fuel in inventory");
-                return false;
-            }
-
-            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
-
-            if (zNetView == null || !zNetView.IsValid())
-                return false;
-
-            zNetView.InvokeRPC(
-                AddFuelSlotRpc,
-                player.GetPlayerID(),
-                slotIndex,
-                moved);
-
-            player.Message(MessageHud.MessageType.Center, "Fuel stored: " + moved);
-            ModLog.Info("[TerritoryTerraforming] Add fuel slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
-            return true;
+                "AddFuelSlot");
         }
 
         public bool RequestAddStoneSlot(
@@ -3893,55 +3790,9 @@ namespace ClanTerritory.Features.Territory.Services
             Player player,
             int slotIndex)
         {
-            if (!ValidateCreatorAction("AddTerraformingStoneSlot", wardId, privateArea, player))
-                return false;
-
-            if (!IsValidStoneSlot(slotIndex))
-                return false;
-
-            ZDO zdo = GetZdo(privateArea);
-
-            if (zdo == null)
-                return false;
-
-            int stored = GetSlot(
-                zdo,
-                TerritoryZdoKeys.TerraformingStoneSlotPrefix,
-                slotIndex);
-
-            int capacity = SlotCapacity - stored;
-
-            if (capacity <= 0)
-            {
-                player.Message(MessageHud.MessageType.Center, "Stone slot is full");
-                return false;
-            }
-
-            int moved = TakeItemsFromPlayer(
+            return DenyBuiltInTerraformingRequest(
                 player,
-                new[] { "Stone" },
-                capacity);
-
-            if (moved <= 0)
-            {
-                player.Message(MessageHud.MessageType.Center, "No stone in inventory");
-                return false;
-            }
-
-            ZNetView zNetView = privateArea.GetComponent<ZNetView>();
-
-            if (zNetView == null || !zNetView.IsValid())
-                return false;
-
-            zNetView.InvokeRPC(
-                AddStoneSlotRpc,
-                player.GetPlayerID(),
-                slotIndex,
-                moved);
-
-            player.Message(MessageHud.MessageType.Center, "Stone stored: " + moved);
-            ModLog.Info("[TerritoryTerraforming] Add stone slot requested: " + wardId + ", slot: " + slotIndex + ", amount: " + moved);
-            return true;
+                "AddStoneSlot");
         }
 
         private Container CreateVirtualPreparationChest(

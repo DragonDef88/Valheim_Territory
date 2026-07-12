@@ -94,11 +94,6 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             if (ServiceContainer.TryGet<TerritoryRuleService>(out territoryRuleService))
                 territoryRuleService.RegisterRpc(__instance);
 
-            TerritoryTerraformingService territoryTerraformingService;
-
-            if (ServiceContainer.TryGet<TerritoryTerraformingService>(out territoryTerraformingService))
-                territoryTerraformingService.RegisterRpc(__instance);
-
             if (!Scanner.TryCreateWardModel(
                     __instance,
                     out WardModel model))
@@ -200,18 +195,6 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             Inventory targetInventory = __instance.GetInventory();
 
             bool handled =
-                TerritoryTerraformingService.TryMoveItemToPreparationSlot(
-                    targetInventory,
-                    fromInventory,
-                    item,
-                    amount,
-                    pos,
-                    out __result);
-
-            if (handled)
-                return false;
-
-            handled =
                 TerritoryTerraformingService.TryMoveItemToTreasurySlot(
                     targetInventory,
                     fromInventory,
@@ -244,16 +227,6 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             Inventory fromInventory,
             ItemDrop.ItemData item)
         {
-            if (TerritoryTerraformingService.IsPreparationChestInventory(__instance))
-            {
-                TerritoryTerraformingService.TryAutoMoveItemToPreparationChest(
-                    __instance,
-                    fromInventory,
-                    item);
-
-                return false;
-            }
-
             if (TerritoryTerraformingService.IsTreasuryChestInventory(__instance))
             {
                 TerritoryTerraformingService.TryAutoMoveItemToTreasuryChest(
@@ -265,22 +238,6 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             }
 
             return true;
-        }
-    }
-
-
-    [HarmonyPatch(typeof(InventoryGrid))]
-    internal static class InventoryGridUpdatePreparationChestVisibilityHook
-    {
-        [HarmonyPostfix]
-        [HarmonyPatch("UpdateInventory")]
-        private static void UpdateInventoryPostfix(
-            InventoryGrid __instance,
-            Inventory inventory)
-        {
-            TerritoryTerraformingService.ApplyPreparationChestGridVisibility(
-                __instance,
-                inventory);
         }
     }
 
@@ -386,36 +343,6 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
             ModLog.Info(
                 "[Compatibility] Closed Clan Territory virtual container before InventoryGui.Show container switch.");
-        }
-    }
-
-    [HarmonyPatch]
-    internal static class TerritoryTerraformingLevelTerrainHook
-    {
-        private static MethodBase TargetMethod()
-        {
-            return AccessTools.Method(
-                typeof(TerrainComp),
-                "LevelTerrain");
-        }
-
-        private static bool Prefix(
-            TerrainComp __instance,
-            Vector3 worldPos,
-            float radius,
-            bool square)
-        {
-            if (!TerritoryTerraformingService.ShouldUseWardHeightFalloffLeveling())
-                return true;
-
-            bool handled =
-                TerritoryTerraformingService.TryApplyWardHeightFalloffLevelTerrain(
-                    __instance,
-                    worldPos,
-                    radius,
-                    square);
-
-            return !handled;
         }
     }
 

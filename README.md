@@ -464,3 +464,12 @@ This improves compatibility with companion inventory mods that switch containers
 ## InventoryGui.Show signature compatibility fix
 
 The virtual container switch compatibility hook now dynamically finds `InventoryGui.Show` overloads whose first argument is `Container`, instead of requiring the exact `Show(Container)` signature.
+
+
+## Built-in terraforming removed
+
+Clan Territory no longer runs its own terraforming worker or patches `TerrainComp.LevelTerrain`.
+
+Terrain shaping should be handled by a dedicated terrain mod such as Plateautem. Clan Territory remains responsible for territory ownership, guild access, ward rules, economy, diplomacy, biome dominion, and protection logic.
+
+The legacy code paths are disabled so existing saved ZDO values do not break worlds, but the ward menu no longer exposes the terraforming tab and no background heightmap worker is executed.

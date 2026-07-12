@@ -239,26 +239,7 @@ namespace ClanTerritory.Features.WardMenu.Builders
 
         private WardMenuTerraformingSection BuildTerraformingSection(PrivateArea privateArea)
         {
-            if (_territoryTerraformingService == null)
-                return WardMenuTerraformingSection.Disabled();
-
-            TerraformingState state = _territoryTerraformingService.GetState(privateArea);
-
-            return new WardMenuTerraformingSection(
-                state.Enabled,
-                state.Running,
-                state.Radius,
-                state.TargetHeight,
-                state.FuelStored,
-                state.StoneStored,
-                state.FuelSlots,
-                state.StoneSlots,
-                state.HoeStored,
-                state.PickaxeStored,
-                state.AxeStored,
-                state.ScanProgress,
-                state.ScanIndex,
-                BuildTerraformingStatus(state));
+            return WardMenuTerraformingSection.Disabled();
         }
 
         private static string BuildTerraformingStatus(TerraformingState state)
