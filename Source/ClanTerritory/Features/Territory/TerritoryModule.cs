@@ -141,7 +141,9 @@ namespace ClanTerritory.Features.Territory
                 if (_ruleService != null)
                     _ruleService.Update();
 
-                // Built-in terraforming is disabled. Clan Territory must not run heightmap/tree/resource workers.
+                if (_terraformingService != null)
+                    _terraformingService.Update();
+
                 if (_presenceService != null)
                     _presenceService.Update();
             }
@@ -631,14 +633,14 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
-            if (!BuiltInTerraformingEnabled)
-                return;
-
             if (Time.time >= _nextResourceAbsorbTime)
             {
                 _nextResourceAbsorbTime = Time.time + ResourceAbsorbInterval;
                 ProcessGroundResourceAbsorption();
             }
+
+            if (!BuiltInTerraformingEnabled)
+                return;
 
             ProcessLevelingWorkers();
         }
