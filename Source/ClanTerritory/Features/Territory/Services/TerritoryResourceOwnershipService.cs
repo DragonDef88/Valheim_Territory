@@ -1,8 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using ClanTerritory.Core;
 using ClanTerritory.Events;
+using ClanTerritory.Features.Territory;
 using ClanTerritory.Features.WardDetection;
 using ClanTerritory.Integration.Guilds;
 using ClanTerritory.Utils;
@@ -16,6 +19,7 @@ namespace ClanTerritory.Features.Territory.Services
     {
         private const float ScanInterval = 0.5f;
         private const int MaxAssignmentsPerScan = 64;
+
         private const string OfflineCompanionSetupTypeName =
             "Companions.CompanionSetup";
 
@@ -24,39 +28,57 @@ namespace ClanTerritory.Features.Territory.Services
                 typeof(PrivateArea),
                 "m_allAreas");
 
+        private static readonly FieldInfo PermittedPlayersField =
+            AccessTools.Field(
+                typeof(PrivateArea),
+                "m_permittedPlayers");
+
         private static Type _offlineCompanionSetupType;
+
         private static int _offlineCompanionOwnerHash =
             GetStableHashCode("HC_Owner");
 
+        private static bool _offlineCompanionDetectedLogged;
+
+        private ZNetScene _observedScene;
         private float _nextScanTime;
 
-        public void Handle(WardDestroyedEvent eventData)
+        public void Handle(
+            WardDestroyedEvent eventData)
         {
             if (eventData == null)
                 return;
 
-            string wardId = eventData.WardId.ToString();
+            string wardId =
+                eventData.WardId.ToString();
 
             if (string.IsNullOrEmpty(wardId))
                 return;
 
             ItemDrop[] drops =
-                UnityEngine.Object.FindObjectsByType<ItemDrop>(
-                    UnityEngine.FindObjectsSortMode.None);
+                UnityEngine.Object
+                    .FindObjectsByType<ItemDrop>(
+                        UnityEngine.FindObjectsSortMode.None);
 
             int released = 0;
 
             for (int i = 0; i < drops.Length; i++)
             {
-                ItemDrop drop = drops[i];
+                ItemDrop drop =
+                    drops[i];
 
-                if (!IsOwnedByWard(drop, wardId))
+                if (!IsOwnedByWard(
+                        drop,
+                        wardId))
+                {
+                    continue;
+                }
+
+                if (!ClaimNetworkOwnership(drop))
                     continue;
 
-                if (!EnsureNetworkOwnership(drop))
-                    continue;
-
-                ZDO itemZdo = GetItemZdo(drop);
+                ZDO itemZdo =
+                    GetItemZdo(drop);
 
                 if (itemZdo == null)
                     continue;
@@ -80,33 +102,60 @@ namespace ClanTerritory.Features.Territory.Services
 
         public void Update()
         {
+            ZNetScene currentScene =
+                ZNetScene.instance;
+
+            if (!ReferenceEquals(
+                    currentScene,
+                    _observedScene))
+            {
+                _observedScene =
+                    currentScene;
+
+                _nextScanTime = 0f;
+            }
+
+            if (currentScene == null ||
+                ZDOMan.instance == null)
+            {
+                return;
+            }
+
             if (Time.time < _nextScanTime)
                 return;
 
-            _nextScanTime = Time.time + ScanInterval;
+            _nextScanTime =
+                Time.time + ScanInterval;
 
-            List<PrivateArea> privateAreas = GetPrivateAreas();
+            List<PrivateArea> privateAreas =
+                GetPrivateAreas();
 
             if (privateAreas.Count == 0)
                 return;
 
             ItemDrop[] drops =
-                UnityEngine.Object.FindObjectsByType<ItemDrop>(
-                    UnityEngine.FindObjectsSortMode.None);
+                UnityEngine.Object
+                    .FindObjectsByType<ItemDrop>(
+                        UnityEngine.FindObjectsSortMode.None);
 
             int assigned = 0;
 
             for (int i = 0;
-                 i < drops.Length && assigned < MaxAssignmentsPerScan;
+                 i < drops.Length &&
+                 assigned < MaxAssignmentsPerScan;
                  i++)
             {
-                ItemDrop drop = drops[i];
+                ItemDrop drop =
+                    drops[i];
 
                 if (!CanAssign(drop))
                     continue;
 
-                if (!string.IsNullOrEmpty(GetTerritoryWardId(drop)))
+                if (!string.IsNullOrEmpty(
+                        GetTerritoryWardId(drop)))
+                {
                     continue;
+                }
 
                 PrivateArea privateArea =
                     FindTerritoryAt(
@@ -126,20 +175,23 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
                 }
 
-                ZDO wardZdo = wardView.GetZDO();
+                ZDO wardZdo =
+                    wardView.GetZDO();
 
                 if (wardZdo == null)
                     continue;
 
-                if (!EnsureNetworkOwnership(drop))
+                if (!ClaimNetworkOwnership(drop))
                     continue;
 
-                ZDO itemZdo = GetItemZdo(drop);
+                ZDO itemZdo =
+                    GetItemZdo(drop);
 
                 if (itemZdo == null)
                     continue;
 
-                string wardId = wardZdo.m_uid.ToString();
+                string wardId =
+                    wardZdo.m_uid.ToString();
 
                 itemZdo.Set(
                     TerritoryZdoKeys.ItemTerritoryWardId,
@@ -155,51 +207,24 @@ namespace ClanTerritory.Features.Territory.Services
             }
         }
 
-        public static bool IsOwnedByWard(
-            ItemDrop drop,
-            string wardId)
-        {
-            if (drop == null || string.IsNullOrEmpty(wardId))
-                return false;
-
-            return string.Equals(
-                GetTerritoryWardId(drop),
-                wardId,
-                StringComparison.Ordinal);
-        }
-
-        public static bool EnsureNetworkOwnership(ItemDrop drop)
-        {
-            if (drop == null)
-                return false;
-
-            ZNetView zNetView =
-                drop.GetComponent<ZNetView>();
-
-            if (zNetView == null || !zNetView.IsValid())
-                return drop.CanPickup(false);
-
-            if (!zNetView.IsOwner())
-                zNetView.ClaimOwnership();
-
-            return zNetView.IsOwner() &&
-                   drop.CanPickup(false);
-        }
-
         public static bool CanHumanoidPickup(
             ItemDrop drop,
             Humanoid humanoid)
         {
-            if (drop == null || humanoid == null)
+            if (drop == null ||
+                humanoid == null)
+            {
                 return true;
+            }
 
-            string wardId = GetTerritoryWardId(drop);
+            string wardId =
+                GetTerritoryWardId(drop);
 
             if (string.IsNullOrEmpty(wardId))
                 return true;
 
             PrivateArea privateArea =
-                TerritoryGuildAccess.FindPrivateAreaByWardId(
+                FindPrivateAreaByWardId(
                     wardId);
 
             if (privateArea == null)
@@ -207,11 +232,13 @@ namespace ClanTerritory.Features.Territory.Services
 
             long playerId;
 
-            Player player = humanoid as Player;
+            Player player =
+                humanoid as Player;
 
             if (player != null)
             {
-                playerId = player.GetPlayerID();
+                playerId =
+                    player.GetPlayerID();
             }
             else if (!TryGetOfflineCompanionOwnerId(
                          humanoid,
@@ -227,12 +254,51 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
-            return EnsureNetworkOwnership(drop);
+            return EnsurePickupOwnership(drop);
         }
 
-        public static string GetTerritoryWardId(ItemDrop drop)
+        public static bool IsOwnedByPrivateArea(
+            ItemDrop drop,
+            PrivateArea privateArea)
         {
-            ZDO itemZdo = GetItemZdo(drop);
+            if (drop == null ||
+                privateArea == null)
+            {
+                return false;
+            }
+
+            ZDO wardZdo =
+                GetWardZdo(privateArea);
+
+            if (wardZdo == null)
+                return false;
+
+            return IsOwnedByWard(
+                drop,
+                wardZdo.m_uid.ToString());
+        }
+
+        public static bool IsOwnedByWard(
+            ItemDrop drop,
+            string wardId)
+        {
+            if (drop == null ||
+                string.IsNullOrEmpty(wardId))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                GetTerritoryWardId(drop),
+                wardId,
+                StringComparison.Ordinal);
+        }
+
+        public static string GetTerritoryWardId(
+            ItemDrop drop)
+        {
+            ZDO itemZdo =
+                GetItemZdo(drop);
 
             if (itemZdo == null)
                 return "";
@@ -242,9 +308,12 @@ namespace ClanTerritory.Features.Territory.Services
                 "");
         }
 
-        private static bool CanAssign(ItemDrop drop)
+        private static bool CanAssign(
+            ItemDrop drop)
         {
             if (drop == null ||
+                drop.gameObject == null ||
+                !drop.gameObject.activeInHierarchy ||
                 drop.m_itemData == null ||
                 drop.m_itemData.m_stack <= 0)
             {
@@ -254,7 +323,36 @@ namespace ClanTerritory.Features.Territory.Services
             return !drop.IsPiece();
         }
 
-        private static ZDO GetItemZdo(ItemDrop drop)
+        private static bool ClaimNetworkOwnership(
+            ItemDrop drop)
+        {
+            if (drop == null)
+                return false;
+
+            ZNetView zNetView =
+                drop.GetComponent<ZNetView>();
+
+            if (zNetView == null ||
+                !zNetView.IsValid())
+            {
+                return false;
+            }
+
+            if (!zNetView.IsOwner())
+                zNetView.ClaimOwnership();
+
+            return zNetView.IsOwner();
+        }
+
+        private static bool EnsurePickupOwnership(
+            ItemDrop drop)
+        {
+            return ClaimNetworkOwnership(drop) &&
+                   drop.CanPickup(false);
+        }
+
+        private static ZDO GetItemZdo(
+            ItemDrop drop)
         {
             if (drop == null)
                 return null;
@@ -262,8 +360,29 @@ namespace ClanTerritory.Features.Territory.Services
             ZNetView zNetView =
                 drop.GetComponent<ZNetView>();
 
-            if (zNetView == null || !zNetView.IsValid())
+            if (zNetView == null ||
+                !zNetView.IsValid())
+            {
                 return null;
+            }
+
+            return zNetView.GetZDO();
+        }
+
+        private static ZDO GetWardZdo(
+            PrivateArea privateArea)
+        {
+            if (privateArea == null)
+                return null;
+
+            ZNetView zNetView =
+                privateArea.GetComponent<ZNetView>();
+
+            if (zNetView == null ||
+                !zNetView.IsValid())
+            {
+                return null;
+            }
 
             return zNetView.GetZDO();
         }
@@ -272,16 +391,14 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea privateArea,
             long playerId)
         {
-            if (privateArea == null || playerId == 0L)
+            if (privateArea == null ||
+                playerId == 0L)
+            {
                 return false;
+            }
 
-            ZNetView zNetView =
-                privateArea.GetComponent<ZNetView>();
-
-            if (zNetView == null || !zNetView.IsValid())
-                return false;
-
-            ZDO wardZdo = zNetView.GetZDO();
+            ZDO wardZdo =
+                GetWardZdo(privateArea);
 
             if (wardZdo == null)
                 return false;
@@ -294,18 +411,156 @@ namespace ClanTerritory.Features.Territory.Services
             if (creatorId == playerId)
                 return true;
 
-            List<KeyValuePair<long, string>> permittedPlayers =
-                privateArea.GetPermittedPlayers();
-
-            for (int i = 0; i < permittedPlayers.Count; i++)
+            if (IsPermittedPlayer(
+                    privateArea,
+                    playerId))
             {
-                if (permittedPlayers[i].Key == playerId)
-                    return true;
+                return true;
             }
 
-            return TerritoryGuildAccess.HasGuildAccess(
-                wardZdo,
-                playerId);
+            string wardGuildId =
+                wardZdo.GetString(
+                    TerritoryZdoKeys.WardGuildId,
+                    "");
+
+            if (string.IsNullOrEmpty(
+                    wardGuildId))
+            {
+                return false;
+            }
+
+            IGuildService guildService;
+
+            if (!ServiceContainer.TryGet<
+                    IGuildService>(
+                    out guildService) ||
+                guildService == null ||
+                !guildService.IsAvailable)
+            {
+                return false;
+            }
+
+            string playerGuildId;
+
+            return guildService.TryGetPlayerGuildId(
+                       playerId,
+                       out playerGuildId) &&
+                   !string.IsNullOrEmpty(
+                       playerGuildId) &&
+                   string.Equals(
+                       wardGuildId,
+                       playerGuildId,
+                       StringComparison.Ordinal);
+        }
+
+        private static bool IsPermittedPlayer(
+            PrivateArea privateArea,
+            long playerId)
+        {
+            if (privateArea == null ||
+                playerId == 0L ||
+                PermittedPlayersField == null)
+            {
+                return false;
+            }
+
+            object rawValue;
+
+            try
+            {
+                rawValue =
+                    PermittedPlayersField.GetValue(
+                        privateArea);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            if (rawValue == null)
+                return false;
+
+            IDictionary<long, string> genericDictionary =
+                rawValue as IDictionary<long, string>;
+
+            if (genericDictionary != null)
+            {
+                return genericDictionary.ContainsKey(
+                    playerId);
+            }
+
+            IEnumerable<KeyValuePair<long, string>>
+                genericPairs =
+                    rawValue as IEnumerable<
+                        KeyValuePair<long, string>>;
+
+            if (genericPairs != null)
+            {
+                foreach (KeyValuePair<long, string> pair
+                         in genericPairs)
+                {
+                    if (pair.Key == playerId)
+                        return true;
+                }
+
+                return false;
+            }
+
+            IDictionary dictionary =
+                rawValue as IDictionary;
+
+            if (dictionary != null)
+            {
+                return dictionary.Contains(
+                    playerId);
+            }
+
+            IEnumerable enumerable =
+                rawValue as IEnumerable;
+
+            if (enumerable == null)
+                return false;
+
+            foreach (object entry in enumerable)
+            {
+                if (entry == null)
+                    continue;
+
+                Type entryType =
+                    entry.GetType();
+
+                PropertyInfo keyProperty =
+                    entryType.GetProperty(
+                        "Key",
+                        BindingFlags.Instance |
+                        BindingFlags.Public |
+                        BindingFlags.NonPublic);
+
+                if (keyProperty == null)
+                    continue;
+
+                object keyValue;
+
+                try
+                {
+                    keyValue =
+                        keyProperty.GetValue(
+                            entry,
+                            null);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (keyValue is long &&
+                    (long)keyValue == playerId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryGetOfflineCompanionOwnerId(
@@ -314,6 +569,9 @@ namespace ClanTerritory.Features.Territory.Services
         {
             ownerId = 0L;
 
+            if (humanoid == null)
+                return false;
+
             Type setupType =
                 ResolveOfflineCompanionSetupType();
 
@@ -321,7 +579,8 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
 
             Component setup =
-                humanoid.GetComponent(setupType);
+                humanoid.GetComponent(
+                    setupType);
 
             if (setup == null)
                 return false;
@@ -329,10 +588,14 @@ namespace ClanTerritory.Features.Territory.Services
             ZNetView zNetView =
                 setup.GetComponent<ZNetView>();
 
-            if (zNetView == null || !zNetView.IsValid())
+            if (zNetView == null ||
+                !zNetView.IsValid())
+            {
                 return false;
+            }
 
-            ZDO zdo = zNetView.GetZDO();
+            ZDO zdo =
+                zNetView.GetZDO();
 
             if (zdo == null)
                 return false;
@@ -343,11 +606,11 @@ namespace ClanTerritory.Features.Territory.Services
                     "");
 
             return long.TryParse(
-                rawOwnerId,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out ownerId) &&
-                ownerId != 0L;
+                       rawOwnerId,
+                       NumberStyles.Integer,
+                       CultureInfo.InvariantCulture,
+                       out ownerId) &&
+                   ownerId != 0L;
         }
 
         private static Type ResolveOfflineCompanionSetupType()
@@ -358,7 +621,9 @@ namespace ClanTerritory.Features.Territory.Services
             Assembly[] assemblies =
                 AppDomain.CurrentDomain.GetAssemblies();
 
-            for (int i = 0; i < assemblies.Length; i++)
+            for (int i = 0;
+                 i < assemblies.Length;
+                 i++)
             {
                 Type type =
                     assemblies[i].GetType(
@@ -368,12 +633,20 @@ namespace ClanTerritory.Features.Territory.Services
                 if (type == null)
                     continue;
 
-                _offlineCompanionSetupType = type;
-                _offlineCompanionOwnerHash =
-                    ResolveOfflineCompanionOwnerHash(type);
+                _offlineCompanionSetupType =
+                    type;
 
-                ModLog.Info(
-                    "[TerritoryResources] Offline Companions 1.3.0 integration detected.");
+                _offlineCompanionOwnerHash =
+                    ResolveOfflineCompanionOwnerHash(
+                        type);
+
+                if (!_offlineCompanionDetectedLogged)
+                {
+                    _offlineCompanionDetectedLogged = true;
+
+                    ModLog.Info(
+                        "[TerritoryResources] Offline Companions integration detected.");
+                }
 
                 return _offlineCompanionSetupType;
             }
@@ -421,7 +694,8 @@ namespace ClanTerritory.Features.Territory.Services
                     return (int)value;
             }
 
-            return GetStableHashCode("HC_Owner");
+            return GetStableHashCode(
+                "HC_Owner");
         }
 
         private static List<PrivateArea> GetPrivateAreas()
@@ -439,6 +713,40 @@ namespace ClanTerritory.Features.Territory.Services
             return privateAreas;
         }
 
+        private static PrivateArea FindPrivateAreaByWardId(
+            string wardId)
+        {
+            if (string.IsNullOrEmpty(wardId))
+                return null;
+
+            List<PrivateArea> privateAreas =
+                GetPrivateAreas();
+
+            for (int i = 0;
+                 i < privateAreas.Count;
+                 i++)
+            {
+                PrivateArea privateArea =
+                    privateAreas[i];
+
+                ZDO wardZdo =
+                    GetWardZdo(privateArea);
+
+                if (wardZdo == null)
+                    continue;
+
+                if (string.Equals(
+                        wardZdo.m_uid.ToString(),
+                        wardId,
+                        StringComparison.Ordinal))
+                {
+                    return privateArea;
+                }
+            }
+
+            return null;
+        }
+
         private static PrivateArea FindTerritoryAt(
             List<PrivateArea> privateAreas,
             Vector3 position)
@@ -446,7 +754,9 @@ namespace ClanTerritory.Features.Territory.Services
             PrivateArea nearest = null;
             float nearestDistance = float.MaxValue;
 
-            for (int i = 0; i < privateAreas.Count; i++)
+            for (int i = 0;
+                 i < privateAreas.Count;
+                 i++)
             {
                 PrivateArea privateArea =
                     privateAreas[i];
@@ -459,20 +769,30 @@ namespace ClanTerritory.Features.Territory.Services
                         privateArea.transform.position,
                         position);
 
-                if (distance > privateArea.m_radius)
+                if (distance >
+                    privateArea.m_radius)
+                {
                     continue;
+                }
 
-                if (distance >= nearestDistance)
+                if (distance >=
+                    nearestDistance)
+                {
                     continue;
+                }
 
-                nearest = privateArea;
-                nearestDistance = distance;
+                nearest =
+                    privateArea;
+
+                nearestDistance =
+                    distance;
             }
 
             return nearest;
         }
 
-        private static int GetStableHashCode(string value)
+        private static int GetStableHashCode(
+            string value)
         {
             if (value == null)
                 return 0;
@@ -491,7 +811,8 @@ namespace ClanTerritory.Features.Territory.Services
                         ((hash1 << 5) + hash1) ^
                         value[i];
 
-                    if (i == value.Length - 1 ||
+                    if (i ==
+                            value.Length - 1 ||
                         value[i + 1] == '\0')
                     {
                         break;
@@ -507,31 +828,120 @@ namespace ClanTerritory.Features.Territory.Services
             }
         }
     }
+
+    internal static class TerritoryResourceOwnershipRuntime
+    {
+        private static TerritoryResourceOwnershipService _service;
+        private static GameObject _runnerObject;
+        private static bool _eventBusSubscribed;
+
+        public static TerritoryResourceOwnershipService Service
+        {
+            get
+            {
+                EnsureStarted();
+                return _service;
+            }
+        }
+
+        public static void EnsureStarted()
+        {
+            if (_service == null)
+            {
+                _service =
+                    new TerritoryResourceOwnershipService();
+
+                ServiceContainer.Register<
+                    TerritoryResourceOwnershipService>(
+                        _service);
+            }
+
+            if (!_eventBusSubscribed)
+            {
+                EventBus eventBus;
+
+                if (ServiceContainer.TryGet<EventBus>(
+                        out eventBus) &&
+                    eventBus != null)
+                {
+                    eventBus.Subscribe<
+                        WardDestroyedEvent>(
+                            _service);
+
+                    _eventBusSubscribed = true;
+                }
+            }
+
+            if (_runnerObject != null)
+                return;
+
+            _runnerObject =
+                new GameObject(
+                    "ClanTerritory_TerritoryResourceOwnershipRunner");
+
+            UnityEngine.Object.DontDestroyOnLoad(
+                _runnerObject);
+
+            _runnerObject.AddComponent<
+                TerritoryResourceOwnershipRunner>();
+
+            ModLog.Info(
+                "[TerritoryResources] Territory-owned item runtime started.");
+        }
+
+        public static void Update()
+        {
+            if (_service != null)
+                _service.Update();
+        }
+    }
+
+    internal sealed class TerritoryResourceOwnershipRunner :
+        MonoBehaviour
+    {
+        private void Update()
+        {
+            TerritoryResourceOwnershipRuntime.Update();
+        }
+    }
 }
 
 namespace ClanTerritory.Integration.Valheim.Harmony
 {
     using ClanTerritory.Features.Territory.Services;
 
+    [HarmonyPatch(typeof(ZNetScene), "Awake")]
+    internal static class TerritoryResourceOwnershipRuntimeStartHook
+    {
+        [HarmonyPostfix]
+        private static void Postfix()
+        {
+            TerritoryResourceOwnershipRuntime
+                .EnsureStarted();
+        }
+    }
+
     [HarmonyPatch(
         typeof(ItemDrop),
         "Pickup",
-        new[] { typeof(Humanoid) })]
+        new Type[] { typeof(Humanoid) })]
     internal static class TerritoryItemDropPickupHook
     {
+        [HarmonyPrefix]
         private static bool Prefix(
             ItemDrop __instance,
             Humanoid __0)
         {
             if (TerritoryResourceOwnershipService
-                .CanHumanoidPickup(
-                    __instance,
-                    __0))
+                    .CanHumanoidPickup(
+                        __instance,
+                        __0))
             {
                 return true;
             }
 
-            Player player = __0 as Player;
+            Player player =
+                __0 as Player;
 
             if (player != null)
             {
@@ -547,6 +957,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
     [HarmonyPatch]
     internal static class TerritoryHumanoidPickupHook
     {
+        [HarmonyTargetMethods]
         private static IEnumerable<MethodBase> TargetMethods()
         {
             MethodInfo[] methods =
@@ -555,9 +966,12 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                     BindingFlags.Public |
                     BindingFlags.NonPublic);
 
-            for (int i = 0; i < methods.Length; i++)
+            for (int i = 0;
+                 i < methods.Length;
+                 i++)
             {
-                MethodInfo method = methods[i];
+                MethodInfo method =
+                    methods[i];
 
                 if (!string.Equals(
                         method.Name,
@@ -572,7 +986,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
 
                 if (parameters.Length == 0 ||
                     parameters[0].ParameterType !=
-                    typeof(GameObject))
+                        typeof(GameObject))
                 {
                     continue;
                 }
@@ -581,6 +995,7 @@ namespace ClanTerritory.Integration.Valheim.Harmony
             }
         }
 
+        [HarmonyPrefix]
         private static bool Prefix(
             Humanoid __instance,
             object[] __args)
@@ -613,6 +1028,28 @@ namespace ClanTerritory.Integration.Valheim.Harmony
                 .CanHumanoidPickup(
                     drop,
                     __instance);
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(TerritoryTerraformingService),
+        "IsAbsorbableGroundItem")]
+    internal static class TerritoryResourceAbsorptionOwnershipHook
+    {
+        [HarmonyPostfix]
+        private static void Postfix(
+            ItemDrop drop,
+            PrivateArea privateArea,
+            ref bool __result)
+        {
+            if (!__result)
+                return;
+
+            __result =
+                TerritoryResourceOwnershipService
+                    .IsOwnedByPrivateArea(
+                        drop,
+                        privateArea);
         }
     }
 }

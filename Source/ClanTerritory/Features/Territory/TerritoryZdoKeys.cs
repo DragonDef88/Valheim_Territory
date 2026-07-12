@@ -67,5 +67,7 @@ namespace ClanTerritory.Features.Territory
         public const string TreasuryWardId = "ct_territory_treasury_ward_id";
 
         public const string TreasuryChestItems = "ct_territory_treasury_chest_items";
+
+        public const string ItemTerritoryWardId = "ct_item_territory_ward_id";
     }
 }
