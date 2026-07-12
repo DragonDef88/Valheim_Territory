@@ -19,6 +19,8 @@ namespace ClanTerritory.Features.Territory.Services
 
         private const float EnsureInterval = 1.5f;
         private const float ChestDistanceBehindWard = 1.75f;
+        private const float LinkedChestHorizontalTolerance = 1.25f;
+        private const float LinkedChestVerticalTolerance = 1.5f;
         private const int TreasuryWidth = 8;
         private const int TreasuryHeight = 4;
         private const int TreasuryStackLimit = 9999;
@@ -184,6 +186,38 @@ namespace ClanTerritory.Features.Territory.Services
                 container,
                 wardZdo);
 
+            ZNetView openedView =
+                container.GetComponent<ZNetView>();
+
+            ZDO openedZdo =
+                openedView != null &&
+                openedView.IsValid()
+                    ? openedView.GetZDO()
+                    : null;
+
+            if (openedZdo == null)
+            {
+                ClearWardChestLink(wardZdo);
+
+                player.Message(
+                    MessageHud.MessageType.Center,
+                    "Territory Treasury link is invalid.");
+
+                ModLog.Info(
+                    "[TerritoryTreasury] Open rejected because the linked chest has no valid ZDO. Ward: " +
+                    wardZdo.m_uid);
+
+                return false;
+            }
+
+            ModLog.Info(
+                "[TerritoryTreasury] Opening linked treasury. Ward: " +
+                wardZdo.m_uid +
+                ", chest: " +
+                openedZdo.m_uid +
+                ", position: " +
+                container.transform.position);
+
             if (InventoryGui.instance != null)
                 InventoryGui.instance.Hide();
 
@@ -333,7 +367,8 @@ namespace ClanTerritory.Features.Territory.Services
             {
                 existing =
                     FindTreasuryByWardId(
-                        wardId);
+                        wardId,
+                        privateArea);
 
                 if (existing != null)
                 {
@@ -468,8 +503,12 @@ namespace ClanTerritory.Features.Territory.Services
                 container);
 
             ModLog.Info(
-                "[TerritoryTreasury] Physical blackmetal treasury created behind ward: " +
-                wardId);
+                "[TerritoryTreasury] Physical blackmetal treasury created behind ward. Ward: " +
+                wardId +
+                ", chest: " +
+                chestZdo.m_uid +
+                ", position: " +
+                container.transform.position);
 
             return container;
         }
@@ -527,7 +566,8 @@ namespace ClanTerritory.Features.Territory.Services
             {
                 container =
                     FindTreasuryByWardId(
-                        wardId);
+                        wardId,
+                        null);
             }
 
             _chestIdsByWardId.Remove(wardId);
@@ -648,6 +688,9 @@ namespace ClanTerritory.Features.Territory.Services
                     userId,
                     (uint)id);
 
+            string expectedWardId =
+                wardZdo.m_uid.ToString();
+
             GameObject chestObject =
                 ZNetScene.instance.FindInstance(
                     chestId);
@@ -659,8 +702,11 @@ namespace ClanTerritory.Features.Territory.Services
                         ? ZDOMan.instance.GetZDO(chestId)
                         : null;
 
-                string expectedWardId =
-                    wardZdo.m_uid.ToString();
+                bool linkedMarker =
+                    linkedZdo != null &&
+                    linkedZdo.GetBool(
+                        TerritoryZdoKeys.TreasuryChestMarker,
+                        false);
 
                 string linkedWardId =
                     linkedZdo != null
@@ -671,42 +717,59 @@ namespace ClanTerritory.Features.Territory.Services
 
                 if (clearInvalidLink &&
                     (linkedZdo == null ||
+                     !linkedMarker ||
                      !string.Equals(
                          linkedWardId,
                          expectedWardId,
                          StringComparison.Ordinal)))
                 {
                     ClearWardChestLink(wardZdo);
+
+                    ModLog.Info(
+                        "[TerritoryTreasury] Cleared invalid unloaded treasury link. Ward: " +
+                        expectedWardId +
+                        ", chest: " +
+                        chestId);
                 }
 
                 return null;
             }
 
-            Container container =
-                chestObject.GetComponent<Container>();
+            Container container;
+            string failureReason;
 
-            if (container == null)
+            if (!TryValidateTreasuryContainer(
+                    chestObject,
+                    privateArea,
+                    wardZdo,
+                    out container,
+                    out failureReason))
             {
+                ZNetView rejectedView =
+                    chestObject.GetComponent<ZNetView>();
+
+                ZDO rejectedZdo =
+                    rejectedView != null &&
+                    rejectedView.IsValid()
+                        ? rejectedView.GetZDO()
+                        : null;
+
+                ClearAccidentalTreasuryMarker(
+                    rejectedZdo,
+                    expectedWardId);
+
                 if (clearInvalidLink)
                     ClearWardChestLink(wardZdo);
 
+                ModLog.Info(
+                    "[TerritoryTreasury] Rejected invalid linked chest. Ward: " +
+                    expectedWardId +
+                    ", chest: " +
+                    chestId +
+                    ", reason: " +
+                    failureReason);
+
                 return null;
-            }
-
-            ZNetView chestView =
-                chestObject.GetComponent<ZNetView>();
-
-            if (chestView != null &&
-                chestView.IsValid() &&
-                chestView.GetZDO() != null)
-            {
-                chestView.GetZDO().Set(
-                    TerritoryZdoKeys.TreasuryChestMarker,
-                    true);
-
-                chestView.GetZDO().Set(
-                    TerritoryZdoKeys.TreasuryWardId,
-                    wardZdo.m_uid.ToString());
             }
 
             ConfigureTreasuryChest(
@@ -717,10 +780,16 @@ namespace ClanTerritory.Features.Territory.Services
         }
 
         private static Container FindTreasuryByWardId(
-            string wardId)
+            string wardId,
+            PrivateArea privateArea)
         {
             if (string.IsNullOrEmpty(wardId))
                 return null;
+
+            ZDO wardZdo =
+                privateArea != null
+                    ? GetZdo(privateArea)
+                    : null;
 
             Container[] containers =
                 UnityEngine.Object
@@ -747,8 +816,13 @@ namespace ClanTerritory.Features.Territory.Services
                 ZDO candidateZdo =
                     candidateView.GetZDO();
 
-                if (candidateZdo == null)
+                if (candidateZdo == null ||
+                    !candidateZdo.GetBool(
+                        TerritoryZdoKeys.TreasuryChestMarker,
+                        false))
+                {
                     continue;
+                }
 
                 string candidateWardId =
                     candidateZdo.GetString(
@@ -763,14 +837,244 @@ namespace ClanTerritory.Features.Territory.Services
                     continue;
                 }
 
-                candidateZdo.Set(
-                    TerritoryZdoKeys.TreasuryChestMarker,
-                    true);
+                if (privateArea == null ||
+                    wardZdo == null)
+                {
+                    if (IsExpectedTreasuryPrefab(
+                            candidate.gameObject))
+                    {
+                        return candidate;
+                    }
 
-                return candidate;
+                    continue;
+                }
+
+                Container validatedContainer;
+                string failureReason;
+
+                if (TryValidateTreasuryContainer(
+                        candidate.gameObject,
+                        privateArea,
+                        wardZdo,
+                        out validatedContainer,
+                        out failureReason))
+                {
+                    return validatedContainer;
+                }
+
+                ClearAccidentalTreasuryMarker(
+                    candidateZdo,
+                    wardId);
+
+                ModLog.Info(
+                    "[TerritoryTreasury] Rejected invalid treasury candidate. Ward: " +
+                    wardId +
+                    ", chest: " +
+                    candidateZdo.m_uid +
+                    ", reason: " +
+                    failureReason);
             }
 
             return null;
+        }
+
+        private static bool TryValidateTreasuryContainer(
+            GameObject chestObject,
+            PrivateArea privateArea,
+            ZDO wardZdo,
+            out Container container,
+            out string failureReason)
+        {
+            container = null;
+            failureReason = "";
+
+            if (chestObject == null)
+            {
+                failureReason = "object is null";
+                return false;
+            }
+
+            if (!IsExpectedTreasuryPrefab(chestObject))
+            {
+                failureReason =
+                    "unexpected prefab: " +
+                    chestObject.name;
+
+                return false;
+            }
+
+            Container candidate =
+                chestObject.GetComponent<Container>();
+
+            if (candidate == null)
+            {
+                failureReason = "Container component is missing";
+                return false;
+            }
+
+            ZNetView chestView =
+                chestObject.GetComponent<ZNetView>();
+
+            if (chestView == null ||
+                !chestView.IsValid())
+            {
+                failureReason = "ZNetView is invalid";
+                return false;
+            }
+
+            ZDO chestZdo =
+                chestView.GetZDO();
+
+            if (chestZdo == null)
+            {
+                failureReason = "ZDO is missing";
+                return false;
+            }
+
+            if (!chestZdo.GetBool(
+                    TerritoryZdoKeys.TreasuryChestMarker,
+                    false))
+            {
+                failureReason = "Treasury marker is missing";
+                return false;
+            }
+
+            if (privateArea == null ||
+                wardZdo == null)
+            {
+                failureReason = "ward context is missing";
+                return false;
+            }
+
+            string expectedWardId =
+                wardZdo.m_uid.ToString();
+
+            string linkedWardId =
+                chestZdo.GetString(
+                    TerritoryZdoKeys.TreasuryWardId,
+                    "");
+
+            if (!string.Equals(
+                    linkedWardId,
+                    expectedWardId,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "ward id mismatch: " +
+                    linkedWardId;
+
+                return false;
+            }
+
+            long wardCreatorId =
+                wardZdo.GetLong(
+                    ZDOVars.s_creator,
+                    0L);
+
+            long chestCreatorId =
+                chestZdo.GetLong(
+                    ZDOVars.s_creator,
+                    0L);
+
+            if (wardCreatorId != 0L &&
+                chestCreatorId != wardCreatorId)
+            {
+                failureReason =
+                    "creator mismatch: " +
+                    chestCreatorId;
+
+                return false;
+            }
+
+            Vector3 expectedPosition =
+                CalculateTreasuryPosition(
+                    privateArea);
+
+            Vector3 actualPosition =
+                candidate.transform.position;
+
+            float deltaX =
+                actualPosition.x -
+                expectedPosition.x;
+
+            float deltaZ =
+                actualPosition.z -
+                expectedPosition.z;
+
+            float horizontalDistance =
+                Mathf.Sqrt(
+                    deltaX * deltaX +
+                    deltaZ * deltaZ);
+
+            float verticalDistance =
+                Mathf.Abs(
+                    actualPosition.y -
+                    expectedPosition.y);
+
+            if (horizontalDistance >
+                    LinkedChestHorizontalTolerance ||
+                verticalDistance >
+                    LinkedChestVerticalTolerance)
+            {
+                failureReason =
+                    "position mismatch. Horizontal: " +
+                    horizontalDistance +
+                    ", vertical: " +
+                    verticalDistance;
+
+                return false;
+            }
+
+            container = candidate;
+            return true;
+        }
+
+        private static bool IsExpectedTreasuryPrefab(
+            GameObject gameObject)
+        {
+            if (gameObject == null)
+                return false;
+
+            string objectName =
+                gameObject.name ?? "";
+
+            return string.Equals(
+                       objectName,
+                       TreasuryPrefabName,
+                       StringComparison.Ordinal) ||
+                   string.Equals(
+                       objectName,
+                       TreasuryPrefabName + "(Clone)",
+                       StringComparison.Ordinal);
+        }
+
+        private static void ClearAccidentalTreasuryMarker(
+            ZDO chestZdo,
+            string expectedWardId)
+        {
+            if (chestZdo == null)
+                return;
+
+            string linkedWardId =
+                chestZdo.GetString(
+                    TerritoryZdoKeys.TreasuryWardId,
+                    "");
+
+            if (!string.Equals(
+                    linkedWardId,
+                    expectedWardId,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            chestZdo.Set(
+                TerritoryZdoKeys.TreasuryChestMarker,
+                false);
+
+            chestZdo.Set(
+                TerritoryZdoKeys.TreasuryWardId,
+                "");
         }
 
         private static void WriteWardChestLink(
@@ -851,12 +1155,18 @@ namespace ClanTerritory.Features.Territory.Services
                 return false;
             }
 
+            bool linkedMarker =
+                linkedZdo.GetBool(
+                    TerritoryZdoKeys.TreasuryChestMarker,
+                    false);
+
             string linkedWardId =
                 linkedZdo.GetString(
                     TerritoryZdoKeys.TreasuryWardId,
                     "");
 
-            if (!string.Equals(
+            if (!linkedMarker ||
+                !string.Equals(
                     linkedWardId,
                     wardId,
                     StringComparison.Ordinal))

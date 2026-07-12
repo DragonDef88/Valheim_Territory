@@ -104,10 +104,10 @@ namespace ClanTerritory.Features.WardMenu.Actions
 
         public bool OpenTreasuryChest(WardId wardId, PrivateArea privateArea, Player player)
         {
-            if (!TryGetTerraformingService("OpenTreasuryChest", wardId))
-                return false;
-
-            return _territoryTerraformingService.RequestOpenTreasuryChest(wardId, privateArea, player);
+            return PhysicalTreasuryRuntime.Service.RequestOpen(
+                wardId,
+                privateArea,
+                player);
         }
 
         public bool DecreaseTerraformingRadius(WardId wardId, PrivateArea privateArea, Player player)
