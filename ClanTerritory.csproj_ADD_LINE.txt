@@ -1,0 +1,9 @@
+Add exactly this line inside the Compile ItemGroup in ClanTerritory.csproj:
+
+    <Compile Include="Features\Territory\Services\PhysicalTreasuryService.cs" />
+
+Recommended position:
+
+    <Compile Include="Features\Territory\Events\TerritoryRadiusChangedEvent.cs" />
+    <Compile Include="Features\Territory\Services\PhysicalTreasuryService.cs" />
+    <Compile Include="Features\Territory\Services\TerritoryRuleService.cs" />

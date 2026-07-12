@@ -37,10 +37,13 @@ namespace ClanTerritory.Features.Territory
         public const string TerraformingPendingScanIndex = "ct_territory_terraforming_pending_scan_index";
 
         public const string TerraformingVerifyCount = "ct_territory_terraforming_verify_count";
+
         public const string TerraformingNextVerifyTime = "ct_territory_terraforming_next_verify_time";
 
         public const string WardGuildId = "ct_territory_guild_id";
+
         public const string WardGuildName = "ct_territory_guild_name";
+
         public const string WardGuildColor = "ct_territory_guild_color";
 
         public const string TerraformingFuelSlotPrefix = "ct_territory_terraforming_fuel_slot_";
@@ -60,6 +63,8 @@ namespace ClanTerritory.Features.Territory
         public const string TreasuryChestZdoId = "ct_territory_treasury_chest_zdo_id";
 
         public const string TreasuryChestMarker = "ct_territory_treasury_chest_marker";
+
+        public const string TreasuryWardId = "ct_territory_treasury_ward_id";
 
         public const string TreasuryChestItems = "ct_territory_treasury_chest_items";
     }
